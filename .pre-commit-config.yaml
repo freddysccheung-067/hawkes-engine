@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: protect-oracle
+        name: Protect oracle (verification rule)
+        entry: 'oracle/*.py is read-only. See docs/verification-rule.md'
+        language: fail
+        files: ^oracle/.*\.py$
