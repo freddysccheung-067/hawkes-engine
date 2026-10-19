@@ -10,6 +10,8 @@
 
 namespace py = pybind11;
 
+void register_loglik(py::module_& m);
+
 namespace {
 
 py::dict build_info() {
@@ -44,4 +46,6 @@ PYBIND11_MODULE(_core, m) {
     m.doc() = "Native core of hawkes-engine.";
     m.def("build_info", &build_info,
           "Return the compiler and pybind11 versions used to build this module.");
+
+    register_loglik(m);
 }
