@@ -100,3 +100,25 @@ rule exists to prevent.
   array-wide tolerance. The standalone `tests/verify_complex_step.py` was folded
   into the suite, so the complex-step check now runs under pytest instead of
   being a script someone has to remember to invoke.
+- **H2** — 2026-10-19. The reference is still **unchanged**. It now checks a
+  second, independent implementation: `tests/test_oracle_agreement.py` compares
+  the C++ core against it over M in {1,2,3,4,6} and N up to 1000, entry by
+  entry in all three gradient blocks. Measured worst case 7.5e-14 on the value
+  and 3.6e-12 per gradient entry. The core's gradient is additionally checked
+  against complex-step differentiation of the reference likelihood, using the
+  reference suite's own helper, so the check shares no code path with either
+  analytic implementation.
+
+## Two implementations proving each other
+
+The point of freezing the reference is that a disagreement is information. H2
+produced several, and every one was resolved by finding the defect in the new
+code rather than by adjusting the reference or the tolerance:
+
+- The first event loop let two events at the same timestamp excite each other.
+  The reference is right about `t^m_j < t`; the loop was wrong.
+- A gradient block was returned with the wrong shape. The reference's shape is
+  correct; the binding was wrong.
+
+An implementation that has never disagreed with the reference has not been
+tested yet, in the sense that matters.
