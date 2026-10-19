@@ -1,13 +1,11 @@
----
-Type: Note
-Project: "[[P03 The Hawkes Engine]]"
-Created: 2026-10-14
----
+# Specification: mathematics
 
-> [!abstract] Purpose
-> The specification the code is built against. Statements are given; **derivations are yours**, per [[P03.07 Verification & Authorship Rule]]. If a formula here disagrees with your derivation, find out which is wrong before writing any code.
+**Purpose.** The specification the code is built against. Statements are given;
+**derivations are yours**, per [the verification rule](../verification-rule.md).
+If a formula here disagrees with your derivation, find out which is wrong
+before writing any code.
 
-## Map of this note
+## Map of this document
 
 ```mermaid
 flowchart LR
@@ -62,9 +60,11 @@ and an event of type $d$ at $\tau_n$ adds $1$ to $S_{id}$ for every $i$. So the 
 
 **Cost.** Each event decays all $M^2$ states, so one evaluation is $O(NM^2)$ time and $O(M^2)$ memory, against $O(N^2M^2)$ for the naive double sum. If $\beta_{ij}=\beta_j$ depends only on the source, $S_{ij}=S_j$ and the cost drops to $O(NM)$. Offer both parameterizations; the shared-decay one is the fast path and a reasonable default for $M\ge 6$.
 
-> [!warning] Two numerical traps
-> **Time origin.** Epoch seconds near $1.7\times10^9$ use about 31 of float64's 53 mantissa bits, leaving roughly $2^{-22}\approx 2.4\times10^{-7}$ s of resolution. Always subtract the session start before converting to float. Keep integer nanoseconds in storage ([[P03.06 Data, Schemas & Live Ingestion]]).
-> **Overflow of the likelihood.** $e^{-\beta\Delta}$ underflows harmlessly to 0. $\log\lambda$ is the risk: if $\lambda_i$ rounds to 0 at an event, the term is $-\infty$. Bound $\mu_i>0$ and test this case explicitly ([[9.4.1 Floating Point, Conditioning & Stability]]).
+**Two numerical traps.**
+
+**Time origin.** Epoch seconds near $1.7\times10^9$ use about 31 of float64's 53 mantissa bits, leaving roughly $2^{-22}\approx 2.4\times10^{-7}$ s of resolution. Always subtract the session start before converting to float. Keep integer nanoseconds in storage (see ADR-003).
+
+**Overflow of the likelihood.** $e^{-\beta\Delta}$ underflows harmlessly to 0. $\log\lambda$ is the risk: if $\lambda_i$ rounds to 0 at an event, the term is $-\infty$. Bound $\mu_i>0$ and test this case explicitly.
 
 ## 5. Gradient
 
@@ -82,12 +82,11 @@ Differentiating $\ell$ gives, for each parameter, a sum over events of (derivati
 
 State: current $S_{ij}$. At time $t$ let $\Lambda^\ast = \sum_i \lambda_i(t^+)$. For an excitation-only process, $\lambda_i$ only decays until the next event, so $\Lambda^\ast$ is a valid upper bound. Loop: draw $\Delta\sim\text{Exp}(\Lambda^\ast)$; advance the state by $\Delta$; accept with probability $\sum_i\lambda_i(t+\Delta)/\Lambda^\ast$; on acceptance choose the type $i$ with probability proportional to $\lambda_i$, add the jump, and reset the bound. On rejection, set $t\leftarrow t+\Delta$ and the bound to the *current* total (still valid, since the intensity has only decayed).
 
-> [!warning] The brief's "suppressing" channels break this
-> With $\alpha_{ij}<0$, intensity can **rise** between events as an inhibiting bump fades, and the true rate is $\max(0,\cdot)$. The bound must then use only the positive contributions, $\sum_i\big[\mu_i+\sum_j\alpha_{ij}^{+}S_{ij}\big]$, and the likelihood is not differentiable where the max kicks in. That is why v0.1 restricts to $\alpha\ge0$.
+**"Suppressing" channels break this.** With $\alpha_{ij}<0$, intensity can **rise** between events as an inhibiting bump fades, and the true rate is $\max(0,\cdot)$. The bound must then use only the positive contributions, $\sum_i\big[\mu_i+\sum_j\alpha_{ij}^{+}S_{ij}\big]$, and the likelihood is not differentiable where the max kicks in. That is why v0.1 restricts to $\alpha\ge0$.
 
 ### Cluster (branching) representation
 
-Immigrants arrive as a Poisson process of rate $\mu_i$. Every event of type $j$ independently produces a Poisson($\Gamma_{ij}$) number of type-$i$ children, each delayed by an independent Exp($\beta_{ij}$) time. Recurse until no children are left. This uses **none** of the thinning machinery, which is exactly why it is the second simulator in [[P03.07 Verification & Authorship Rule]]. Truncate at $T$; note that clusters started before $0$ are missing, so discard a burn-in or start the process from its stationary state.
+Immigrants arrive as a Poisson process of rate $\mu_i$. Every event of type $j$ independently produces a Poisson($\Gamma_{ij}$) number of type-$i$ children, each delayed by an independent Exp($\beta_{ij}$) time. Recurse until no children are left. This uses **none** of the thinning machinery, which is exactly why it is the second simulator required by [the verification rule](../verification-rule.md). Truncate at $T$; note that clusters started before $0$ are missing, so discard a burn-in or start the process from its stationary state.
 
 ## 7. Standard errors
 
@@ -110,12 +109,11 @@ are independent Exp(1) variables (Papangelou's time-change theorem). So the diag
 - Bacry, Mastromatteo & Muzy (2015), *Hawkes processes in finance*
 - Filimonov & Sornette (2012) and Hardiman, Bercot & Bouchaud (2013) for the branching-ratio-near-one debate
 
-> [!tip] Verify before citing
-> These are from memory. At H0, open each one, confirm title, year and what it actually claims, and record that in the literature log. A citation you have not opened is the same error as a number you have not computed.
+**Verify before citing.** These are from memory. At H0, open each one, confirm title, year and what it actually claims, and record that in the literature log. A citation you have not opened is the same error as a number you have not computed.
 
-## Connects to
+## Related documents
 
-- [[P03.07 Verification & Authorship Rule]]
-- [[P03.03 Repository Blueprint]]
-- [[5.3.1 Discrete-Time Markov Chains]] and [[5.1.11 Laws of Large Numbers & the Central Limit Theorem]]
-- [[9.4.6 Monte Carlo Methods & Variance Reduction]]
+- [Verification rule](../verification-rule.md)
+- [Roadmap](../ROADMAP.md)
+- [ADR-002: parameterization and index conventions](../adr/ADR-002-parameterization.md)
+- [ADR-003: event memory layout](../adr/ADR-003-memory-layout.md)
