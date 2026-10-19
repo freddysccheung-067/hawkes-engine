@@ -30,13 +30,15 @@ jobs:
           cache: pip
 
       - name: Install package
+        shell: bash
         run: |
           python -m pip install --upgrade pip
           # Build logs are not readable without admin rights, so a compiler
           # error would otherwise surface only as "exit code 1". Re-emit the
-          # diagnostics as annotations, which are readable.
+          # diagnostics as annotations, which are readable. shell: bash is
+          # explicit because Windows runners default to pwsh.
           if ! pip install -e ".[test]" > build.log 2>&1; then
-            grep -iE "error|fatal" build.log | head -40 | while IFS= read -r line; do
+            grep -iE "error|fatal|undefined" build.log | head -40 | while IFS= read -r line; do
               echo "::error::$line"
             done
             tail -60 build.log
@@ -72,6 +74,7 @@ jobs:
         run: cmake --preset dev -Dpybind11_DIR="$(python -m pybind11 --cmakedir)"
 
       - name: Build
+        shell: bash
         run: |
           if ! cmake --build --preset dev --config Release > build.log 2>&1; then
             grep -iE "error:|error |fatal" build.log | head -40 | while IFS= read -r line; do

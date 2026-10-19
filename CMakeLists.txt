@@ -27,6 +27,13 @@ add_library(hawkes_core STATIC
 )
 target_include_directories(hawkes_core PUBLIC cpp/include)
 
+# Required, not optional. hawkes_core is STATIC and the extension is a MODULE
+# (a shared object). CMake enables position-independent code for shared targets
+# but not for static ones, so on ELF platforms the link fails with
+# "relocation R_X86_64_PC32 ... can not be used when making a shared object".
+# MSVC does not need this, which is why the failure was Linux-only.
+set_target_properties(hawkes_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 # Sanitizers for local and CI verification (ADR-006). Never part of a wheel.
 set(HAWKES_SANITIZE "" CACHE STRING "address, undefined, or empty")
 if(HAWKES_SANITIZE)
