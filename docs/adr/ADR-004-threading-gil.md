@@ -1,90 +1,128 @@
-# ADR-004: Threading Model and GIL Policy
+﻿# ADR-004: Threading Model and GIL Policy
 
-**Status**: Accepted  
-**Date**: 2026-10-18  
-**Deciders**: Principal Software Architect
+**Status**: Accepted (amended 2026-10-19)
+**Date**: 2026-10-18
+**Deciders**: freddysccheung-067
 
 ## Context
 
-The likelihood recursion (mathematics.md §4) is O(NM²) and embarrassingly parallelizable: each event's state update is independent of other events' updates at the same timestep. OpenMP could parallelize the inner loop over i (target types) or j (source types). Simulation (§6) is also parallelizable: thinning runs M independent Poisson processes, and cluster simulation can spawn children in parallel.
+The likelihood recursion (mathematics.md §4) is O(NM²). It is worth being
+precise about what in it is parallel, because the original version of this ADR
+was not, and the error would have propagated into H2.
 
-Python's GIL (Global Interpreter Lock) allows only one thread to execute Python bytecode at a time. C extensions can release the GIL via `Py_BEGIN_ALLOW_THREADS` / `Py_END_ALLOW_THREADS`, but acquiring/releasing costs ~10 µs per call. pybind11 wraps this as `py::gil_scoped_release`. The question: is the parallelism worth the GIL overhead?
+**The recursion is sequential over events.** Event *n* updates the state that
+event *n+1* reads:
 
-Breakeven analysis: For OpenMP overhead ~10 µs and single-threaded recursion ~0.1 µs per event (M = 10, modern CPU), parallelism wins when N > 10⁵. Most use cases are N < 10⁴ (one day of HFT data at 1 event/s). The 10⁵ crossover is v0.2 territory.
+$$S_{ij}(\tau_n^-) = e^{-\beta_{ij}(\tau_n - \tau_{n-1})}\,S_{ij}(\tau_{n-1}^+)$$
 
-Alternative: users can parallelize across parameter sets (embarrassingly parallel MLE grid search or bootstrap) using Python's `multiprocessing` or `joblib`. This is easier to implement (no GIL complexity) and scales better (across machines).
+The intensity at event *n+k* cannot be computed without having processed events
+*n* through *n+k−1*. The claim in the original ADR that "each event's state
+update is independent of other events' updates at the same timestep" is false,
+and the OpenMP plan built on it would not have produced correct results.
+
+What *is* parallel is the per-event inner work: updating the M² entries of S and
+forming the M sums. At M = 10 that is a hundred multiply-adds — far too little
+to justify a thread, and parallelising it would need a barrier per event, which
+costs more than the work.
+
+The second false claim was that thinning "runs M independent Poisson processes".
+It does not. Thinning advances a single clock: one exponential draw from the
+total intensity, then a draw deciding which type fired. It is one sequential
+stream by construction. Only the *cluster* simulator is genuinely parallel, and
+only across independent clusters.
+
+GIL: a C extension holds the interpreter lock while it runs unless it releases
+it explicitly. Release and re-acquire cost on the order of a microsecond, not
+the 10 µs the original ADR used to justify its threshold.
 
 ## Decision
 
-**v0.1**: Single-threaded C++ core, no OpenMP, no GIL release in the hot path.
+**v0.1: single-threaded core. Release the GIL around long calls.**
 
-**v0.2+**: Add OpenMP parallelization for N > 10⁵, gated by runtime check:
-```cpp
-if (N > 100000) {
-    py::gil_scoped_release release;  // Release GIL
-    #pragma omp parallel for
-    // ... recursion ...
-}
-```
+- The recursion is sequential, so there is no inner parallelism to add. No
+  OpenMP anywhere in v0.1.
+- Bindings that run longer than a few milliseconds (likelihood over a large
+  event set, cluster simulation) release the GIL for the duration of the C++
+  call via `py::gil_scoped_release`. This does not make the call faster; it lets
+  the caller's other Python threads make progress.
+- Trivial calls do not release it — the release would cost more than the work.
 
-**Python-level parallelism**: Document idiom for parallelizing across fits:
-```python
-from joblib import Parallel, delayed
-results = Parallel(n_jobs=-1)(
-    delayed(he.fit)(events, mu0, alpha0, beta0) 
-    for mu0, alpha0, beta0 in param_grid
-)
-```
+**Parallelism the library actually offers:**
 
-**Why single-threaded v0.1**:
-- Overhead dominates for N < 10⁵ (typical use case)
-- Simpler debugging (no race conditions, deterministic execution)
-- Faster iteration (no OpenMP CMake complexity in H1–H3 gates)
-- Users can still parallelize fits across parameter sets (multiprocessing)
+- *Across fits* — grid search, bootstrap, cross-validation. Each fit is
+  independent:
+
+  ```python
+  from joblib import Parallel, delayed
+  results = Parallel(n_jobs=-1)(
+      delayed(he.fit)(events, **init) for init in param_grid
+  )
+  ```
+
+- *Across clusters* — the branching simulator, once the cluster representation
+  lands at H4, draws independent clusters in parallel. This is real parallelism
+  over independent state, and it is the one place threads pay.
+
+**v0.2+, if profiling justifies it:** parallel cluster simulation. Not parallel
+likelihood over time — that ordering cannot be broken.
 
 ## Alternatives Considered
 
-### Option 1: OpenMP from day 1
-- **Pros**: Faster for large N (10⁶+), "looks impressive" in benchmarks
-- **Cons**: GIL overhead costs 10 µs per call, breakeven at N ~ 10⁵, adds OpenMP to build deps (Windows MSVC needs `/openmp`, macOS needs `libomp`), harder to debug (race conditions, non-deterministic timings), premature optimization
-- **Why rejected**: Most users have N < 10⁴. The v0.1 goal is correctness and clarity, not peak throughput. Add OpenMP in v0.2 when profiling shows it matters.
+### Option 1: OpenMP over the event loop
+- **Pros**: Would be the obvious win if the recursion were independent
+- **Cons**: It is not. Parallelising a recurrence needs either a prefix-scan
+  reformulation or a blocking scheme, each a substantial piece of numerical
+  work with its own error analysis.
+- **Why rejected**: Built on a false premise about the algorithm.
 
-### Option 2: Cython prange (parallel range)
-- **Pros**: Cython's `prange` releases GIL automatically, simpler than OpenMP pragmas
-- **Cons**: We chose C++ over Cython (ADR-001), so this is not an option. Cython's parallel support is less mature than OpenMP.
-- **Why rejected**: Not applicable (we're using C++, not Cython).
+### Option 2: OpenMP over the M² inner loop
+- **Pros**: Correct, unlike option 1
+- **Cons**: M² is 100 elements at M = 10. A barrier per event costs more than
+  the loop, and the loop is vectorised by the compiler anyway.
+- **Why rejected**: Negative expected speedup.
 
-### Option 3: Always release GIL (even single-threaded)
-- **Pros**: Allows other Python threads to run during C++ computation, useful for GUI apps or async I/O
-- **Cons**: 10 µs overhead per call (2× the single-threaded recursion time for N = 100), user must explicitly spawn threads (doesn't help single-threaded scripts)
-- **Why rejected**: Releasing the GIL only helps if the user has other Python threads running. Most scripts are single-threaded. If a user needs async (e.g., GUI), they can wrap the call in `asyncio.to_thread()`. Don't pay the cost by default.
+### Option 3: Cython `prange`
+- **Pros**: Releases the GIL automatically
+- **Cons**: We use C++ (ADR-001), so this is not available.
+- **Why rejected**: Not applicable.
 
-### Option 4: Multiprocessing inside C++ (spawn processes in C++)
-- **Pros**: Bypasses GIL entirely, scales across machines
-- **Cons**: IPC overhead (serialize events, send to worker, wait for result), much higher latency (~1 ms vs 10 µs), harder to manage process lifetimes, Windows process spawning is expensive
-- **Why rejected**: Python's `multiprocessing` or `joblib` already does this better. Don't reinvent the wheel in C++.
+### Option 4: Never release the GIL
+- **Pros**: Simplest binding code
+- **Cons**: A multi-second likelihood evaluation blocks every other Python
+  thread, including a progress bar or another request in a server.
+- **Why rejected**: ~1 µs of overhead to avoid a multi-second stall.
+
+### Option 5: Spawn processes from C++
+- **Pros**: Bypasses the GIL entirely
+- **Cons**: IPC overhead, process lifetime management, expensive on Windows.
+- **Why rejected**: Python's `multiprocessing` already does this better.
 
 ## Consequences
 
 **Positive**:
-- Simple, deterministic, fast for typical use cases (N < 10⁴)
-- Users can parallelize fits across parameter sets with `multiprocessing` or `joblib` (embarrassingly parallel, no GIL issues)
-- Easier debugging: no race conditions, no OpenMP, no GIL release/acquire
-- Faster CI builds: no OpenMP dependency, simpler CMake, works on all platforms without extra flags
+- No OpenMP dependency; the build stays simple on all three platforms
+- Deterministic results: no summation order depends on thread scheduling, so
+  the same input gives bit-identical output every run
+- Users still get parallelism where it exists — across independent fits
 
 **Negative**:
-- N > 10⁶ fits are slower than they could be (10× slower than OpenMP on 8 cores). Acceptable for v0.1; fix in v0.2.
-- Users who want single-fit parallelism must wait for v0.2. But most users want to fit multiple parameter sets (grid search, bootstrap), which parallelizes naturally.
+- One fit of a large event set cannot be accelerated by adding cores. That is a
+  property of the algorithm, not a choice; the response is a faster core.
+- Releasing the GIL correctly requires care: no Python object may be touched
+  while it is released. NumPy arrays must be converted to C++ views before the
+  release and kept alive for the duration.
 
 **Neutral**:
-- v0.2 OpenMP addition is API-compatible: users see the same function, it just runs faster for large N. No user code breaks.
-- GIL policy can change per-function: simulation might release GIL in v0.1 (it's slower, ~1 ms per call), while likelihood stays GIL-held. Decide per-function at implementation time.
-- OpenMP threshold (N > 10⁵) is a heuristic: profile in v0.2 to find the real breakeven. Could be 10⁴ or 10⁶ depending on hardware.
+- The policy is per-function. Simulation and the likelihood release the GIL;
+  argument validation does not.
+- If free-threaded Python builds become the default, this section is re-read
+  rather than rewritten: the constraint is the algorithm's ordering, which does
+  not change.
 
 ## References
 
-- mathematics.md §4: O(NM²) recursion structure
-- Python GIL: [Python/C API Reference, Thread State and the GIL](https://docs.python.org/3/c-api/init.html#thread-state-and-the-global-interpreter-lock)
-- pybind11 GIL management: [pybind11 docs, "Calling Python functions from C++"](https://pybind11.readthedocs.io/en/stable/advanced/misc.html#global-interpreter-lock-gil)
-- OpenMP overhead benchmarks: [OpenMP ARB, "Using OpenMP" (2024), §2.4]
-- joblib parallel idiom: [joblib documentation](https://joblib.readthedocs.io/en/latest/parallel.html)
+- mathematics.md §4: the recursion, and why event *n+1* depends on event *n*
+- mathematics.md §6: thinning advances one clock; clusters are independent
+- Python/C API: [Thread state and the GIL](https://docs.python.org/3/c-api/init.html#thread-state-and-the-global-interpreter-lock)
+- pybind11: [`gil_scoped_release`](https://pybind11.readthedocs.io/en/stable/advanced/misc.html#global-interpreter-lock-gil)
+- joblib: [Parallel](https://joblib.readthedocs.io/en/latest/parallel.html)

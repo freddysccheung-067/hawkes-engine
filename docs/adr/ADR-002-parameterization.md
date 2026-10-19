@@ -1,8 +1,8 @@
 # ADR-002: Parameterization and Index Conventions
 
-**Status**: Accepted  
-**Date**: 2026-10-18  
-**Deciders**: Principal Software Architect
+**Status**: Accepted (amended 2026-10-19)
+**Date**: 2026-10-18
+**Deciders**: freddysccheung-067
 
 ## Context
 
@@ -14,7 +14,23 @@ Log-space parameterization makes gradients messier (chain rule on every term) bu
 
 ## Decision
 
-- **Parameterization**: Natural space (μ, α, β) with positivity constraints enforced by optimizer box bounds (not log-space)
+- **Parameterization**: Two layers, deliberately distinct.
+  - **Public API and all stored results**: natural space (μ, α, β). This is what
+    the user writes, reads and plots.
+  - **Optimizer working coordinates**: log space, μ = eᵃ, α = eᵇ, β = eᶜ, as
+    specified in mathematics.md §5. The chain rule is applied once, in the
+    objective wrapper: ∂ℓ/∂a = (∂ℓ/∂μ)·μ, and likewise for b and c.
+- **Why both**: the spec's log-space instruction is about what the optimizer
+  sees, and it is right about that. Positivity is structural rather than
+  enforced, so no candidate is ever rejected for being infeasible, and β —
+  which spans orders of magnitude between a fast and a slow market — gets a
+  well-scaled step size. The natural-space requirement is about what the user
+  sees. Exposing log coordinates would leak an implementation detail into every
+  result object and every plot.
+- **What this replaced**: the original version of this ADR chose natural space
+  throughout, arguing that L-BFGS-B handles box bounds cheaply enough. That
+  argument is sound for μ but weaker for β, and it contradicted the frozen
+  spec. Since the spec is upstream of both the ADR and the code, the ADR moved.
 - **Index convention**: Row = target, column = source. αᵢⱼ is the effect of a type-j event on the intensity of type i. Matrix multiplication Γ = α / β (element-wise) reads as "target i depends on source j."
 - **Branching ratio**: ρ = spectral radius of Γ. When β is shared (βᵢⱼ = βⱼ), report ρ(Γ) where Γᵢⱼ = αᵢⱼ/βⱼ.
 - **Indexing base**: Zero-indexed everywhere (C++ and Python). Type indices are `0, 1, ..., M-1`.
@@ -22,10 +38,10 @@ Log-space parameterization makes gradients messier (chain rule on every term) bu
 
 ## Alternatives Considered
 
-### Option 1: Log-space parameterization (μ = exp(θμ))
-- **Pros**: Unconstrained optimization (no box bounds), gradients never hit boundaries, some papers use it
-- **Cons**: User-facing parameters are unintuitive (log(0.5) = -0.693), chain rule adds clutter to gradient code (∂ℓ/∂θ = (∂ℓ/∂μ) · μ), harder to interpret fit results, simulation takes natural params anyway (need to exp() at API boundary)
-- **Why rejected**: Modern optimizers (L-BFGS-B) handle box constraints with negligible overhead. Users should see μ = 0.5, not θμ = -0.693. The gradient code is one extra multiplication per parameter; the clarity win is larger.
+### Option 1: Log-space throughout, including the public API
+- **Pros**: Unconstrained optimization (no box bounds), gradients never hit boundaries
+- **Cons**: User-facing parameters are unintuitive (log(0.5) = -0.693), harder to interpret fit results, every result object and plot carries a representation the user did not ask for, and simulation takes natural parameters anyway (so the API would need exp() at the boundary regardless)
+- **Why rejected**: This is the option the original ADR rejected, and the rejection still holds — but only for the *public* layer. Log space is adopted as the optimizer's internal coordinates; see Decision.
 
 ### Option 2: Row = source, column = target (opposite convention)
 - **Pros**: Some papers use this (especially older econophysics literature)
@@ -46,8 +62,9 @@ Log-space parameterization makes gradients messier (chain rule on every term) bu
 - Box constraints handled by optimizer: L-BFGS-B in scipy.optimize.minimize supports bounds natively. Pass `bounds=[(1e-8, None), ...]` for positivity.
 
 **Negative**:
-- Optimizer must enforce positivity: lower bound 1e-8 (not zero, to avoid log(0) in likelihood). If the optimizer hits the boundary, the fit may be unreliable — report this.
-- Gradient computation has one extra check: if μᵢ or αᵢⱼ is near the boundary (< 1e-6), the gradient is large. Clip gradients to avoid numerical issues.
+- The optimizer never sees a bound, so it cannot report "hit the positivity boundary" as a diagnostic. Under log-space a parameter can drift towards zero indefinitely. Mitigation: report the natural-space estimate with its standard error, and flag when an estimate is small on the scale of its own standard error rather than when it touches a fixed floor. A fixed floor was the old design and it was worse — it turns a soft diagnostic into a hard wall that biases the estimate.
+- Two representations exist, so the conversion has to be tested. The natural↔log round trip is exercised in H3 alongside the estimator.
+- Clipping gradients is no longer needed: under log space ∂ℓ/∂a cannot blow up as μ → 0 the way ∂ℓ/∂μ does, because the factor μ multiplies it away. This was listed as a cost in the original ADR and it is in fact a benefit of the change.
 
 **Neutral**:
 - ρ(Γ) near 1 is not a failure: it means the process is near-critical (self-exciting feedback dominates). The fit is valid, but forecasts become uncertain. The literature argues about whether ρ > 0.9 is realistic or an artifact of overfitting. We report ρ and let the user decide.

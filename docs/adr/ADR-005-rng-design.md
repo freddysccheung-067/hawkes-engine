@@ -1,77 +1,128 @@
 # ADR-005: RNG and Seed-Stream Design
 
-**Status**: Accepted  
-**Date**: 2026-10-18  
-**Deciders**: Principal Software Architect
+**Status**: Accepted (amended 2026-10-19)
+**Date**: 2026-10-18
+**Deciders**: freddysccheung-067
 
 ## Context
 
-Simulation (mathematics.md §6) requires random number generation for Poisson processes and exponential inter-arrival times. Reproducibility is non-negotiable: same seed → same event sequence, across platforms and languages. This enables regression tests, debugging, and scientific reproducibility.
+Simulation (mathematics.md §6) needs random numbers for Poisson processes and
+exponential waiting times. Reproducibility matters: the same seed must produce
+the same event sequence on every run, on every platform, so that regression
+tests mean something and a reported simulation can be re-run.
 
-NumPy uses Philox 4×32-10 (default since 1.17, 2019) or PCG64 (opt-in). C++ `<random>` has `std::mt19937` (Mersenne Twister) but no Philox. We need bit-for-bit reproducibility between Python and C++, which means: use the same RNG algorithm in both.
+The original version of this ADR contained a design that cannot be built. It
+specified "Philox 4×32-10, called from C++ via `numpy::random::Generator`" and
+asserted "NumPy's Philox via pybind11 in v0.1". Neither exists. NumPy exposes
+its bit generators through `numpy.random`, and its Philox header
+(`numpy/random/src/philox/philox.h`) is internal to NumPy's build, not an
+installed, linkable API. There is no C++ namespace `numpy::random`, and a
+`Generator` is a Python object, not something a C++ core can call without
+holding the GIL and paying a Python call per draw. Those claims are removed
+below rather than argued with.
 
-Two approaches: (1) vendor a standalone Philox implementation in C++, or (2) call NumPy's RNG from C++ via pybind11. Option 1 is self-contained but adds maintenance (keep in sync with NumPy). Option 2 is a runtime dependency on NumPy, which we already have (ADR-001). The question: is the coupling worth the simplicity?
-
-Seed management: global state (np.random.seed()) is bad for parallel code and testing. Explicit per-call seeds (simulate(..., seed=42)) are better but verbose. The standard NumPy pattern is Generator objects: `rng = np.random.default_rng(seed)`, then `rng.exponential()`. For v0.1, explicit seeds are simpler.
+The decision below replaces them with a generator we own outright.
 
 ## Decision
 
-- **RNG algorithm**: Philox 4×32-10 (NumPy default, matches numpy.random.Generator)
-- **Seeding**: Explicit seed per call (not global state)
-  - Python API: `simulate(mu, alpha, beta, T, seed=42)` → same events every time
-  - C++ API: takes `uint64_t seed`, constructs internal Philox state
-- **Implementation**: Use NumPy's Philox via pybind11 in v0.1 (calls Python-side Generator), vendor standalone C++ Philox in v0.2 if performance matters
-- **C++ fallback**: If standalone C++ is needed, use the reference implementation from [numpy/numpy](https://github.com/numpy/numpy/blob/main/numpy/random/src/philox/philox.h) (BSD-3-Clause)
+- **Algorithm**: SplitMix64 as the seeding function, feeding a PCG64 engine
+  (XSL-RR variant, 128-bit state, 64-bit output) for stream generation.
+  Both are short, published, and implementable in ~80 lines of standard C++
+  with no external dependency.
+- **Uniforms**: `double` in [0, 1) built from 53 bits — one 64-bit draw, the
+  top 53 bits scaled by 2⁻⁵³. This is exactly representable and cannot return 1.
+- **Exponentials**: inverse transform, `-log1p(-u)`. `log1p` keeps accuracy for
+  small `u`, where `-log(u)` would lose it. One uniform per exponential.
+- **Seeding**: `uint64_t seed`, expanded through SplitMix64 into the 128-bit
+  PCG state. Explicit seed per call; no global state, no default seed.
+- **Where it lives**: C++, alongside the simulators. The Python API accepts a
+  Python `int` and narrows it to `uint64`.
 
-Why Philox:
-- NumPy default (reproducibility across Python/C++)
-- Fast: 2–3 ns per random uint32 (vs 10 ns for Mersenne Twister)
-- Small state: 160 bits (vs 2.5 KB for mt19937)
-- Passes BigCrush (TestU01 suite, gold standard for RNGs)
-- Counter-based: can jump ahead efficiently (useful for parallel simulation in v0.2+)
+### What we are not promising
+
+**Bit-matching NumPy's streams is not a goal.** A seed passed to
+`hawkes_engine.simulate` will not reproduce what `numpy.random.default_rng(seed)`
+would produce, and no test will require it to. This is a deliberate reversal of
+the original ADR, which made cross-language bit-for-bit matching the headline
+requirement and then could not implement it.
+
+What is promised instead is reproducibility *within* the library: same seed,
+same parameters, same version, same events, on every platform. That is the
+property the regression tests actually need. If a user needs to reproduce a
+NumPy run specifically, they can simulate with NumPy themselves and feed the
+result in; the library does not need to be NumPy's twin to be useful.
+
+The test that enforces this is a golden-vector test: a fixed list of
+seed → first 16 uniforms, recorded once and checked on every platform in CI.
+That catches both algorithm drift and accidental platform dependence.
 
 ## Alternatives Considered
 
-### Option 1: PCG64 (alternative NumPy RNG)
-- **Pros**: Slightly faster than Philox (~1.5 ns per draw), smaller state (128 bits)
-- **Cons**: Not NumPy default (user must opt in via `np.random.Generator(np.random.PCG64(seed))`), less widely tested, not counter-based (can't jump ahead easily)
-- **Why rejected**: Philox is the NumPy default. Reproducibility with default NumPy behavior is more valuable than 30% RNG speed (RNG is <5% of simulation time anyway).
+### Option 1: Call NumPy's Generator from C++ through pybind11
+- **Pros**: Streams match NumPy exactly, no RNG code to maintain
+- **Cons**: One Python call and one GIL acquisition per draw. For a simulation
+  drawing O(events) variates this dominates the run time, which defeats the
+  purpose of having a C++ core. It also makes the core unusable without an
+  initialized interpreter.
+- **Why rejected**: The cost is in the hot loop, not at the boundary. Bitwise
+  agreement with NumPy is not worth a per-draw Python call.
 
-### Option 2: Mersenne Twister (std::mt19937)
-- **Pros**: C++ standard library, no dependencies, widely known
-- **Cons**: Huge state (2.5 KB), slow (10 ns per draw), doesn't match NumPy (reproducibility fails), 32-bit output (need to combine two draws for float64), fails some statistical tests (LinearComp in BigCrush)
-- **Why rejected**: Can't reproduce NumPy results. Non-negotiable for a scientific library.
+### Option 2: Vendor NumPy's Philox header
+- **Pros**: Would actually match NumPy, since it is the same code
+- **Cons**: The header is internal to NumPy's build, carries no stability
+  promise, and would need to be copied and tracked against upstream. BSD-3
+  permits the copying, but the maintenance burden is real for a benefit
+  (matching NumPy bit-for-bit) that nothing in the library depends on.
+- **Why rejected**: Not worth tracking a third party's private header to gain a
+  property we have decided not to require.
 
-### Option 3: Global RNG state (np.random.seed(42))
-- **Pros**: User calls seed once, all subsequent calls use that stream
-- **Cons**: Global state breaks parallel code (multiprocessing workers share seed, produce identical output), hard to test (one test's seed affects the next), not thread-safe, discouraged by NumPy since 1.17
-- **Why rejected**: Explicit seeds are the NumPy-recommended pattern since 2019. Global state is a bug magnet.
+### Option 3: `std::mt19937_64`
+- **Pros**: In the standard library, no code to write
+- **Cons**: The standard does not pin the output stream for all engines —
+  `mt19937_64`'s output is specified, but distribution adaptors such as
+  `std::uniform_real_distribution` are not, so results can differ between
+  standard library implementations. That silently breaks cross-platform
+  reproducibility, which is the one thing we are promising.
+- **Why rejected**: Reproducibility would depend on which standard library the
+  wheel was built against.
 
-### Option 4: Pass Generator object (like NumPy)
-- **Pros**: Idiomatic NumPy (`rng = np.random.default_rng(42); he.simulate(mu, alpha, beta, T, rng=rng)`), user controls seed lifetime
-- **Cons**: More verbose for one-shot calls (`he.simulate(..., seed=42)` is shorter), pybind11 must wrap Generator (doable but adds boilerplate)
-- **Why rejected**: v0.1 optimizes for simplicity. Explicit int seed is one less concept. Can add Generator support in v0.2 if users ask.
+### Option 4: Global RNG state
+- **Pros**: Seed once, all calls follow
+- **Cons**: Breaks under multiprocessing, makes tests order-dependent, and is
+  not thread-safe.
+- **Why rejected**: Unchanged from the original ADR — explicit seeds only.
 
 ## Consequences
 
 **Positive**:
-- Reproducible across Python and C++: same seed → same events, bit-for-bit
-- Deterministic tests: `simulate(mu, alpha, beta, T, seed=42)` returns the same 1000 events in every test run, on every platform
-- Fast: Philox is 3–5× faster than Mersenne Twister, small state fits in L1 cache
-- Counter-based: can skip ahead (useful for parallel simulation in v0.2, where thread k uses seed + k as the counter base)
+- No external RNG dependency, so the core has no link-time coupling to NumPy.
+- Fast: PCG64 is a handful of instructions per draw, entirely in-cache.
+- Cross-platform reproducibility is ours to guarantee, and a golden-vector test
+  makes that guarantee checkable rather than aspirational.
+- The seed space is the full `uint64`.
 
 **Negative**:
-- NumPy dependency in C++ (via pybind11): simulation calls Python-side `numpy.random.Generator.exponential()`. Adds ~100 ns overhead per draw (vs ~10 ns for pure C++). For N = 1000 events, this is 0.1 ms (negligible).
-- v0.2 will vendor standalone Philox: copy NumPy's C implementation, test against NumPy for reproducibility. This is ~200 lines of C code (permissible under BSD-3-Clause). Until then, accept the Python callback overhead.
+- We maintain the generator. It is ~80 lines, but it is ours to get right, and
+  a bug in it corrupts every simulation without necessarily failing a test that
+  only checks statistics. The golden vectors are the defence.
+- Users cannot assume NumPy-compatible streams. The documentation has to say so
+  clearly, and the docstring for `simulate` must repeat it.
+- No jump-ahead in v0.1. PCG64 supports it in principle; if parallel simulation
+  arrives in v0.2, the state advance has to be implemented and tested then.
 
 **Neutral**:
-- Seed type: uint64 (not int32). Philox uses 64-bit seeds; passing int32 would truncate the space (2³² seeds instead of 2⁶⁴). Python `int` is arbitrary precision, so this is safe.
-- Seed=None: Python API could default to `seed=None` (random seed from OS entropy). v0.1 requires explicit seeds (no default) to force users to think about reproducibility. Can relax in v0.2.
+- Seed type is `uint64`. Python `int` is arbitrary precision, so narrowing has
+  to be checked explicitly at the API boundary rather than left to truncation.
+- Cryptographic quality is not claimed and not needed. This is a simulation
+  generator, and it is not used for anything security-relevant.
 
 ## References
 
-- NumPy random API: [numpy.random.Generator](https://numpy.org/doc/stable/reference/random/generator.html)
-- Philox paper: Salmon, Moraes, Dror & Shaw (2011), "Parallel Random Numbers: As Easy as 1, 2, 3"
-- BigCrush test suite: [TestU01](http://simul.iro.umontreal.ca/testu01/tu01.html)
-- NumPy Philox source: [numpy/random/src/philox/philox.h](https://github.com/numpy/numpy/blob/main/numpy/random/src/philox/philox.h) (BSD-3-Clause)
-- mathematics.md §6: Simulation algorithms (thinning and cluster)
+- O'Neill, M. E. (2014), "PCG: A Family of Simple Fast Space-Efficient
+  Statistically Good Algorithms for Random Number Generation", Harvey Mudd
+  College technical report HMC-CS-2014-0905.
+- Steele, G. L., Lea, D. & Flood, C. H. (2014), "Fast Splittable Pseudorandom
+  Number Generators", OOPSLA 2014 — the SplitMix seeding scheme.
+- mathematics.md §6: the two simulation algorithms that consume these streams.
+- NumPy's own generator documentation, for the record of why matching it is a
+  constraint we chose not to adopt: <https://numpy.org/doc/stable/reference/random/generator.html>

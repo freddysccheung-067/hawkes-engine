@@ -1,18 +1,31 @@
-# ADR-003: Event Memory Layout
+﻿# ADR-003: Event Memory Layout
 
-**Status**: Accepted  
-**Date**: 2026-10-18  
-**Deciders**: Principal Software Architect
+**Status**: Accepted (amended 2026-10-19)
+**Date**: 2026-10-18
+**Deciders**: freddysccheung-067
 
 ## Context
 
-The core recursion (mathematics.md §4) processes N events in time order, updating M² states Sᵢⱼ at each step. The innermost loop touches every Sᵢⱼ, so cache locality dominates performance. Two layout options: array-of-structs (AoS) stores each event as {time, type}, while struct-of-arrays (SoA) stores separate arrays for times and types. AoS has better spatial locality for random access, but SoA has better cache-line utilization for sequential scans.
+The core recursion (mathematics.md §4) processes N events in time order,
+updating M² states Sᵢⱼ at each step. The innermost loop touches every Sᵢⱼ, so
+cache locality dominates the inner cost. Two layout options: array-of-structs
+(AoS) stores each event as {time, type}, while struct-of-arrays (SoA) stores
+separate arrays for times and types.
 
-The recursion reads the time of the current event (to compute decay) and the type (to determine which Sᵢⱼ to increment). It never needs both fields simultaneously for random access. The time array is accessed sequentially (event n → n+1), and the type array is also accessed sequentially. This is a textbook SoA use case.
+The recursion reads the time of the current event (to compute decay) and the
+type (to decide which state to increment). Both are read sequentially, event n
+then event n+1. That is the textbook SoA case.
 
-Time representation matters: Unix nanoseconds (int64, ~1.7e18 for 2024) use 60 bits, leaving float64 with ~2^-22 s resolution (~0.2 µs). Converting to session-relative float64 (t - t₀) preserves full precision. But internal storage must support replay-equals-live (§6 of data schemas doc), which means absolute timestamps for ingestion and session-relative for computation.
+Time representation matters. A Unix-epoch timestamp in nanoseconds is about
+1.7×10¹⁸, which needs 61 bits, leaving fewer than no bits for the fractional
+part if stored in float64 — nanosecond epoch timestamps cannot be represented
+in float64 at all, and second-resolution epoch timestamps leave only ~22 bits
+(2⁻²² s ≈ 0.24 µs). Converting to session-relative float64 (t − t₀) restores
+the full 53-bit mantissa over a window of a few hours. Storage keeps integer
+nanoseconds so replay is exact; computation uses session-relative float64.
 
-Type storage: uint8 supports M ≤ 256 dimensions. v0.1 targets M < 20 (equity order flow: trades, cancels, quotes on ~5 symbols). uint8 is sufficient and saves cache bandwidth (4× smaller than uint32).
+Type storage: uint8 supports M ≤ 256 dimensions. v0.1 targets M < 20. uint8 is
+sufficient and saves cache bandwidth over uint32.
 
 ## Decision
 
@@ -21,63 +34,81 @@ Struct-of-arrays (SoA) layout:
 ```cpp
 struct EventSequence {
     std::vector<double> times;    // (N,) seconds from session start, float64
-    std::vector<uint8_t> types;   // (N,) dimension indices 0..M-1, M ≤ 256
-    double T;                      // observation window end (seconds from start)
+    std::vector<uint8_t> types;   // (N,) dimension indices 0..M-1, M <= 256
+    double T;                     // observation window end (seconds from start)
 };
 ```
 
 **Time convention**:
-- **Input**: Absolute int64 nanoseconds (Unix epoch or exchange timestamps)
-- **Storage**: float64 seconds relative to session start (t - t₀)
-- **Output**: Same as storage (session-relative float64)
-- **Internal replay logs**: int64 nanoseconds absolute (for replay-equals-live)
+- **Input and on-disk storage**: absolute int64 nanoseconds
+- **In memory**: float64 seconds relative to session start (t − t₀)
+- **Replay logs**: int64 nanoseconds absolute, so replay matches live exactly
+- **Python API boundary**: the conversion happens once, at load
 
-**Type storage**: uint8, M ≤ 256 for v0.1. If M > 256 is needed, promote to uint16 (v0.2+).
+**Type storage**: uint8, M ≤ 256 for v0.1. If M > 256 is needed, promote to
+uint16 (v0.2+).
 
-**Dimension limit**: Hard-code M ≤ 256 in v0.1. Python API raises `ValueError` if M > 256.
+**Dimension limit**: M ≤ 256 enforced once, at the API boundary, raising
+`ValueError`. The C++ core may assume it.
 
 ## Alternatives Considered
 
 ### Option 1: Array-of-structs (AoS) `{time, type}` pairs
-- **Pros**: Each event is one cache line (16 bytes with padding), easier to reason about as "list of events," some debugging tools show it more naturally
-- **Cons**: Worse cache locality: recursion reads all times sequentially, then all types sequentially. AoS interleaves them, so half of every cache line is unused in each pass.
-- **Why rejected**: Cache miss costs 200–300 cycles on modern CPUs. SoA keeps the hot path (time array) in L1 cache. Profiling Ogata (1981) reference code shows 30% speedup with SoA for N > 10⁴.
+- **Pros**: Each event is one cache line, easier to inspect as "a list of events"
+- **Cons**: The recursion reads all times in one pass and all types in another.
+  AoS interleaves them, so half of each cache line is unused in either pass.
+- **Why rejected**: SoA keeps the hot time array dense in cache. The access
+  pattern here is unambiguous, so this does not need a benchmark to settle.
 
 ### Option 2: Absolute Unix nanoseconds in float64
 - **Pros**: No conversion at ingestion, matches exchange timestamps directly
-- **Cons**: Floating-point cancellation: Unix epoch ~1.7e9 seconds uses 31 bits, leaving 53 - 31 = 22 bits for sub-second precision (2^-22 s ≈ 0.24 µs). HFT data has microsecond timestamps; this loses precision. Subtraction (t - s) loses another bit.
-- **Why rejected**: Numerical correctness matters. Session-relative times preserve full float64 precision. Conversion overhead is one subtraction per event at ingestion (negligible).
+- **Cons**: As above, ns-epoch values do not fit in float64 at all;
+  second-epoch values lose sub-microsecond resolution, and differencing two of
+  them loses more.
+- **Why rejected**: Numerical correctness matters. The conversion is one
+  subtraction per event at ingestion.
 
 ### Option 3: uint16 for types (support M ≤ 65536)
-- **Pros**: "Future-proof" for huge M
-- **Cons**: 2× memory bandwidth vs uint8, slower cache fills, no use case for M > 256 in v0.1 (order flow is ~5–20 dimensions)
-- **Why rejected**: YAGNI. If M > 256 becomes real (v0.2+), it is a one-line change to uint16. Until then, save the bandwidth.
+- **Pros**: "Future-proof" for large M
+- **Cons**: 2× memory bandwidth, slower cache fills, no v0.1 use case
+- **Why rejected**: YAGNI. If M > 256 becomes real, it is a one-line change.
 
 ### Option 4: int64 nanoseconds everywhere
 - **Pros**: No precision loss, matches storage format
-- **Cons**: Can't use Eigen or standard math libraries (they expect float64), exp(-β * Δt) requires float conversion anyway, wastes 3 bits (64 - 61 used)
-- **Why rejected**: The recursion is float math. int64 → float64 conversion happens once (at the first exp()), so keeping int64 internally just delays the inevitable. Session-relative float64 is the right intermediate representation.
+- **Cons**: `exp(-β·Δt)` needs float arithmetic anyway, and every arithmetic op
+  on int64 timestamps has to guard against overflow
+- **Why rejected**: The recursion is float math. Converting once at load is
+  cheaper than converting at every use.
 
 ## Consequences
 
 **Positive**:
-- Cache-friendly: times array is accessed sequentially in the recursion, fits in L1 (N = 10⁴ events = 80 KB for times)
-- Numerical precision: session-relative times avoid float cancellation, preserve full float64 mantissa
-- Small memory footprint: uint8 types save 3× bandwidth vs uint32 (M = 10 → 10 KB vs 40 KB for types array)
-- Natural Python API: `times` and `types` map to NumPy arrays directly (`np.array(times, dtype=np.float64)`, `np.array(types, dtype=np.uint8)`)
+- Cache-friendly: the times array is read sequentially and fits in L1 for
+  N = 10⁴ (80 KB)
+- Numerical precision: session-relative times preserve the full mantissa
+- Small footprint: uint8 types
+- Natural Python API: `times` and `types` map to NumPy arrays directly
 
 **Negative**:
-- Conversion cost at ingestion: one subtraction per event (t - t₀). Negligible: ~0.3 ns per event on modern CPUs, dominated by I/O.
-- M ≤ 256 constraint: Hard-coded in v0.1. If a use case needs M > 256 (unlikely for order flow, possible for social networks), promote to uint16 in v0.2.
-- Debugging is slightly harder: can't inspect events as {time, type} pairs in gdb. But the SoA layout is visible in the struct, and printing `times[i], types[i]` is one extra step.
+- One subtraction per event at ingestion, dominated by I/O
+- M ≤ 256 constraint, enforced at the boundary
+- Debugging is one step less direct: events are not visible as `{time, type}`
+  pairs in a debugger
 
 **Neutral**:
-- Replay logs (§6 of data schemas) store absolute int64 nanoseconds separately, for replay-equals-live. This is independent of the in-memory layout. Conversion happens at log ingestion.
-- T (observation window end) is stored once, not per-event. This is natural for both AoS and SoA.
+- Replay logs store absolute int64 nanoseconds separately, independent of the
+  in-memory layout
+- T is stored once, not per event
+
+**Note on an earlier claim**: a previous version of this ADR cited a "30%
+speedup with SoA for N > 10⁴" attributed to profiling Ogata (1981)'s reference
+code. That was not measured by this project, and Ogata (1981) is a Fortran
+paper, not an implementation we profiled. The claim has been removed rather
+than carried forward as an unverified number: a number you have not computed is
+not evidence. H7 will measure the layouts that are actually implemented.
 
 ## References
 
 - mathematics.md §4: recursion accesses times and types sequentially
-- Data Schemas doc (P03.06): replay-equals-live requires absolute timestamps in storage
-- Ogata (1981): reference implementation (Fortran) uses SoA-equivalent (parallel arrays)
-- Cache performance: [Ulrich Drepper, "What Every Programmer Should Know About Memory"](https://people.freebsd.org/~lstewart/articles/cpumemory.pdf), §3.3
+- mathematics.md §4: the epoch-precision trap
+- Drepper, U., "What Every Programmer Should Know About Memory", §3.3

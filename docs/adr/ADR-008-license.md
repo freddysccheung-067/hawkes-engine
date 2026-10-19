@@ -1,8 +1,8 @@
-# ADR-008: License
+﻿# ADR-008: License
 
-**Status**: Accepted  
-**Date**: 2026-10-18  
-**Deciders**: Principal Software Architect
+**Status**: Accepted (amended 2026-10-19)
+**Date**: 2026-10-18
+**Deciders**: freddysccheung-067
 
 ## Context
 
@@ -27,7 +27,7 @@ Full text:
 ```
 MIT License
 
-Copyright (c) 2026 [Author Name]
+Copyright (c) 2026 Freddy Shi Chun Cheung
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -60,7 +60,7 @@ SOFTWARE.
 
 ### Option 1: Apache 2.0
 - **Pros**: Explicit patent grant (contributors can't later sue users for patent infringement), used by TensorFlow, PyTorch (originally), more "corporate-friendly" in legal perception
-- **Cons**: 10× longer license text (harder to read), patent clause is overkill for this library (Hawkes processes are prior art, no novel algorithms to patent), less recognizable to academic researchers than MIT/BSD
+- **Cons**: 10脳 longer license text (harder to read), patent clause is overkill for this library (Hawkes processes are prior art, no novel algorithms to patent), less recognizable to academic researchers than MIT/BSD
 - **Why rejected**: Patent grant is unnecessary here. The recursion (Ozaki 1979) and simulators (Ogata 1981) are public domain. Apache 2.0's complexity exceeds its benefit. Use MIT for simplicity.
 
 ### Option 2: BSD-3-Clause
