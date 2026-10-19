@@ -8,11 +8,10 @@ the number a user gets is the number the C++ tests verified.
 
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import TypedDict, TypeVar
 
 import numpy as np
 import numpy.typing as npt
-from typing_extensions import TypedDict
 
 from hawkes_engine import _core
 
