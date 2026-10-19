@@ -35,10 +35,11 @@ All figures below are from `benchmarks/results/*_2026-10-19.csv`, one machine:
 Windows 11, MSVC 19.44, Python 3.12.10, Intel Family 6 Model 198 (Alder Lake
 class). They are not claims about other hardware.
 
-- At M=2, N=1000 the core runs at about 37 ns/event against the reference's
-  about 453 ns/event, roughly 12x. The ratio grows with N because the
-  reference is O(N^2) and the core is O(N); the largest comparison the
-  benchmark file carries is N=1000, so no larger figure is claimed.
+- At M=2 the reference takes 0.453 s for N=1000 (0.453 us/event, measured). The
+  core takes 41.9 ns/event at N=100000, so about 42 us for N=1000 if the
+  per-event cost holds, which is roughly four orders of magnitude. The core
+  figure is extrapolated: the benchmark file measures N in {1e5, 1e6} only, and
+  the ratio grows with N because the reference is O(N^2) and the core is O(N).
 - Simulation throughput spans 3.7e6 to 22.3e6 events/s for thinning and 3.6e6
   to 7.9e6 for cluster over M in {2,4,8} x rho in {0.5,0.9}.
 - `fit` cost at M=2: 49 ms per iteration at N=1e5, 217 ms at N=1e6. At M=4,
