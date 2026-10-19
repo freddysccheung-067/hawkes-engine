@@ -32,7 +32,16 @@ jobs:
       - name: Install package
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[test]"
+          # Build logs are not readable without admin rights, so a compiler
+          # error would otherwise surface only as "exit code 1". Re-emit the
+          # diagnostics as annotations, which are readable.
+          if ! pip install -e ".[test]" > build.log 2>&1; then
+            grep -iE "error|fatal" build.log | head -40 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            tail -60 build.log
+            exit 1
+          fi
 
       - name: Run tests
         run: pytest -q
@@ -63,7 +72,14 @@ jobs:
         run: cmake --preset dev -Dpybind11_DIR="$(python -m pybind11 --cmakedir)"
 
       - name: Build
-        run: cmake --build --preset dev --config Release
+        run: |
+          if ! cmake --build --preset dev --config Release > build.log 2>&1; then
+            grep -iE "error:|error |fatal" build.log | head -40 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            tail -80 build.log
+            exit 1
+          fi
 
       - name: Run Catch2 suite
         run: ctest --preset dev --build-config Release

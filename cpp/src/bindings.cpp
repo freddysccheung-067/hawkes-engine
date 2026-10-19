@@ -13,6 +13,7 @@
 // pointer into a Python object outlives its owner.
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <vector>
 
