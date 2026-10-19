@@ -8,14 +8,17 @@ the number a user gets is the number the C++ tests verified.
 
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import TypeVar
 
 import numpy as np
 import numpy.typing as npt
+from typing_extensions import TypedDict
 
 from hawkes_engine import _core
 
 __all__ = ["LoglikResult", "loglik"]
+
+DTypeT = TypeVar("DTypeT", bound=np.generic)
 
 
 class LoglikResult(TypedDict, total=False):
@@ -38,10 +41,16 @@ class LoglikResult(TypedDict, total=False):
 
 
 def _check_array(
-    name: str, value: npt.ArrayLike, dtype: npt.DTypeLike, ndim: int | None
-) -> npt.NDArray[np.generic]:
+    name: str, value: npt.ArrayLike, dtype: type[DTypeT], ndim: int
+) -> npt.NDArray[DTypeT]:
+    """Return a C-contiguous array of the requested dtype, or raise.
+
+    The cast is deliberate and documented: the core rejects anything that is
+    not already float64/uint8 contiguous rather than silently copying, so the
+    conversion happens here, once, where the user can see it in the traceback.
+    """
     arr = np.ascontiguousarray(value, dtype=dtype)
-    if ndim is not None and arr.ndim != ndim:
+    if arr.ndim != ndim:
         raise ValueError(f"{name} must be {ndim}-dimensional, got shape {arr.shape}")
     return arr
 
