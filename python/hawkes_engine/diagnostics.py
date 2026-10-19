@@ -9,6 +9,7 @@ with a perfect Exp(1) histogram.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -16,8 +17,9 @@ import numpy.typing as npt
 from scipy import stats  # type: ignore[import-untyped,unused-ignore]
 
 from hawkes_engine import _core
+from hawkes_engine._arrays import as_real_1d, as_real_2d, as_uint8_1d, flat
 
-__all__ = ["TestResult", "ks_test", "ljung_box", "qq_data", "qq_plot", "time_rescale"]
+__all__ = ["TestResult", "ks_test", "ljung_box", "qq_data", "time_rescale"]
 
 FloatArray = npt.NDArray[np.float64]
 
@@ -41,20 +43,36 @@ def time_rescale(
 ) -> list[FloatArray]:
     """Rescaled gaps for each type, in event order.
 
+    Under the true parameters these are independent Exp(1) variables
+    (mathematics.md section 8), which is what :func:`ks_test` and
+    :func:`ljung_box` test.
+
     The first gap of each type runs from time 0. The stretch after a type's last
-    event is not a gap and is dropped.
+    event is not a gap and is dropped. A type with no events yields an empty
+    array, not an error.
+
+    Raises ``ValueError`` if the events are unsorted or a type index is not less
+    than ``M``, where ``M`` is the length of ``mu``.
     """
-    return _core.time_rescale(
-        np.ascontiguousarray(times, dtype=np.float64),
-        np.ascontiguousarray(types, dtype=np.uint8),
-        np.ascontiguousarray(mu, dtype=np.float64),
-        np.ascontiguousarray(alpha, dtype=np.float64),
-        np.ascontiguousarray(beta, dtype=np.float64),
-    )
+    t = as_real_1d(times, "times")
+    k = as_uint8_1d(types, "types")
+    m = as_real_1d(mu, "mu")
+    a = as_real_2d(alpha, "alpha")
+    b = as_real_2d(beta, "beta")
+    dim = int(m.shape[0])
+    if a.shape != (dim, dim) or b.shape != (dim, dim):
+        raise ValueError(f"alpha and beta must have shape ({dim}, {dim}) for mu of length {dim}")
+    return _core.time_rescale(t, k, m, flat(a), flat(b))
 
 
 def ks_test(gaps: list[FloatArray]) -> TestResult:
-    """One-sample KS test of each type's gaps against Exp(1)."""
+    """One-sample KS test of each type's gaps against Exp(1).
+
+    Per type, so ``statistic`` and ``pvalue`` each have one entry per element of
+    ``gaps``. An empty type gets ``nan``: there is nothing to test, and a
+    ``1.0`` would read as a pass. Use it together with :func:`ljung_box`; the
+    marginal law can be right while the dependence is wrong.
+    """
     stat = np.full(len(gaps), np.nan)
     pval = np.full(len(gaps), np.nan)
     for i, g in enumerate(gaps):
@@ -80,36 +98,28 @@ def ljung_box(gaps: list[FloatArray], lags: int = 10) -> TestResult:
             continue
         x = g - g.mean()
         denom = float(x @ x)
+        if denom == 0.0:
+            # A constant series has no autocorrelation to test. nan, not 1.0:
+            # an untestable series is not evidence of independence.
+            continue
         k = np.arange(1, h + 1)
         r = np.array([float(x[:-j] @ x[j:]) for j in k]) / denom
         q = g.size * (g.size + 2) * float(np.sum(r**2 / (g.size - k)))
-        stat[i], pval[i] = q, stats.chi2.sf(q, h)
+        stat[i], pval[i] = q, stats.chi2.sf(q, h) if math.isfinite(q) else np.nan
     return TestResult(stat, pval)
 
 
 def qq_data(gaps: list[FloatArray]) -> list[tuple[FloatArray, FloatArray]]:
-    """``(theoretical, sample)`` quantile pairs against Exp(1), per type."""
+    """``(theoretical, sample)`` quantile pairs against Exp(1), per type.
+
+    Theoretical quantiles use the plotting positions ``(k - 1/2) / n``, which
+    keep every point inside ``(0, 1)`` so the logarithm is finite. Plot the pair
+    with :func:`matplotlib.pyplot.plot`; this module does not import pyplot, so
+    a caller who never draws a plot never loads it.
+    """
     out = []
     for g in gaps:
         n = g.size
         p = (np.arange(1, n + 1) - 0.5) / n if n else np.empty(0)
         out.append((-np.log1p(-p), np.sort(g)))
     return out
-
-
-def qq_plot(gaps: list[FloatArray]):  # type: ignore[no-untyped-def]
-    """Q-Q plot against Exp(1); needs matplotlib, an optional dependency."""
-    try:
-        import matplotlib.pyplot as plt  # type: ignore[import-not-found,unused-ignore]
-    except ImportError as exc:
-        raise ImportError(
-            "qq_plot needs matplotlib, which is optional: pip install matplotlib"
-        ) from exc
-    fig, axes = plt.subplots(1, len(gaps), squeeze=False, figsize=(4 * len(gaps), 4))
-    for ax, (theo, samp) in zip(axes[0], qq_data(gaps), strict=True):
-        ax.plot(theo, samp, ".", markersize=3)
-        top = max(float(np.max(theo, initial=1.0)), float(np.max(samp, initial=1.0)))
-        ax.plot([0, top], [0, top], "k--", linewidth=1)
-        ax.set_xlabel("Exp(1) quantile")
-        ax.set_ylabel("rescaled gap")
-    return fig

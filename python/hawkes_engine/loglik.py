@@ -8,16 +8,15 @@ the number a user gets is the number the C++ tests verified.
 
 from __future__ import annotations
 
-from typing import TypedDict, TypeVar
+from typing import TypedDict
 
 import numpy as np
 import numpy.typing as npt
 
 from hawkes_engine import _core
+from hawkes_engine._arrays import as_real_1d, as_real_2d, as_uint8_1d, flat
 
 __all__ = ["LoglikResult", "loglik"]
-
-DTypeT = TypeVar("DTypeT", bound=np.generic)
 
 
 class LoglikResult(TypedDict, total=False):
@@ -39,19 +38,44 @@ class LoglikResult(TypedDict, total=False):
     dbeta: npt.NDArray[np.float64]
 
 
-def _check_array(
-    name: str, value: npt.ArrayLike, dtype: type[DTypeT], ndim: int
-) -> npt.NDArray[DTypeT]:
-    """Return a C-contiguous array of the requested dtype, or raise.
+def _prepare(
+    times: npt.ArrayLike,
+    types: npt.ArrayLike,
+    mu: npt.ArrayLike,
+    alpha: npt.ArrayLike,
+    beta: npt.ArrayLike,
+    shared_decay: bool,
+) -> tuple[
+    npt.NDArray[np.float64],
+    npt.NDArray[np.uint8],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+    int,
+]:
+    """Convert every argument to the form the core reads, and check the shapes.
 
-    The cast is deliberate and documented: the core rejects anything that is
-    not already float64/uint8 contiguous rather than silently copying, so the
-    conversion happens here, once, where the user can see it in the traceback.
+    The conversion is deliberate and happens here, once, where the user can see
+    it in a traceback. The core itself refuses anything it would have to copy,
+    so a silent conversion is impossible from this entry point.
     """
-    arr = np.ascontiguousarray(value, dtype=dtype)
-    if arr.ndim != ndim:
-        raise ValueError(f"{name} must be {ndim}-dimensional, got shape {arr.shape}")
-    return arr
+    t = as_real_1d(times, "times")
+    k = as_uint8_1d(types, "types")
+    m = as_real_1d(mu, "mu")
+    a = as_real_2d(alpha, "alpha")
+
+    dim = int(m.shape[0])
+    if a.shape != (dim, dim):
+        raise ValueError(f"alpha must have shape ({dim}, {dim}), got {a.shape}")
+    expected_beta = (dim,) if shared_decay else (dim, dim)
+    b = as_real_2d(beta, "beta") if not shared_decay else as_real_1d(beta, "beta")
+    if b.shape != expected_beta:
+        raise ValueError(f"beta must have shape {expected_beta}, got {b.shape}")
+    if t.shape[0] != k.shape[0]:
+        raise ValueError(
+            f"times and types must have the same length, got {t.shape[0]} and {k.shape[0]}"
+        )
+    return t, k, m, flat(a), flat(b), dim
 
 
 def loglik(
@@ -81,7 +105,7 @@ def loglik(
         the session. Convert epoch timestamps to a session-relative origin
         before calling (ADR-003).
     types
-        Type index of each event, shape ``(N,)``, castable to ``uint8``.
+        Type index of each event, shape ``(N,)``, in ``0..M-1``.
     mu
         Baseline intensities, shape ``(M,)``, non-negative.
     alpha
@@ -103,6 +127,12 @@ def loglik(
     LoglikResult
         ``value`` and, when requested, ``dmu``, ``dalpha``, ``dbeta``.
 
+    Raises
+    ------
+    ValueError
+        If the events are not sorted or lie outside ``[0, T]``, a parameter is
+        outside its domain, or a shape disagrees with ``M``.
+
     Notes
     -----
     The gradient is in natural space. The optimizer's log-space gradient is
@@ -112,23 +142,7 @@ def loglik(
     Two events at the same timestamp do not excite each other: the intensity
     sums over strictly earlier events.
     """
-    t = _check_array("times", times, np.float64, 1)
-    k = _check_array("types", types, np.uint8, 1)
-    m = _check_array("mu", mu, np.float64, 1)
-    a = _check_array("alpha", alpha, np.float64, 2)
-    b = _check_array("beta", beta, np.float64, 1 if shared_decay else 2)
-
-    dim = int(m.shape[0])
-    if a.shape != (dim, dim):
-        raise ValueError(f"alpha must have shape ({dim}, {dim}), got {a.shape}")
-    expected_beta = (dim,) if shared_decay else (dim, dim)
-    if b.shape != expected_beta:
-        raise ValueError(f"beta must have shape {expected_beta}, got {b.shape}")
-    if t.shape[0] != k.shape[0]:
-        raise ValueError(
-            f"times and types must have the same length, got {t.shape[0]} and {k.shape[0]}"
-        )
-
+    t, k, m, a, b, dim = _prepare(times, types, mu, alpha, beta, shared_decay)
     out = _core.loglik(t, k, m, a, b, float(T), dim, shared_decay, grad)
     result: LoglikResult = {"value": float(out["value"])}
     if grad:
@@ -150,18 +164,11 @@ def loglik_grad_log_space(
 ) -> LoglikResult:
     """Log-likelihood with the gradient in log-space coordinates.
 
-    Supplied for the optimizer at H3, which works in ``log`` coordinates so that
-    positivity is structural rather than a bound (ADR-002). Same arguments as
-    :func:`loglik` with ``grad=True``; the gradient blocks are
-    ``d/d(log x)``, not ``d/dx``.
+    Same arguments as :func:`loglik` with ``grad=True``; the gradient blocks are
+    ``d/d(log x)``, not ``d/dx``. This is the objective the optimizer steps in
+    (ADR-002); it is not part of the public surface.
     """
-    t = _check_array("times", times, np.float64, 1)
-    k = _check_array("types", types, np.uint8, 1)
-    m = _check_array("mu", mu, np.float64, 1)
-    a = _check_array("alpha", alpha, np.float64, 2)
-    b = _check_array("beta", beta, np.float64, 1 if shared_decay else 2)
-
-    dim = int(m.shape[0])
+    t, k, m, a, b, dim = _prepare(times, types, mu, alpha, beta, shared_decay)
     out = _core.loglik_grad_log_space(t, k, m, a, b, float(T), dim, shared_decay)
     return {
         "value": float(out["value"]),

@@ -12,6 +12,14 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
+# Compiler warnings on the extension. hawkes_core sets its own; the bindings are
+# a separate target and were compiling with none of them.
+if(MSVC)
+    set(HAWKES_WARNINGS /W4 /permissive-)
+else()
+    set(HAWKES_WARNINGS -Wall -Wextra -Wpedantic)
+endif()
+
 option(HAWKES_BUILD_TESTS "Build the Catch2 test suite" OFF)
 # Warnings are always on; promoting them to errors is opt-in so that installing
 # from source on a compiler whose diagnostic set is wider than the one the code
@@ -79,6 +87,9 @@ find_package(pybind11 CONFIG REQUIRED)
 pybind11_add_module(_core MODULE cpp/src/_core.cpp cpp/src/bindings.cpp cpp/src/bindings_sim.cpp)
 target_link_libraries(_core PRIVATE hawkes_core)
 target_include_directories(_core PRIVATE cpp/include)
+# The shared input contract for every binding lives in cpp/src, beside its users.
+target_include_directories(_core PRIVATE cpp/src)
+target_compile_options(_core PRIVATE ${HAWKES_WARNINGS})
 
 install(TARGETS _core DESTINATION hawkes_engine)
 

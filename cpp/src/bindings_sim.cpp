@@ -5,6 +5,9 @@
 // is resolved first and every Python object is touched again only after the
 // re-acquire. Simulated buffers are handed to NumPy without a copy: the vector
 // is moved to the heap and a capsule frees it when the array dies.
+//
+// Input contract, as in bindings.cpp: float64/uint8, C-contiguous, native byte
+// order, no coercion. The Python wrappers convert explicitly.
 
 #include <cstddef>
 #include <cstdint>
@@ -15,6 +18,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
+#include "array_input.hpp"
 #include "hawkes/diagnostics.hpp"
 #include "hawkes/rng.hpp"
 #include "hawkes/simulate_cluster.hpp"
@@ -24,32 +28,51 @@
 
 namespace py = pybind11;
 using namespace hawkes;
+using hawkes::pybindings::real_1d;
+using hawkes::pybindings::real_block;
+using hawkes::pybindings::require_size;
+using hawkes::pybindings::uint8_1d;
+using hawkes::pybindings::View;
 
 namespace {
 
-using RealIn = py::array_t<Real, py::array::c_style | py::array::forcecast>;
-
 struct Model {
-    RealIn mu, alpha, beta;
-    Index  M;
-    ParamView view() const { return ParamView{M, mu.data(), alpha.data(), beta.data()}; }
+    View<Real> mu, alpha, beta;
+    Index      M;
+    ParamView  view() const { return ParamView{M, mu.data, alpha.data, beta.data}; }
 };
 
 Model model_of(const py::object& mu, const py::object& alpha, const py::object& beta) {
-    Model m{RealIn::ensure(mu), RealIn::ensure(alpha), RealIn::ensure(beta), 0};
-    if (!m.mu || !m.alpha || !m.beta) {
-        throw py::type_error("mu, alpha and beta must be convertible to float64 arrays");
+    const View<Real> a_mu    = real_1d(mu, "mu");
+    const View<Real> a_alpha = real_block(alpha, "alpha");
+    const View<Real> a_beta  = real_block(beta, "beta");
+    if (a_mu.size < 1 || a_mu.size > 256) {
+        throw py::value_error("mu must have between 1 and 256 entries, got " +
+                              std::to_string(a_mu.size));
     }
-    m.M = static_cast<Index>(m.mu.size());
-    const auto MM = static_cast<py::ssize_t>(m.M) * m.M;
-    if (m.alpha.size() != MM || m.beta.size() != MM) {
-        throw py::value_error("alpha and beta must have M*M entries for mu of length M");
-    }
-    return m;
+    const auto M  = static_cast<Index>(a_mu.size);
+    const auto MM = static_cast<py::ssize_t>(M) * M;
+    require_size(a_alpha.size, MM, "alpha");
+    require_size(a_beta.size, MM, "beta");
+    return Model{a_mu, a_alpha, a_beta, M};
 }
 
+// Transfers ownership of `v` to NumPy.
+//
+// The array takes a PyCapsule as its base object. The capsule owns the vector;
+// NumPy drops its reference to the base when the array is deallocated, and the
+// capsule's destructor deletes the vector on the Python side, after the GIL has
+// been taken (the deallocation is a Python call, so it cannot run inside a
+// gil_scoped_release). The vector is moved onto the heap once and referenced
+// only by that capsule, so there is exactly one owner and exactly one delete.
+//
+// An empty vector is not adopted: its data() need not be a valid address, and
+// NumPy is asked for its own zero-length array instead.
 template <class T>
 py::array_t<T> adopt(std::vector<T>&& v) {
+    if (v.empty()) {
+        return py::array_t<T>(py::ssize_t{0});
+    }
     auto* heap = new std::vector<T>(std::move(v));
     py::capsule owner(heap, [](void* p) { delete static_cast<std::vector<T>*>(p); });
     return py::array_t<T>(static_cast<py::ssize_t>(heap->size()), heap->data(), owner);
@@ -61,9 +84,8 @@ py::tuple simulate_py(const py::object& mu, const py::object& alpha, const py::o
     if (method != "thinning" && method != "cluster") {
         throw py::value_error("method must be 'thinning' or 'cluster', got '" + method + "'");
     }
-    const Model m = model_of(mu, alpha, beta);
-    const ParamView params = m.view();
-    EventStream out;
+    const ParamView params = model_of(mu, alpha, beta).view();
+    EventStream     out;
     {
         py::gil_scoped_release release;
         out = method == "thinning" ? simulate_thin(params, T, seed, t0, burn_in)
@@ -72,20 +94,20 @@ py::tuple simulate_py(const py::object& mu, const py::object& alpha, const py::o
     return py::make_tuple(adopt(std::move(out.first)), adopt(std::move(out.second)));
 }
 
-py::list time_rescale_py(const py::array_t<Real, py::array::c_style | py::array::forcecast>& times,
-                         const py::array_t<std::uint8_t, py::array::c_style>& types,
-                         const py::object& mu, const py::object& alpha, const py::object& beta) {
-    if (times.size() != types.size()) {
-        throw py::value_error("times and types must have the same length");
-    }
-    const Model m = model_of(mu, alpha, beta);
-    const ParamView params = m.view();
-    const EventView events{times.data(), types.data(), static_cast<Index>(times.size())};
+py::list time_rescale_py(const py::object& times, const py::object& types, const py::object& mu,
+                         const py::object& alpha, const py::object& beta) {
+    const View<Real>         a_times = real_1d(times, "times");
+    const View<std::uint8_t> a_types = uint8_1d(types, "types");
+    require_size(a_types.size, a_times.size, "types");
+    const ParamView params = model_of(mu, alpha, beta).view();
+    const EventView events{a_times.data, a_types.data, static_cast<Index>(a_times.size)};
+
     std::vector<std::vector<Real>> gaps;
     {
         py::gil_scoped_release release;
         gaps = time_rescale(events, params);
     }
+
     py::list out;
     for (auto& g : gaps) {
         out.append(adopt(std::move(g)));
@@ -110,15 +132,13 @@ void register_simulate(py::module_& m) {
     m.def(
         "spectral_radius",
         [](const py::object& mu, const py::object& alpha, const py::object& beta) {
-            const Model md = model_of(mu, alpha, beta);
-            return spectral_radius(md.view());
+            return spectral_radius(model_of(mu, alpha, beta).view());
         },
         py::arg("mu"), py::arg("alpha"), py::arg("beta"), "Spectral radius of alpha/beta.");
     m.def(
         "stationary_mean",
         [](const py::object& mu, const py::object& alpha, const py::object& beta) {
-            const Model md = model_of(mu, alpha, beta);
-            return adopt(stationary_mean(md.view()));
+            return adopt(stationary_mean(model_of(mu, alpha, beta).view()));
         },
         py::arg("mu"), py::arg("alpha"), py::arg("beta"), "(I - Gamma)^{-1} mu.");
 }
