@@ -1,19 +1,12 @@
-"""
-hawkes-engine: Multi-dimensional Hawkes process library with trust calibration.
+"""Multi-dimensional Hawkes process library with trust calibration.
 
-This is v0.1.0.dev0 — minimal scaffold. Implementation comes in H1–H9.
+Pre-alpha: only the compiled core and packaging are in place. The estimator,
+simulators and trust map land over gates H2-H6; see docs/ROADMAP.md.
 """
+
+from hawkes_engine._core import build_info
 
 __version__ = "0.1.0.dev0"
-__author__ = "Your Name"
 __license__ = "MIT"
 
-# Empty for now — H2–H5 will add:
-# - simulate (H4)
-# - fit (H3)
-# - loglik (H2)
-# - trust_map (H6)
-
-__all__ = [
-    "__version__",
-]
+__all__ = ["__version__", "build_info"]

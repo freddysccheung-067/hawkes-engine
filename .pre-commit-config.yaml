@@ -2,7 +2,26 @@ repos:
   - repo: local
     hooks:
       - id: protect-oracle
-        name: Protect oracle (verification rule)
-        entry: 'oracle/*.py is read-only. See docs/verification-rule.md'
+        name: Reference implementation is read-only (docs/verification-rule.md)
+        entry: 'oracle/*.py is frozen. See docs/verification-rule.md before editing.'
         language: fail
         files: ^oracle/.*\.py$
+        exclude: ^oracle/test_oracle_gradient\.py$
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.8
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=512]
+      - id: check-merge-conflict

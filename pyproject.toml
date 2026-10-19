@@ -1,29 +1,27 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core>=0.10", "pybind11>=2.11"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "hawkes-engine"
 version = "0.1.0.dev0"
 description = "Multi-dimensional Hawkes process library with trust calibration"
 readme = "README.md"
-license = {text = "MIT"}
-authors = [
-    {name = "Your Name", email = "your.email@example.com"}
-]
+license = { text = "MIT" }
+authors = [{ name = "Freddy Shi Chun Cheung" }]
 requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.24.0",
     "scipy>=1.10.0",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
+    "Programming Language :: C++",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: C++",
     "Topic :: Scientific/Engineering",
 ]
 
@@ -35,11 +33,14 @@ test = [
 docs = [
     "sphinx>=7.0.0",
     "sphinx-rtd-theme>=1.3.0",
+    "myst-parser>=2.0.0",
 ]
 dev = [
     "hawkes-engine[test,docs]",
-    "ruff>=0.1.0",
+    "build>=1.0.0",
     "mypy>=1.5.0",
+    "pre-commit>=3.6.0",
+    "ruff>=0.4.0",
 ]
 
 [project.urls]
@@ -48,18 +49,17 @@ Documentation = "https://freddysccheung-067.github.io/hawkes-engine"
 Repository = "https://github.com/freddysccheung-067/hawkes-engine"
 Issues = "https://github.com/freddysccheung-067/hawkes-engine/issues"
 
-[tool.setuptools.packages.find]
-where = ["python"]
-
-[tool.setuptools.package-data]
-hawkes_engine = ["py.typed"]
+[tool.scikit-build]
+minimum-version = "0.10"
+cmake.version = ">=3.24"
+wheel.packages = ["python/hawkes_engine"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "oracle"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --tb=short"
+addopts = "-ra --tb=short"
 
 [tool.mypy]
 python_version = "3.10"
@@ -70,3 +70,13 @@ disallow_untyped_defs = true
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+extend-exclude = ["build", "dist", "oracle/hawkes_oracle.py"]
+# hawkes_oracle.py is frozen by the pre-commit hook and by
+# docs/verification-rule.md. Style rules do not apply to a file whose value is
+# that its contents have not changed since they were verified; reformatting it
+# would mean re-tagging the reference to satisfy a linter.
+[tool.ruff.lint.per-file-ignores]
+"oracle/hawkes_oracle.py" = ["I001", "UP035", "UP006"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
