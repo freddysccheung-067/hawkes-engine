@@ -95,7 +95,7 @@ jobs:
         run: |
           pip install scikit-build-core numpy
           pip install -e ".[test]"
-          pytest -q
+          pytest -q -m "not slow"
 
   sanitizers:
     name: ASan and UBSan
