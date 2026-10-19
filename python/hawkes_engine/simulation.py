@@ -66,18 +66,45 @@ def simulate(
 ) -> Path:
     """Simulate events on ``[t0, T)``; return ``(times, types)``.
 
-    ``alpha`` and ``beta`` are ``M x M`` with row = target and column = source.
-    ``times`` is sorted and ``types`` holds the type index of each event as
-    ``uint8``. Equal times across types are possible only when the process
-    produces them.
+    Parameters
+    ----------
+    mu
+        Baseline intensities, shape ``(M,)``, non-negative.
+    alpha
+        Excitation block, shape ``(M, M)``. Row is the target type, column the
+        source (ADR-002).
+    beta
+        Decay rates, shape ``(M, M)``, strictly positive.
+    T
+        End of the simulated window. Must be finite and greater than ``t0``.
+    method
+        ``"thinning"`` for Ogata's modified thinning, ``"cluster"`` for the
+        branching representation. Both sample the same law; neither is a
+        fallback for the other.
+    seed
+        Seed of the stream, in ``[0, 2**64)``. The output is a function of the
+        seed alone, so the same arguments reproduce the same path on every
+        platform.
+    burn_in
+        Time to run before ``t0`` and discard. Zero starts from an empty history,
+        which leaves the intensity below its stationary level early in the
+        window.
+    t0
+        Start of the returned window. Events before it are simulated and
+        discarded when ``burn_in > 0``.
 
-    ``burn_in = 0`` starts from an empty history, so the intensity early in the
-    window is below its stationary level. A positive ``burn_in`` runs the process
-    from ``t0 - burn_in`` and discards the events before ``t0``, which
-    approximates a stationary start.
+    Returns
+    -------
+    tuple of numpy.ndarray
+        ``times`` (float64, sorted, strictly inside the window) and ``types``
+        (uint8), the same length. Both are writable and independent of the
+        arguments.
 
-    Raises ``ValueError`` when the spectral radius of ``alpha / beta`` is 1 or
-    more (the message states it), or for a malformed window.
+    Raises
+    ------
+    ValueError
+        When the spectral radius of ``alpha / beta`` is 1 or more, the window is
+        malformed, or the parameters are outside their domain.
     """
     mu_a, alpha_a, beta_a = _params(mu, alpha, beta)
     if method not in ("thinning", "cluster"):
@@ -101,15 +128,26 @@ def simulate_many(
 ) -> list[Path]:
     """Simulate ``n_paths`` independent paths.
 
-    Path ``k`` uses the seed ``seed_stream(seed, k)``, so the paths are
-    independent streams of one generator family and the result is a function of
-    ``(seed, k)`` alone. It does not depend on how many threads the caller uses,
-    because the paths are produced serially here and any caller that splits the
-    index range across threads draws the same per-path seeds.
+    Parameters
+    ----------
+    mu, alpha, beta, T, method, seed, burn_in, t0
+        As for :func:`simulate`. The parameter arrays are converted once and
+        reused, so the per-path cost is the simulation.
+    n_paths
+        Number of paths. A negative value raises ``ValueError``; zero returns
+        an empty list.
 
-    The parameters are converted once and the flattened arrays are reused for
-    every path, so the per-path cost is the simulation and not the argument
-    marshalling.
+    Returns
+    -------
+    list of tuple of numpy.ndarray
+        One ``(times, types)`` pair per path.
+
+    Notes
+    -----
+    Path ``k`` uses the seed ``seed_stream(seed, k)``, so the result is a
+    function of ``(seed, k)`` alone and does not depend on how many threads the
+    caller uses. The paths are produced serially here; a caller who splits the
+    index range across threads gets the same per-path seeds.
     """
     if n_paths < 0:
         raise ValueError(f"n_paths must be non-negative, got {n_paths}")

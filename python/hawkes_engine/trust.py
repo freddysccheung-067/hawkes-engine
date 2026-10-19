@@ -105,11 +105,27 @@ def _alpha_beta_correlation(model: FitResult) -> float | None:
 def report(model: FitResult, n_events: int | None = None) -> ReliabilityReport:
     """Assess conditioning from this fit alone.
 
-    Reads only what the fit produced: the Hessian condition number, whether a
-    coordinate stopped on a search bound, the branching ratio, the alpha-beta
-    correlation implied by the covariance, and the event count per parameter.
-    It reports whether the fit converged and is well-conditioned, not whether it
-    is unbiased.
+    Parameters
+    ----------
+    model
+        A fitted :class:`~hawkes_engine.FitResult`. Only fields the fit already
+        computed are read; nothing is refitted.
+    n_events
+        Event count to compare against the parameter count. ``None`` reads
+        ``model.data["n_events"]``, which is what the fit recorded.
+
+    Returns
+    -------
+    ReliabilityReport
+        A verdict of ``"reliable"``, ``"marginal"`` or ``"unreliable"``, the
+        evidence, and one note per reason.
+
+    Notes
+    -----
+    Reads the Hessian condition number, whether a coordinate stopped on a search
+    bound, the branching ratio, the alpha-beta correlation implied by the
+    covariance, and the event count per parameter. It reports whether the fit
+    converged and is well-conditioned, not whether it is unbiased.
     """
     t = THRESHOLDS
     n_events = int(n_events if n_events is not None else model.data.get("n_events", 0))

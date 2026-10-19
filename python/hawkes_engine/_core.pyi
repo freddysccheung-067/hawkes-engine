@@ -95,3 +95,22 @@ def stationary_mean(
 ) -> npt.NDArray[np.float64]:
     """(I - Gamma)^{-1} mu."""
     ...
+
+# Private hooks read only by tests/test_zero_copy.py, which asserts that the
+# core receives the caller's buffer rather than a copy of it.
+def _view_addresses(
+    times: npt.NDArray[np.float64],
+    types: npt.NDArray[np.uint8],
+    mu: npt.NDArray[np.float64],
+    alpha: npt.NDArray[np.float64],
+    beta: npt.NDArray[np.float64],
+    T: float,
+    M: int,
+    shared_decay: bool = ...,
+) -> tuple[int, int, int, int, int]:
+    """Data addresses the core resolves for each argument."""
+    ...
+
+def _array_address(array: npt.NDArray[np.generic]) -> int:
+    """Data address of a C-contiguous array."""
+    ...

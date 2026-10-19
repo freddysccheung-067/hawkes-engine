@@ -22,6 +22,7 @@ Two things this module deliberately does *not* claim:
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 
 from hawkes_engine import _core
 from hawkes_engine._layout import Layout
@@ -294,11 +295,11 @@ def _gaps_summary(times: FloatArray, types: np.ndarray, M: int) -> dict[str, flo
 
 
 def fit(
-    times: object,
-    types: object,
-    mu: object = None,
-    alpha: object = None,
-    beta: object = None,
+    times: npt.ArrayLike,
+    types: npt.ArrayLike,
+    mu: npt.ArrayLike | None = None,
+    alpha: npt.ArrayLike | None = None,
+    beta: npt.ArrayLike | None = None,
     T: float | None = None,
     *,
     M: int | None = None,
@@ -351,6 +352,22 @@ def fit(
     Returns
     -------
     FitResult
+        The estimates, their standard errors where they exist, and a
+        ``reliable`` verdict. ``reliable`` describes how well conditioned this
+        fit is; it says nothing about bias or coverage, which are properties of
+        the estimator and are measured at H6.
+
+    Raises
+    ------
+    ValueError
+        If the event stream is unsorted, an event lies after ``T``, a type index
+        is not less than ``M``, or a supplied fixed block is outside its domain.
+
+    Notes
+    -----
+    Convergence is judged on the gradient recomputed at the returned point, not
+    on scipy's status. A fit that stops on a search bound is reported as such
+    via ``bound_hit`` rather than returned silently.
     """
     from scipy.optimize import minimize  # type: ignore[import-untyped]
 

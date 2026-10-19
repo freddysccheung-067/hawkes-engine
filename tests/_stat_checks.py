@@ -18,7 +18,8 @@ from pathlib import Path
 import hawkes_engine
 import numpy as np
 from hawkes_engine import _core as core
-from hawkes_engine import ks_test, ljung_box, simulate, simulate_many, time_rescale
+from hawkes_engine import ks_test, simulate, simulate_many, time_rescale
+from hawkes_engine.diagnostics import ljung_box
 from scipy import stats
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "oracle"))

@@ -43,16 +43,31 @@ def time_rescale(
 ) -> list[FloatArray]:
     """Rescaled gaps for each type, in event order.
 
-    Under the true parameters these are independent Exp(1) variables
-    (mathematics.md section 8), which is what :func:`ks_test` and
-    :func:`ljung_box` test.
+    Parameters
+    ----------
+    times
+        Event times, shape ``(N,)``, non-decreasing.
+    types
+        Type index of each event, shape ``(N,)``, in ``0..M-1``.
+    mu, alpha, beta
+        Parameters to rescale under, with the shapes :func:`hawkes_engine.loglik`
+        documents. ``M`` is the length of ``mu``.
 
+    Returns
+    -------
+    list of numpy.ndarray
+        One float64 array per type. Under the true parameters each is
+        independent Exp(1) (mathematics.md section 8), which is what
+        :func:`ks_test` and :func:`ljung_box` test.
+
+    Notes
+    -----
     The first gap of each type runs from time 0. The stretch after a type's last
     event is not a gap and is dropped. A type with no events yields an empty
     array, not an error.
 
     Raises ``ValueError`` if the events are unsorted or a type index is not less
-    than ``M``, where ``M`` is the length of ``mu``.
+    than ``M``.
     """
     t = as_real_1d(times, "times")
     k = as_uint8_1d(types, "types")
@@ -68,10 +83,22 @@ def time_rescale(
 def ks_test(gaps: list[FloatArray]) -> TestResult:
     """One-sample KS test of each type's gaps against Exp(1).
 
-    Per type, so ``statistic`` and ``pvalue`` each have one entry per element of
-    ``gaps``. An empty type gets ``nan``: there is nothing to test, and a
-    ``1.0`` would read as a pass. Use it together with :func:`ljung_box`; the
-    marginal law can be right while the dependence is wrong.
+    Parameters
+    ----------
+    gaps
+        Rescaled gaps, one array per type, as returned by :func:`time_rescale`.
+
+    Returns
+    -------
+    TestResult
+        ``statistic`` and ``pvalue``, one entry per element of ``gaps``.
+
+    Notes
+    -----
+    Per type, so an empty type gets ``nan`` rather than ``1.0``: there is nothing
+    to test, and a pass would read as evidence. Use it together with
+    :func:`ljung_box`; the marginal law can be right while the dependence is
+    wrong.
     """
     stat = np.full(len(gaps), np.nan)
     pval = np.full(len(gaps), np.nan)
@@ -112,10 +139,22 @@ def ljung_box(gaps: list[FloatArray], lags: int = 10) -> TestResult:
 def qq_data(gaps: list[FloatArray]) -> list[tuple[FloatArray, FloatArray]]:
     """``(theoretical, sample)`` quantile pairs against Exp(1), per type.
 
+    Parameters
+    ----------
+    gaps
+        Rescaled gaps, one array per type, as returned by :func:`time_rescale`.
+
+    Returns
+    -------
+    list of tuple of numpy.ndarray
+        Per type, the theoretical quantiles and the sorted sample. Plot them
+        with ``matplotlib.pyplot.plot``; this module does not import pyplot, so
+        a caller who never draws a plot never loads it.
+
+    Notes
+    -----
     Theoretical quantiles use the plotting positions ``(k - 1/2) / n``, which
-    keep every point inside ``(0, 1)`` so the logarithm is finite. Plot the pair
-    with :func:`matplotlib.pyplot.plot`; this module does not import pyplot, so
-    a caller who never draws a plot never loads it.
+    keep every point inside ``(0, 1)`` so the logarithm is finite.
     """
     out = []
     for g in gaps:
