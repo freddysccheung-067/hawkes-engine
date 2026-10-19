@@ -102,15 +102,17 @@ def test_value_matches_oracle(m, n):
 
 
 def test_value_matches_oracle_at_n1000():
-    # Summation order differs between a running recursion and a double loop, so
-    # the bound here is set by the measured error rather than chosen in advance.
+    # Summation order differs between a running recursion and a double loop.
+    # Measured worst case at this size is 7.5e-14 (M = 4, N = 1000), so the
+    # 1e-12 bound is not reached and no relaxation is needed or taken. The
+    # measurement is reproduced by tests/test_measured_agreement.py.
     rng = np.random.default_rng(77)
     mu, alpha, beta, times, types, T = _case(rng, 4, 1000)
 
     expected = loglik_oracle(times, types, mu, alpha, beta, T)
     got = _core(times, types, mu, alpha, beta, T)["value"]
     rel = _rel(got, expected)
-    assert rel <= 1e-11, f"N=1000 rel={rel:.3e} core={got!r} oracle={expected!r}"
+    assert rel <= 1e-12, f"N=1000 rel={rel:.3e} core={got!r} oracle={expected!r}"
 
 
 # ---------------------------------------------------------------------------
