@@ -71,8 +71,30 @@ M = 8 costs 0.46 s for the pair value and 0.09 s for the shared value.
 4. **Binding output shape.** `dalpha` was allocated `(M, M*M)` instead of
    `(M, M)`. Caught by the entry-by-entry oracle comparison, which is the
    reason that comparison is entry-by-entry.
+5. **The static core was not position-independent.** `hawkes_core` is a static
+   library linked into a shared module, and CMake enables PIC for shared
+   targets but not static ones. ELF platforms rejected the link; MSVC does not
+   care, so this stayed hidden until CI ran on Ubuntu. Found only after the
+   workflow was changed to re-emit build errors as annotations, because job
+   logs are not readable without admin rights and a link failure had been
+   arriving as nothing but "exit code 1".
+6. **`typing_extensions` was imported but never declared.** The packages that
+   pin it do so under `python_version < "3.11"` markers, so a clean 3.11 or
+   3.12 environment never has it. CI showed the signature exactly: 3.10 green
+   on every platform, 3.11 and 3.12 red on every platform. `TypedDict` has been
+   in `typing` since 3.8, so the backport was removed rather than declared.
 
 No defect was found in the reference implementation. `oracle/` is unchanged.
+
+## CI lessons
+
+Two of the three rounds of CI failure were diagnosable only after the workflow
+started printing the build errors. The unauthenticated REST API returns 403 for
+job logs on a public repository, and the check-run annotations carry only the
+exit code, so a compiler or linker message is invisible. The install and build
+steps now capture output and re-emit matching lines with `::error::`, which
+does surface in the annotations endpoint. That change is worth keeping for its
+own sake.
 
 ## Open issues
 
