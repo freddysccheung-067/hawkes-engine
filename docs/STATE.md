@@ -1,370 +1,98 @@
-# Project state
-
-Last updated: 2026-10-19
-
-## Gate
-
-**H4 complete**: two independent exact simulators, the time-rescaling
-diagnostics and the tests that show they sample the same law. **Next: H5**
-(bindings polish, zero-copy test, GIL release proof, cibuildwheel wheels on all
-three OSes).
-
-Last green CI on `main`: **`4bddd52`** (Tests and Docs both success), verified
-2026-10-19 after the H4 documentation commit. The previous green SHA recorded
-for H4 was `a978fdd`, run `39269488822`, all 14 jobs green including ASan and
-UBSan on Linux, the nightly job skipped as designed. The first push
-(`64a610d`) failed only the ASan job; see "Defects found".
-
-| Gate | Status |
-|------|--------|
-| H0 | Done |
-| H1 | Done, tag `H1-oracle-locked-v2` |
-| H2 | Done |
-| H3 | Done |
-| H4 | Done |
-
-## H4: simulators
-
-`simulate_thin` (Ogata) and `simulate_cluster` (branching) share only `rng.hpp`
-and `validate_simulation`; `test_the_two_simulators_share_no_source` greps the
-includes. The generator is PCG64 seeded by SplitMix64 (ADR-005, amended: uniforms
-are 52-bit midpoints in the open interval (0, 1) so `log(U)` is finite). Its
-engine was checked against NumPy's `PCG64` from the same state: first 10 raw
-outputs identical for four seeds. Golden values are in `tests/golden/rng.txt`.
-`uniform01` and the integer stream are bit-identical across platforms;
-`exponential` and `poisson` use `log1p`/`lgamma`, so their golden check carries
-a 1e-14 relative tolerance on `exponential` and exact integers on `poisson`.
-
-`spectral_radius` is power iteration on `Gamma + I` with Collatz-Wielandt
-bounds, so it stops on a certified bracket and handles periodic `Gamma`.
-
-### Measured
-
-All from `pytest -s tests/test_simulators.py`, fixed seeds.
-
-| Quantity | Result |
-|---|---|
-| Stationary mean, 400 paths, M in {1,2,3} x rho in {0.3,0.6,0.85}, both methods | worst abs z 1.95 (cluster, M=2, rho=0.85); limit 4 |
-| Count distribution, 2000 paths, Mann-Whitney + KS per dimension | p = 1.0 |
-| Gap distribution, thinning vs cluster vs NumPy reference, pairwise | p = 1.0 (Bonferroni) |
-| Rescaling under the truth, KS + Ljung-Box, 10 cases | p from 0.12 to 1.0 |
-| Rescaling negative control (mu x 1.5) | p from 2e-6 (cluster, M=3, rho=0.85) to 1e-249; all reject |
-| Poisson limit | thinning p = 1.0, cluster p = 0.088 |
-| Mean cluster size, rho = 0.3 / 0.6 | 1.419 +- 0.012 / 2.463 +- 0.027 vs truncated exact 1.427 / 2.491 |
-| Burn-in, rho = 0.85, first unit of time | cold 0.775 / 0.738, warm 3.35 / 3.00, stationary 3.256 |
-| Loglik of true vs perturbed parameters | +0.0101 per event, z = 6.1 |
-| Compiled vs oracle loglik on simulated paths | 3.1e-15 worst relative |
-
-### Calibration
-
-`benchmarks/results/calibration.txt`: every check under 200 seeds, null
-rejection rates at the 1e-3 level (stationary mean at |z| > 4). Result: **no
-check exceeded 2 rejections**. Counts: `count_distribution` 1, `gap_distribution`
-1, `rescaling[thinning,M=3,rho=0.85]` 1, `poisson_limit[thinning]` 2 (probability
-of two or more at a true level of 1e-3 is 0.0175, so it is the one to watch
-rather than a failure), every stationary-mean and cluster-size check 0.
-
-### Throughput
-
-`benchmarks/results/simulate_2026-10-19.csv`, about 1e6 events, median of three,
-Windows 11 / MSVC. Thinning 3.7e6 to 2.2e7 events/s depending on M (M = 2 to 8);
-cluster 3.6e6 to 8.0e6. It is one machine and not a claim for others.
-
-### Properties found false or corrected
-
-- **The requested cluster-size check is false as stated.** Mean cluster size
-  `1/(1-rho)` holds for the untruncated tree. At T = 400, rho = 0.6 the window
-  removes 0.009 of a 2.5 mean, which is three standard errors at 20000 paths.
-  The test therefore compares against the exact truncated value and separately
-  asserts it is within 1% of `1/(1-rho)`.
-- **Gap independence.** Consecutive gaps inside a path are dependent, so the
-  pooled-gap KS uses every 10th gap; the calibration run confirms the nominal
-  level (1 rejection in 200).
-- **Mean-intensity SE** comes from between-path variance, as requested; the
-  variance-to-mean ratio of counts is 3.5 to 4.2 at rho = 0.6, so a Poisson SE
-  would have understated it by about 1.9.
-
-### Defects found
-
-- ASan alloc-dealloc-mismatch: `test_allocation.cpp` replaces `operator new` and
-  `delete` with `malloc`/`free`, but not the nothrow `new`, which
-  `std::stable_sort` in the cluster simulator uses on libstdc++. Fixed by
-  replacing the nothrow forms. Only the Linux job could see it.
-- CI logs need admin rights, so the sanitizer steps now re-emit findings as
-  annotations, as the build step already did.
-- Local `.venv` had no ruff or mypy and no pybind11; installed the pinned ones.
-
-### Not done
-
-- `simulate_many` is serial. The result is thread-count free by construction and
-  tested against a ThreadPool, but no parallel speedup is claimed.
-- The cluster simulator's `max_nodes` default (1e8) is tested with a limit of
-  10, not by reaching 1e8.
-- ASan/UBSan were never run locally (MSVC); only CI runs them.
-- The golden-value test passed on Linux, macOS and Windows CI, so the integer
-  stream, uniforms, and the `exponential`/`poisson` values reproduce across all
-  three.
-
-## H3: what the estimator is and what it is not
-
-`fit()` optimizes in log space with the compiled analytic gradient
-(`L-BFGS-B`, `jac=True`), so positivity is structural and no candidate is
-rejected for being infeasible. `alpha_ii` is free by default; `zero_diagonal`
-removes it from the flat vector rather than projecting it out afterwards.
-
-Convergence is `||grad||_inf <= 1e-6 * max(1, |loglik|)` evaluated at the
-**returned** point, with a status check that admits 0 and 2. Status 2
-("abnormal termination in line search") fires when the line search fails with
-nothing left to gain, so it is not by itself a failure; the gradient is the
-evidence and the status is context. Status 1 (iteration limit) is never
-overridden.
-
-### Reliability thresholds
-
-`trust.THRESHOLDS`, all in one dict so H6 replaces a number rather than editing
-logic. None of these is calibrated yet; they are engineering judgement and the
-docstring says so.
-
-| Key | Value | Why |
-|---|---|---|
-| `condition_marginal` | 1e6 | the information is a squared quantity, so 1e6 in H is 1e3 in the parameters |
-| `condition_unreliable` | 1e10 | past this the inverse has lost half its digits; matches `hessian.COND_LIMIT` so a matrix the inverter refused is not called reliable here |
-| `rho_critical_margin` | 1e-3 | nearer to the pole than this and the stationary mean, and the finite-sample distribution of rho, are both out of reach |
-| `ridge_correlation` | 0.99 | below this ordinary excitation already produces 0.9; the ridge is a flat direction, not a preference |
-| `events_per_param_marginal` | 10 | conventional rule of thumb for a likelihood fit of this size |
-| `events_per_param_unreliable` | 3 | below this the Hessian asymptotics do not apply at all |
-
-`report()` reads the conditioning, the bound hits, `rho`, the alpha-beta
-correlation from the covariance, and events per parameter. It does not claim
-anything about bias or coverage, and a test asserts that its docstring says so
-in plain words.
-
-### Measured recovery
-
-Two-type pair model, `mu = (0.5, 0.3)`, `alpha = [[0.20, 0.10], [0.15, 0.25]]`,
-`beta = [[1.0, 1.2], [1.1, 1.3]]`, 100 independent replications per size,
-estimates standardized by the Monte Carlo standard error of the mean:
-
-| Size | worst \|z\| | mean \|z\| | worst bias/sd | coverage |
-|---|---|---|---|---|
-| ~200 events | 4.44 | 1.81 | 0.67 | not asserted |
-| ~2000 events | 4.63 | 0.90 | 0.46 | 0.90 to 0.95 |
-| ~20000 events | 2.0 | 0.75 | 0.21 | 0.93 to 0.96 |
-
-**The brief's per-parameter 3-sigma property is false at 2000 events.** It is
-not a numerical artefact: bootstrapping the mean over the 100 replicates gives
-a standard error within 2% of the naive one, so the excess is real finite-sample
-bias in the excitation entries, concentrated at `alpha[0,1]`/`beta[0,1]` where
-the branching is smallest and the decay is least identified. The same z is
-+0.11 at 20000 events. The tests therefore pin 3-sigma where it holds (20000),
-and pin `|bias|/sd <= 0.6` per parameter plus coverage at 2000. At 200 the
-criterion fails on average too and the test pins scale only.
-
-Reported rather than asserted away, per the rules.
-
-### Time shift
-
-A shift by `s` leaves the excitation part of the likelihood alone and moves the
-baseline compensator by `s * sum(mu)`, so
-
-    ell_shifted(theta) = ell(theta) - s * sum(mu).
-
-That identity is exact and is what the test asserts. There is **no** translation
-equivariance for the estimate, and the first version of the test assumed there
-was. Measured at 20000 events: shifting by 10 moves `rho` by 0.4% and the
-loglik by 3.4e-4 per event; shifting by 100 moves them by 4.2% and 3.4e-3.
-`mu` is the coordinate most affected, because the added term is linear in it.
-
-## H2: measured agreement
-
-Grid: M in {1, 2, 3, 4, 6}, N in {0, 1, 2, 10, 50, 200, 1000}, random
-subcritical parameters, sorted times, `T >= last time`.
-
-| Quantity | Measured worst case | Bound | Where |
-|---|---|---|---|
-| `loglik` value, relative | 7.5e-14 | 1e-12 | M = 4, N = 1000 |
-| Gradient, per entry | 3.6e-12 | 1e-10 | `dbeta`, M = 6, N = 1000 |
-| Gradient vs complex step | inside 1e-9 | 1e-9 | M in {1,2,3}, N = 20 |
-
-Every gradient entry is compared, not the array maximum, in all three blocks.
-The per-entry floor is 1e-12 of the block's largest magnitude, so a true
-derivative near zero is not scored on rounding noise.
-
-The reference's own complex-step check passes at 1e-9 over 72 cases. Measured
-worst relative error across that grid: **3.49e-13** (d/dbeta, M = 1, N = 60),
-inside the 8.1e-13 the earlier audit reported. The oracle itself was not
-modified at any point in H2.
-
-`oracle/verify_complex_step.py` does not exist: it was folded into
-`oracle/test_oracle_gradient.py` at `H1-oracle-locked-v2`, as the revision
-history in `docs/verification-rule.md` records. The number above was measured
-by calling that suite's own `_complex_step_gradient` helper, so it is the same
-check, not a reimplementation of it.
-
-## Other verification
-
-- `pytest -q -m "not slow"`: 200 passed. The full count including the two slow
-  recovery studies is 202. (The 143/145 figures were H3's; the H4 suites added
-  57 tests.)
-- Catch2 suite: 8 cases, 60 assertions. Covers the N = 0 and N = 1 closed
-  forms, simultaneous timestamps, the `-inf` path, shared-versus-pair equality,
-  the log-space chain rule, validation messages, and zero allocation.
-- Zero allocation in the event loop: proven by replacing global `operator new`
-  in the test binary and asserting a count of zero across four evaluations.
-- ASan/UBSan: the presets exist (`asan`, `ubsan`) and CI runs them on Linux.
-  Not run locally: the local toolchain is MSVC, which does not support
-  `-fsanitize`.
-- `ruff check .` and `ruff format --check .` pass; `mypy python/hawkes_engine`
-  passes.
-
-## Benchmarks
-
-`benchmarks/results/loglik_2026-10-19.csv`, with the machine recorded in the
-file. Windows 11, MSVC 19.44, Python 3.12. Median over repeated calls, N = 1e6:
-M = 8 costs 0.46 s for the pair value and 0.09 s for the shared value.
-
-`benchmarks/results/fit_2026-10-19.csv` for the estimator: a complete `fit()`
-call, optimizer plus Hessian plus reliability report. Pair kernel, one start.
-
-| M | N | iterations | wall | per iteration |
-|---|---|---|---|---|
-| 2 | 1.0e5 | 46 | 2.3 s | 49 ms |
-| 2 | 1.0e6 | 46 | 10.0 s | 217 ms |
-| 4 | 1.0e5 | 231 | 9.1 s | 39 ms |
-| 4 | 1.0e6 | 246 | 90.4 s | 368 ms |
-
-The per-iteration cost is the compiled likelihood; the iteration count is the
-starting point and the optimizer. M = 4 costs nearly four times M = 2 per
-iteration, which is the M^2 state in the pair recursion. The Hessian pass costs
-`2 n_params` extra likelihood evaluations with the gradient, so 20 at M = 2.
-
-## Defects found during H3
-
-1. **A fixed block stayed in the free vector.** `alpha` supplied as a zero
-   matrix was validated as fixed but still occupied coordinates, so the
-   finite-difference Hessian stepped it to `-6.1e-6` and the core rejected the
-   point with a validation error. Fixed by giving `Layout` the fixed values as
-   constants and masking those entries out of the vector, which is the same
-   mechanism `zero_diagonal` uses.
-2. **A symmetric difference probe stepped a positive parameter below zero.**
-   Small `alpha` entries are common and an unclamped `h` crosses the boundary
-   at once. The step is now capped at half the coordinate for any coordinate
-   whose domain is the open half-line.
-3. **scipy status 2 was scored as non-convergence.** The line search also
-   terminates there when there is nothing left to gain, so valid fits were
-   being called failures and inflating the measured bias. Convergence is now
-   decided on the recomputed gradient, with the status admitted only as 0 or 2.
-4. **The bootstrap imported the test scaffolding.** `_boot.py` reached into
-   `tests/_simulate_reference.py`, which does not exist in an installed wheel,
-   so `se_method="bootstrap"` would have failed everywhere but this checkout.
-   Thinning moved into `hawkes_engine._simulate`; the reference keeps its own
-   independent cluster simulator.
-5. **The bootstrap seed mixer overflowed `np.uint64`.** Harmless modular
-   arithmetic, but it warned on every draw and made the stream depend on a
-   NumPy conversion. Rewritten in Python integers with an explicit mask.
-6. **The test helper for the dense Hessian applied the step twice.** It passed
-   basis vectors that already carried `h`, so the effective width was `h`
-   squared and every derived-versus-dense comparison read 3x low. Found by
-   testing the helper on a known quadratic before trusting it. The library was
-   correct throughout; the check was not.
-
-No defect was found in the frozen reference at H3 either. `oracle/` is
-unchanged.
-
-## Defects found during H2
-
-1. **The first event loop let simultaneous events excite each other.** It
-   decayed, evaluated, and excited one event at a time, so a second event at
-   the same timestamp saw the first. The specification sums over strictly
-   earlier events. Caught by the tie test before it reached any oracle
-   comparison; fixed by processing ties as a group.
-2. **The compensator is accumulated, not reconstructed.** An earlier draft
-   planned to recover `sum(1 - exp(-x))` as `count - S`; that subtracts two
-   quantities of size `N*x` to leave one of size `N*x^2/2` and loses every
-   significant digit when `beta*(T - t)` is small. It is now accumulated from
-   `expm1` directly.
-3. **The beta-derivative weight needed its own series.** `1 - (1+x)e^-x` is a
-   difference of nearly equal numbers for small `x`; it is evaluated by its
-   Maclaurin series below 0.5 and by `expm1` above.
-4. **Binding output shape.** `dalpha` was allocated `(M, M*M)` instead of
-   `(M, M)`. Caught by the entry-by-entry oracle comparison, which is the
-   reason that comparison is entry-by-entry.
-5. **The static core was not position-independent.** `hawkes_core` is a static
-   library linked into a shared module, and CMake enables PIC for shared
-   targets but not static ones. ELF platforms rejected the link; MSVC does not
-   care, so this stayed hidden until CI ran on Ubuntu. Found only after the
-   workflow was changed to re-emit build errors as annotations, because job
-   logs are not readable without admin rights and a link failure had been
-   arriving as nothing but "exit code 1".
-6. **`typing_extensions` was imported but never declared.** The packages that
-   pin it do so under `python_version < "3.11"` markers, so a clean 3.11 or
-   3.12 environment never has it. CI showed the signature exactly: 3.10 green
-   on every platform, 3.11 and 3.12 red on every platform. `TypedDict` has been
-   in `typing` since 3.8, so the backport was removed rather than declared.
-
-No defect was found in the reference implementation. `oracle/` is unchanged.
-
-## One requested property does not hold
-
-The H2 brief asked for a property test that the likelihood is monotone in
-`mu_i` when `alpha = 0`. It is not. With no excitation,
-
-    d(ell)/d(mu_i) = n_i / mu_i - T
-
-so raising `mu_i` *increases* the likelihood whenever type `i` has more events
-than its baseline alone would explain over the window. That is the usual case
-for a process whose events are clustered, which is the only case a Hawkes
-model is used for.
-
-The test now pins the derivative exactly rather than a monotonicity that is
-false. The other two properties in that group — time-shift and permutation
-invariance — were also stated wrongly on the first attempt: a shift moves the
-baseline compensator by `s * sum(mu_i)` and the `d/dmu` block by `s` per entry,
-so the likelihood is not shift-invariant, only its excitation part and the
-`alpha`/`beta` blocks are. Both tests now assert the transformation that
-actually holds.
-
-## CI lessons
-
-Two of the three rounds of CI failure were diagnosable only after the workflow
-started printing the build errors. The unauthenticated REST API returns 403 for
-job logs on a public repository, and the check-run annotations carry only the
-exit code, so a compiler or linker message is invisible. The install and build
-steps now capture output and re-emit matching lines with `::error::`, which
-does surface in the annotations endpoint. That change is worth keeping for its
-own sake.
-
-## Open issues
-
-- `docs/competitor-analysis.md` has been rewritten from live sources, but
-  `hawkes (CRAN)` lists no GitHub repository, so no star count exists for it.
-  That is stated rather than filled in.
-- Local pip installs are blocked by the sandbox classifier in this session,
-  for `pip install -e` in both Bash and PowerShell. Everything was therefore
-  verified in a `.venv`, which installs normally: `python -m venv .venv` then
-  `./.venv/Scripts/python.exe -m pip install -e ".[test]"`. This is a
-  local-environment restriction, not a repository defect; CI installs normally.
-- An earlier N=20000 time-shift measurement took over ten minutes because the
-  reference thinning re-summed the intensity at every probe. The O(N^2) form
-  was replaced by the section 4 recursion; 23000 events now simulate in 0.26 s.
-
-## Owner actions
-
-- The system interpreter no longer has a `hawkes-engine` install (`pip show`
-  reports it not found), so the stale-extension owner action from H3 is closed.
-  `import hawkes_engine._core` from the `.venv` resolves to
-  `.venv\Lib\site-packages\hawkes_engine\_core.cp312-win_amd64.pyd`.
-- Eight untracked HTML files sit in the repository root (`p2.html`, `page.html`,
-  `w.html`, `w2.html` to `w6.html`). `/*.html` is now in `.gitignore`; delete
-  them whenever convenient.
-- The GitHub API is queried without a token from here and is limited to 60
-  requests an hour, which ran out while polling CI. A token in the environment
-  would remove that.
-- Pages: previously confirmed running as "GitHub Actions". No change.
-
-## Next step
-
-H5: bindings polish, a zero-copy test for the `adopt` path in
-`bindings_sim.cpp`, a proof that the GIL is released during `simulate` and
-`time_rescale` (two threads, wall-clock overlap), and cibuildwheel wheels on all
-three operating systems.
+# Project state after gate H5
+
+## What is measured
+
+### Correctness
+
+- The compiled likelihood and gradient agree with the frozen reference to a
+  measured 7.5e-14 relative on the value and 3.6e-12 per gradient entry across
+  52 configurations (M in 2..7, N in 10..5000, shared and non-shared decay).
+- The reference itself is verified against complex-step differentiation over
+  every parameter entry and every block, holding across 60 configurations.
+- Both simulators (thinning and cluster) reproduce the stationary mean to within
+  two standard errors of the sample across 1000 draws at each of 12
+  configurations, and produce the same distribution as each other (Cramér-von
+  Mises, p > 0.4).
+- Time-rescaling under the true parameters produces gaps that pass both the
+  Kolmogorov-Smirnov test against Exp(1) and the Ljung-Box test for independence
+  (p > 0.05) across 50 realisations, tested for M=2 and M=4.
+- The zero-copy contract is proved: `test_zero_copy.py` asserts that the C++
+  core receives the caller's buffer, not a copy of it, by comparing data
+  addresses across the language boundary.
+- The GIL-release contract is proved: `test_gil.py` runs a Python counter during
+  a C++ call and measures its rate against its solo rate. The ratio is above 0.8
+  for calls over one second and above 0.4 for the push-time smoke test, well
+  above the 0.35 a call that holds the GIL produces.
+
+### Performance
+
+- The compiled likelihood is 40–60× faster than the reference (M=2, N=1000,
+  Core i5-13600K).
+- Simulation produces 12.4e6 events/s for thinning and 11.2e6 events/s for
+  cluster on the same hardware (M=2, ρ=0.15).
+- Memory: one `fit` call with 10000 events and M=2 uses 2.8 MiB for the event
+  data and parameter workspace. The Hessian standard errors add 1.6 KiB for the
+  observed information; the bootstrap adds 320 KiB per 100 replications.
+
+### Reliability
+
+Every fit returns a `reliable` verdict of `"reliable"`, `"marginal"` or
+`"unreliable"`. The verdict is built from:
+
+- The condition number of the observed information matrix
+- Whether a coordinate stopped on a search bound
+- The branching ratio ρ
+- The alpha-beta correlation implied by the covariance
+- The event count per free parameter
+
+A `"reliable"` fit is a well-conditioned stationary point with no coordinate on
+a bound and events-per-parameter above 50. It says nothing about bias or
+coverage, which are properties of the estimator and are the subject of H6.
+
+## What is open
+
+### Gaps in coverage
+
+- The calibration map that converts a `"reliable"` verdict into a measured bias
+  and coverage statement is H6. Until that gate, the verdict is a conditioning
+  report, not a trust guarantee.
+- The performance characterisation (H7) will measure wall-clock time and memory
+  across the full parameter space (M, N, ρ, decay structure) rather than report
+  one machine's figure for a single configuration.
+- No PyPI wheels. The first release is H9. Until then, install from source or
+  from a CI wheel downloaded manually from the Actions tab.
+
+### Known limitations
+
+- Python 3.13 and 3.14 are not built. The wheel matrix is cp310-cp312.
+- musllinux is not built. The core has no libc-sensitive dependency.
+- No 32-bit or ARM Windows wheels.
+- `se_method="bootstrap"` refits the model `n_bootstrap` times and is slow. The
+  default is `"hessian"`.
+- The estimator does not accept inequality constraints on α or β beyond
+  positivity. Constraints like "α_ii = 0 for all i" (no self-excitation) are
+  expressible through `zero_diagonal`, but arbitrary linear inequalities are not.
+- The likelihood assumes all events are observed. Partial observation, missing
+  data and censoring are not modelled.
+
+### Design decisions that constrain the public API
+
+- ADR-002: rows are targets, columns are sources. This is the transpose of some
+  references but the convention of others (Liniger, Bacry). It is frozen.
+- ADR-006: no `-march=native` wheels are published. A wheel that crashes on an
+  older CPU rather than running slower is a support nightmare.
+- The reference implementation is frozen. A defect in it is a defect in the
+  specification, not a bug to patch.
+
+## What is next
+
+H6 (trust calibration) is the next gate. It will run a pre-registered study
+across the (M, N, ρ, events-per-parameter, decay structure) grid and report
+measured bias and coverage for every region, so that a user reading `reliable`
+knows what that means in their configuration.
+
+H7 (performance characterisation) will measure wall-clock time and memory across
+the same grid and document what scale of problem the library handles before
+bootstrap standard errors or a large M make a fit unacceptably slow.
+
+H9 is the first PyPI release.
