@@ -1,0 +1,15 @@
+# machine: Windows-11-10.0.26200-SP0; Intel64 Family 6 Model 198 Stepping 2, GenuineIntel
+# python 3.12.10, numpy 2.5.4, core {'cxx_standard': 20, 'compiler': 'msvc', 'compiler_version': '1944', 'pybind11_version': '3.1.0'}
+method,M,rho,T,events,seconds,events_per_second
+thinning,2,0.5,446724.2,998693,0.056,17825782
+cluster,2,0.5,446724.2,1000877,0.1368,7318920
+thinning,2,0.9,90255.4,993915,0.0445,22328495
+cluster,2,0.9,90255.4,983862,0.1238,7944795
+thinning,4,0.5,219544.6,1001891,0.0918,10914321
+cluster,4,0.5,219544.6,1000074,0.1304,7668932
+thinning,4,0.9,43831.0,1005230,0.0937,10723837
+cluster,4,0.9,43831.0,991896,0.1357,7306994
+thinning,8,0.5,124771.9,1000502,0.2734,3658852
+cluster,8,0.5,124771.9,998584,0.2784,3587450
+thinning,8,0.9,24975.4,1004221,0.2602,3858795
+cluster,8,0.9,24975.4,1001976,0.1937,5172944

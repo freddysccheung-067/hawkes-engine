@@ -107,6 +107,7 @@ if(HAWKES_BUILD_TESTS)
         cpp/tests/test_loglik.cpp
         cpp/tests/test_allocation.cpp
         cpp/tests/test_rng.cpp
+        cpp/tests/test_simulate.cpp
     )
     target_link_libraries(hawkes_tests PRIVATE hawkes_core Catch2::Catch2WithMain)
     target_include_directories(hawkes_tests PRIVATE cpp/include)
