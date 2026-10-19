@@ -1,0 +1,3 @@
+# The frozen H6 grid carries a SHA-256 in docs/preregistration.md. Git must
+# store and restore its bytes exactly, so no line-ending translation applies.
+studies/theta0.json -text

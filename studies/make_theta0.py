@@ -118,9 +118,25 @@ payload = {
 }
 
 out = Path(__file__).with_name("theta0.json")
-text = json.dumps(payload, indent=2, sort_keys=False)
-out.write_text(text, encoding="utf-8")
+# A byte hash of the file is not stable here: git normalises line endings on
+# checkout, so the same grid hashes differently in the working tree than in the
+# object store. The digest recorded in the preregistration is therefore
+# canonical: re-serialise the parsed payload with fixed arguments and hash that.
+# It depends on the grid and nothing else.
+data = (json.dumps(payload, indent=2, sort_keys=False) + "\n").encode("utf-8")
+with out.open("wb") as handle:
+    handle.write(data)
+
+
+def canonical_digest(path: Path) -> str:
+    """SHA-256 of the grid's canonical form, independent of line endings."""
+    parsed = json.loads(path.read_text(encoding="utf-8"))
+    body = json.dumps(parsed, indent=2, sort_keys=False, ensure_ascii=False) + "\n"
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+digest = canonical_digest(out)
 print(f"cells written: {len(cells)}")
 print(f"rho_H3       : {RHO_H3:.12f}")
-print(f"sha256       : {hashlib.sha256(text.encode('utf-8')).hexdigest()}")
+print(f"canonical    : {digest}")
 print(f"path         : {out}")
