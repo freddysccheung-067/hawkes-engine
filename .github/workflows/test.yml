@@ -25,10 +25,10 @@ jobs:
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -50,7 +50,30 @@ jobs:
           fi
 
       - name: Run tests
-        run: pytest -q -m "not slow"
+        shell: bash
+        run: |
+          # Same reason as above: the job log needs admin rights, and a failing
+          # test name is invisible without it. Re-emit the failure summary and
+          # each assertion line as an annotation.
+          if ! pytest -q -m "not slow" > pytest.log 2>&1; then
+            python - <<'PY'
+          import pathlib, re
+          text = pathlib.Path("pytest.log").read_text(errors="replace")
+          # The short summary names every failing test; the traceback carries the
+          # assertion. Both are what a reader needs and neither is in a log they
+          # can open.
+          for line in text.splitlines():
+              if re.match(r"^(FAILED|ERROR) ", line):
+                  print(f"::error::{line}")
+          for line in text.splitlines():
+              if line.startswith("E "):
+                  print(f"::error::{line[:300]}")
+          for line in text.splitlines()[-40:]:
+              print(line)
+          PY
+            exit 1
+          fi
+          tail -5 pytest.log
 
   cpp:
     name: C++ tests on ${{ matrix.os }}
@@ -61,10 +84,10 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -101,10 +124,10 @@ jobs:
     name: ASan and UBSan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -152,10 +175,10 @@ jobs:
     name: Lint and type-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -185,10 +208,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
