@@ -29,12 +29,20 @@ The decision below replaces them with a generator we own outright.
   (XSL-RR variant, 128-bit state, 64-bit output) for stream generation.
   Both are short, published, and implementable in ~80 lines of standard C++
   with no external dependency.
-- **Uniforms**: `double` in [0, 1) built from 53 bits — one 64-bit draw, the
-  top 53 bits scaled by 2⁻⁵³. This is exactly representable and cannot return 1.
+- **Uniforms**: `double` on the open interval (0, 1): the top 52 bits `k` of one
+  64-bit draw, mapped to `(k + 1/2) * 2^-52`. Never 0 and never 1, so both
+  `log(U)` and `log1p(-U)` are finite. The first version of this decision used
+  53 bits in [0, 1); that admits 0, which breaks `log(U)`, and the 53-bit
+  midpoint form rounds its largest value to exactly 1.
 - **Exponentials**: inverse transform, `-log1p(-u)`. `log1p` keeps accuracy for
   small `u`, where `-log(u)` would lose it. One uniform per exponential.
 - **Seeding**: `uint64_t seed`, expanded through SplitMix64 into the 128-bit
   PCG state. Explicit seed per call; no global state, no default seed.
+- **Poisson**: inversion by sequential search for mean < 10, the PTRS
+  transformed rejection of Hormann (1993) above. `std::poisson_distribution`
+  and `std::exponential_distribution` are not used, because their output is
+  implementation-defined.
+- **Stream seeds**: `seed_stream(seed, i)` is injective in `i` for a fixed seed.
 - **Where it lives**: C++, alongside the simulators. The Python API accepts a
   Python `int` and narrows it to `uint64`.
 

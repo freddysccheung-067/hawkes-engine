@@ -22,6 +22,7 @@ option(HAWKES_WERROR "Treat warnings as errors" OFF)
 add_library(hawkes_core STATIC
     cpp/src/loglik.cpp
     cpp/src/loglik_shared.cpp
+    cpp/src/rng.cpp
     cpp/src/validation.cpp
     cpp/src/workspace.cpp
 )
@@ -102,8 +103,10 @@ if(HAWKES_BUILD_TESTS)
     add_executable(hawkes_tests
         cpp/tests/test_loglik.cpp
         cpp/tests/test_allocation.cpp
+        cpp/tests/test_rng.cpp
     )
     target_link_libraries(hawkes_tests PRIVATE hawkes_core Catch2::Catch2WithMain)
     target_include_directories(hawkes_tests PRIVATE cpp/include)
+    target_compile_definitions(hawkes_tests PRIVATE HAWKES_GOLDEN_DIR="${CMAKE_SOURCE_DIR}/tests/golden")
     add_test(NAME hawkes_tests COMMAND hawkes_tests)
 endif()
