@@ -20,7 +20,7 @@ import hawkes_engine  # noqa: E402
 from hawkes_oracle import grad_oracle, loglik_oracle  # noqa: E402
 
 
-def _core(out_arrays, *args, **kwargs):
+def _core(*args, **kwargs):
     return hawkes_engine.loglik(*args, **kwargs)
 
 
@@ -103,7 +103,7 @@ def test_measured_n1000_is_the_summation_order():
     T = float(times[-1] + 2.0)
 
     expected = loglik_oracle(times, types, mu, alpha, beta, T)
-    got = _core(None, times, types, mu, alpha, beta, T)["value"]
+    got = _core(times, types, mu, alpha, beta, T)["value"]
     rel = _rel(got, expected)
     # The recursion sums N terms forward; the oracle sums each type's events in
     # the same forward order but through a different expression. A few ulp of
