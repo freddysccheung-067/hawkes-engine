@@ -52,3 +52,46 @@ def loglik_grad_log_space(
 ) -> CoreResult:
     """Log-likelihood with the gradient in log space."""
     ...
+
+def simulate(
+    mu: npt.NDArray[np.float64],
+    alpha: npt.NDArray[np.float64],
+    beta: npt.NDArray[np.float64],
+    T: float,
+    method: str,
+    seed: int,
+    t0: float = ...,
+    burn_in: float = ...,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.uint8]]:
+    """Simulate on [t0, T) with the named algorithm."""
+    ...
+
+def time_rescale(
+    times: npt.NDArray[np.float64],
+    types: npt.NDArray[np.uint8],
+    mu: npt.NDArray[np.float64],
+    alpha: npt.NDArray[np.float64],
+    beta: npt.NDArray[np.float64],
+) -> list[npt.NDArray[np.float64]]:
+    """Rescaled gaps per type."""
+    ...
+
+def seed_stream(seed: int, index: int) -> int:
+    """Seed of the index-th independent stream."""
+    ...
+
+def spectral_radius(
+    mu: npt.NDArray[np.float64],
+    alpha: npt.NDArray[np.float64],
+    beta: npt.NDArray[np.float64],
+) -> float:
+    """Spectral radius of alpha / beta."""
+    ...
+
+def stationary_mean(
+    mu: npt.NDArray[np.float64],
+    alpha: npt.NDArray[np.float64],
+    beta: npt.NDArray[np.float64],
+) -> npt.NDArray[np.float64]:
+    """(I - Gamma)^{-1} mu."""
+    ...

@@ -7,9 +7,11 @@ docs/ROADMAP.md.
 """
 
 from hawkes_engine._core import build_info
+from hawkes_engine.diagnostics import ks_test, ljung_box, qq_data, time_rescale
 from hawkes_engine.fit import fit
 from hawkes_engine.loglik import LoglikResult, loglik, loglik_grad_log_space
 from hawkes_engine.model import FitResult
+from hawkes_engine.simulation import simulate, simulate_many
 
 __version__ = "0.1.0.dev0"
 __license__ = "MIT"
@@ -21,5 +23,11 @@ __all__ = [
     "FitResult",
     "loglik",
     "loglik_grad_log_space",
+    "simulate",
+    "simulate_many",
+    "time_rescale",
+    "ks_test",
+    "ljung_box",
+    "qq_data",
     "LoglikResult",
 ]

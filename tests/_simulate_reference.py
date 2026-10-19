@@ -1,30 +1,83 @@
-"""Test-only reference simulator. Not part of the package, not exported.
+"""Test-only reference simulators in NumPy. Not part of the package.
 
-This is scaffolding for the H3 fit tests and nothing else. It exists so that a
-recovery test has ground truth to recover from.
+The third, independent implementation. The C++ thinning and cluster simulators
+(H4) are checked against these, in the same way ``oracle/hawkes_oracle.py``
+checks the likelihood. The fit tests also draw their ground truth from here, so
+that they do not depend on the code whose agreement is under test.
 
-The **cluster** simulator below is the independent one and is the reason this
-file exists: it draws a branching tree and sorts it, using none of the thinning
-machinery, so a defect in either representation is unlikely to be reproduced by
-the other. ``simulate_thinning`` delegates to ``hawkes_engine._simulate``
-because the parametric bootstrap needs a simulator inside the installed
-package, and two copies of the same loop would be one opinion, not two.
-
-H4's C++ thinning and cluster simulators must agree with this file and with
-``hawkes_engine._simulate``. When they arrive, that agreement is the check that
-the fast implementations are right, in the same way
-``oracle/hawkes_oracle.py`` checks the likelihood.
+Both algorithms are written out in full and share nothing with the package.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 import numpy.typing as npt
-from hawkes_engine._simulate import Simulation, simulate_thinning
+
+
+@dataclass(frozen=True)
+class Simulation:
+    times: npt.NDArray[np.float64]
+    types: npt.NDArray[np.uint8]
+
 
 __all__ = ["Simulation", "simulate_thinning", "simulate_cluster", "stationary_mean"]
+
+
+def simulate_thinning(
+    mu: Any,
+    alpha: Any,
+    beta: Any,
+    T: float,
+    M: int,
+    rng: np.random.Generator,
+    *,
+    shared_decay: bool = False,
+) -> Simulation:
+    """Ogata's modified thinning, per mathematics.md section 6.
+
+    State is ``S_ij(t) = sum_{t^j_m < t} exp(-beta_ij (t - t^j_m))``, advanced by
+    the one-step recursion of section 4, so the cost is O(N M^2) rather than the
+    O(N^2 M^2) of re-summing at every probe.
+
+    The bound is the total intensity immediately after the last accepted event.
+    That is valid because the intensity only decays between events: an
+    excitation is added all at once and then decays. On a rejection the clock
+    advances to the probe and the bound is reset to the current total, which is
+    again an upper bound for the same reason.
+    """
+    mu_arr = np.asarray(mu, dtype=np.float64)
+    alpha_arr = np.asarray(alpha, dtype=np.float64)
+    beta_arr = np.asarray(beta, dtype=np.float64)
+    if shared_decay:
+        beta_arr = np.broadcast_to(beta_arr[None, :], (M, M))
+
+    times: list[float] = []
+    types: list[int] = []
+    S = np.zeros((M, M))
+    clock = 0.0
+    bound = float(mu_arr.sum())
+    while bound > 0.0:
+        t_next = clock + float(rng.exponential(1.0 / bound))
+        S *= np.exp(-beta_arr * (t_next - clock))
+        clock = t_next
+        if t_next >= T:
+            break
+        lam = mu_arr + (alpha_arr * S).sum(axis=1)
+        total = float(lam.sum())
+        if rng.random() * bound <= total:
+            kind = int(rng.choice(M, p=lam / total))
+            times.append(t_next)
+            types.append(kind)
+            S[:, kind] += 1.0
+            # Immediately after the jump the total is the accepted rate plus
+            # this event's contribution, which is the next valid bound.
+            bound = total + float(alpha_arr[:, kind].sum())
+        else:
+            bound = total
+    return Simulation(np.asarray(times, dtype=np.float64), np.asarray(types, dtype=np.uint8))
 
 
 def _beta_block(beta: Any, M: int, shared_decay: bool) -> npt.NDArray[np.float64]:
