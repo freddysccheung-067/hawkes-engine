@@ -136,12 +136,14 @@ own sake.
 
 ## Owner actions
 
-- **Enable GitHub Pages.** The repository reports `has_pages: true`, but
-  `/repos/.../pages` returns 404 and the site 404s. The Docs workflow builds
-  successfully and fails at the deploy step. Settings → Pages → Source:
-  GitHub Actions.
-- **Delete `cpp/tests/test_main.cpp`** if it is still on disk. It is untracked,
-  unreferenced, and the delete action was blocked; it is not in any commit.
+- **None outstanding from H2.** Pages was reported as not deploying earlier in
+  this gate; the `Deploy to GitHub Pages` job has since run green, so either
+  the Pages source was already configured or it was enabled in the meantime.
+  Worth a one-time look at Settings -> Pages to confirm the source is
+  "GitHub Actions" rather than a branch, so it does not regress.
+- A stray untracked file, `cpp/tests/test_main.cpp`, may exist in a local
+  checkout. It is in no commit and is referenced by nothing; deleting it is
+  cosmetic.
 
 ## Next step
 
