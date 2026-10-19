@@ -132,9 +132,8 @@ struct Outputs {
 
 Outputs make_outputs(Index M, bool shared) {
     const auto Mi = static_cast<py::ssize_t>(M);
-    const auto MM = static_cast<py::ssize_t>(M) * static_cast<py::ssize_t>(M);
-    Outputs out{py::array_t<Real>(Mi), py::array_t<Real>({Mi, MM}),
-                shared ? py::array_t<Real>(Mi) : py::array_t<Real>({Mi, MM})};
+    Outputs out{py::array_t<Real>(Mi), py::array_t<Real>({Mi, Mi}),
+                shared ? py::array_t<Real>(Mi) : py::array_t<Real>({Mi, Mi})};
     return out;
 }
 
