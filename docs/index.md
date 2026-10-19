@@ -5,7 +5,7 @@ Multi-dimensional Hawkes process library with trust calibration.
 **Status: pre-alpha.** Gate H1 of 9 is complete. The specification, the
 architecture decisions, the frozen reference implementation and the compiled
 build are in place. The estimator, simulators and trust map arrive in later
-gates; see the [roadmap](ROADMAP.md).
+gates.
 
 ## What is a Hawkes process
 
@@ -21,16 +21,20 @@ Here $\mu_i$ is the baseline rate of type $i$, $\alpha_{ij}$ is the excitation
 that a type-$j$ event injects into type $i$, and $\beta_{ij}$ is the decay rate
 of that excitation.
 
-## Design documents
+## Contents
 
-- `docs/spec/mathematics.md` — the specification. Normative for every formula
-  the code implements.
-- `docs/adr/` — architecture decision records, numbered. They record why
-  decisions were made, which is useful to maintainers and noise for users, so
-  they are kept in the repository rather than published here.
-- [Roadmap](ROADMAP.md) — the gates and what each one proves.
-- [Verification rule](verification-rule.md) — how correctness is established,
-  and why the reference implementation is frozen.
+```{toctree}
+:maxdepth: 1
+
+ROADMAP
+verification-rule
+```
+
+The specification (`docs/spec/mathematics.md`) and the architecture decision
+records (`docs/adr/`) are kept in the repository rather than published here.
+The specification is normative for every formula the code implements; the ADRs
+record why decisions were made, which is useful to maintainers and noise for
+users.
 
 ## Installation
 

@@ -31,7 +31,10 @@ html_theme = "sphinx_rtd_theme"
 html_static_path: list[str] = []
 html_title = "hawkes-engine"
 
-exclude_patterns = ["_build", "adr/**", "spec/**"]
+# Only the user-facing pages are published. The specification and the ADRs stay
+# in the repository: they matter to maintainers and are noise on a docs site.
+# Excluding them here keeps sphinx-build -W quiet about orphans.
+exclude_patterns = ["_build", "adr/**", "spec/**", "competitor-analysis.md"]
 
 autodoc_typehints = "description"
 napoleon_google_docstring = True
