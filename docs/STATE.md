@@ -9,9 +9,11 @@ diagnostics and the tests that show they sample the same law. **Next: H5**
 (bindings polish, zero-copy test, GIL release proof, cibuildwheel wheels on all
 three OSes).
 
-Last green CI on `main`: **`a978fdd`**, run `39269488822`, all 14 jobs green
-including ASan and UBSan on Linux, the nightly job skipped as designed. The
-first push (`64a610d`) failed only the ASan job; see "Defects found".
+Last green CI on `main`: **`4bddd52`** (Tests and Docs both success), verified
+2026-10-19 after the H4 documentation commit. The previous green SHA recorded
+for H4 was `a978fdd`, run `39269488822`, all 14 jobs green including ASan and
+UBSan on Linux, the nightly job skipped as designed. The first push
+(`64a610d`) failed only the ASan job; see "Defects found".
 
 | Gate | Status |
 |------|--------|
@@ -201,8 +203,9 @@ check, not a reimplementation of it.
 
 ## Other verification
 
-- `pytest -q -m "not slow"`: 143 passed. The full count including the two slow
-  recovery studies is 145.
+- `pytest -q -m "not slow"`: 200 passed. The full count including the two slow
+  recovery studies is 202. (The 143/145 figures were H3's; the H4 suites added
+  57 tests.)
 - Catch2 suite: 8 cases, 60 assertions. Covers the N = 0 and N = 1 closed
   forms, simultaneous timestamps, the `-inf` path, shared-versus-pair equality,
   the log-space chain rule, validation messages, and zero allocation.
