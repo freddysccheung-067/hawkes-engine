@@ -94,6 +94,26 @@ M = 8 costs 0.46 s for the pair value and 0.09 s for the shared value.
 
 No defect was found in the reference implementation. `oracle/` is unchanged.
 
+## One requested property does not hold
+
+The H2 brief asked for a property test that the likelihood is monotone in
+`mu_i` when `alpha = 0`. It is not. With no excitation,
+
+    d(ell)/d(mu_i) = n_i / mu_i - T
+
+so raising `mu_i` *increases* the likelihood whenever type `i` has more events
+than its baseline alone would explain over the window. That is the usual case
+for a process whose events are clustered, which is the only case a Hawkes
+model is used for.
+
+The test now pins the derivative exactly rather than a monotonicity that is
+false. The other two properties in that group — time-shift and permutation
+invariance — were also stated wrongly on the first attempt: a shift moves the
+baseline compensator by `s * sum(mu_i)` and the `d/dmu` block by `s` per entry,
+so the likelihood is not shift-invariant, only its excitation part and the
+`alpha`/`beta` blocks are. Both tests now assert the transformation that
+actually holds.
+
 ## CI lessons
 
 Two of the three rounds of CI failure were diagnosable only after the workflow
