@@ -4,18 +4,89 @@ Last updated: 2026-10-19
 
 ## Gate
 
-**H2 complete**: the C++ likelihood and gradient exist and agree with the frozen
-reference. **Next: H3** (fit driver, standard errors, log-space optimizer
-coordinates).
+**H3 complete**: the fit driver, the standard errors and the reliability report
+exist, and the properties they claim are measured. **Next: H4** (the C++
+simulators, agreeing with the reference).
 
 | Gate | Status |
 |------|--------|
 | H0 | Done |
 | H1 | Done, tag `H1-oracle-locked-v2` |
 | H2 | Done |
-| H3 | Next |
+| H3 | Done |
+| H4 | Next |
 
-## Measured agreement
+## H3: what the estimator is and what it is not
+
+`fit()` optimizes in log space with the compiled analytic gradient
+(`L-BFGS-B`, `jac=True`), so positivity is structural and no candidate is
+rejected for being infeasible. `alpha_ii` is free by default; `zero_diagonal`
+removes it from the flat vector rather than projecting it out afterwards.
+
+Convergence is `||grad||_inf <= 1e-6 * max(1, |loglik|)` evaluated at the
+**returned** point, with a status check that admits 0 and 2. Status 2
+("abnormal termination in line search") fires when the line search fails with
+nothing left to gain, so it is not by itself a failure; the gradient is the
+evidence and the status is context. Status 1 (iteration limit) is never
+overridden.
+
+### Reliability thresholds
+
+`trust.THRESHOLDS`, all in one dict so H6 replaces a number rather than editing
+logic. None of these is calibrated yet; they are engineering judgement and the
+docstring says so.
+
+| Key | Value | Why |
+|---|---|---|
+| `condition_marginal` | 1e6 | the information is a squared quantity, so 1e6 in H is 1e3 in the parameters |
+| `condition_unreliable` | 1e10 | past this the inverse has lost half its digits; matches `hessian.COND_LIMIT` so a matrix the inverter refused is not called reliable here |
+| `rho_critical_margin` | 1e-3 | nearer to the pole than this and the stationary mean, and the finite-sample distribution of rho, are both out of reach |
+| `ridge_correlation` | 0.99 | below this ordinary excitation already produces 0.9; the ridge is a flat direction, not a preference |
+| `events_per_param_marginal` | 10 | conventional rule of thumb for a likelihood fit of this size |
+| `events_per_param_unreliable` | 3 | below this the Hessian asymptotics do not apply at all |
+
+`report()` reads the conditioning, the bound hits, `rho`, the alpha-beta
+correlation from the covariance, and events per parameter. It does not claim
+anything about bias or coverage, and a test asserts that its docstring says so
+in plain words.
+
+### Measured recovery
+
+Two-type pair model, `mu = (0.5, 0.3)`, `alpha = [[0.20, 0.10], [0.15, 0.25]]`,
+`beta = [[1.0, 1.2], [1.1, 1.3]]`, 100 independent replications per size,
+estimates standardized by the Monte Carlo standard error of the mean:
+
+| Size | worst \|z\| | mean \|z\| | worst bias/sd | coverage |
+|---|---|---|---|---|
+| ~200 events | 4.44 | 1.81 | 0.67 | not asserted |
+| ~2000 events | 4.63 | 0.90 | 0.46 | 0.90 to 0.95 |
+| ~20000 events | 2.0 | 0.75 | 0.21 | 0.93 to 0.96 |
+
+**The brief's per-parameter 3-sigma property is false at 2000 events.** It is
+not a numerical artefact: bootstrapping the mean over the 100 replicates gives
+a standard error within 2% of the naive one, so the excess is real finite-sample
+bias in the excitation entries, concentrated at `alpha[0,1]`/`beta[0,1]` where
+the branching is smallest and the decay is least identified. The same z is
++0.11 at 20000 events. The tests therefore pin 3-sigma where it holds (20000),
+and pin `|bias|/sd <= 0.6` per parameter plus coverage at 2000. At 200 the
+criterion fails on average too and the test pins scale only.
+
+Reported rather than asserted away, per the rules.
+
+### Time shift
+
+A shift by `s` leaves the excitation part of the likelihood alone and moves the
+baseline compensator by `s * sum(mu)`, so
+
+    ell_shifted(theta) = ell(theta) - s * sum(mu).
+
+That identity is exact and is what the test asserts. There is **no** translation
+equivariance for the estimate, and the first version of the test assumed there
+was. Measured at 20000 events: shifting by 10 moves `rho` by 0.4% and the
+loglik by 3.4e-4 per event; shifting by 100 moves them by 4.2% and 3.4e-3.
+`mu` is the coordinate most affected, because the added term is linear in it.
+
+## H2: measured agreement
 
 Grid: M in {1, 2, 3, 4, 6}, N in {0, 1, 2, 10, 50, 200, 1000}, random
 subcritical parameters, sorted times, `T >= last time`.
@@ -43,8 +114,8 @@ check, not a reimplementation of it.
 
 ## Other verification
 
-- `pytest -q`: 106 passed (the 7 oracle-suite tests plus 99 of the package's
-  own).
+- `pytest -q -m "not slow"`: 143 passed. The full count including the two slow
+  recovery studies is 145.
 - Catch2 suite: 8 cases, 60 assertions. Covers the N = 0 and N = 1 closed
   forms, simultaneous timestamps, the `-inf` path, shared-versus-pair equality,
   the log-space chain rule, validation messages, and zero allocation.
@@ -61,6 +132,54 @@ check, not a reimplementation of it.
 `benchmarks/results/loglik_2026-10-19.csv`, with the machine recorded in the
 file. Windows 11, MSVC 19.44, Python 3.12. Median over repeated calls, N = 1e6:
 M = 8 costs 0.46 s for the pair value and 0.09 s for the shared value.
+
+`benchmarks/results/fit_2026-10-19.csv` for the estimator: a complete `fit()`
+call, optimizer plus Hessian plus reliability report. Pair kernel, one start.
+
+| M | N | iterations | wall | per iteration |
+|---|---|---|---|---|
+| 2 | 1.0e5 | 46 | 2.3 s | 49 ms |
+| 2 | 1.0e6 | 46 | 10.0 s | 217 ms |
+| 4 | 1.0e5 | 231 | 9.1 s | 39 ms |
+| 4 | 1.0e6 | 246 | 90.4 s | 368 ms |
+
+The per-iteration cost is the compiled likelihood; the iteration count is the
+starting point and the optimizer. M = 4 costs nearly four times M = 2 per
+iteration, which is the M^2 state in the pair recursion. The Hessian pass costs
+`2 n_params` extra likelihood evaluations with the gradient, so 20 at M = 2.
+
+## Defects found during H3
+
+1. **A fixed block stayed in the free vector.** `alpha` supplied as a zero
+   matrix was validated as fixed but still occupied coordinates, so the
+   finite-difference Hessian stepped it to `-6.1e-6` and the core rejected the
+   point with a validation error. Fixed by giving `Layout` the fixed values as
+   constants and masking those entries out of the vector, which is the same
+   mechanism `zero_diagonal` uses.
+2. **A symmetric difference probe stepped a positive parameter below zero.**
+   Small `alpha` entries are common and an unclamped `h` crosses the boundary
+   at once. The step is now capped at half the coordinate for any coordinate
+   whose domain is the open half-line.
+3. **scipy status 2 was scored as non-convergence.** The line search also
+   terminates there when there is nothing left to gain, so valid fits were
+   being called failures and inflating the measured bias. Convergence is now
+   decided on the recomputed gradient, with the status admitted only as 0 or 2.
+4. **The bootstrap imported the test scaffolding.** `_boot.py` reached into
+   `tests/_simulate_reference.py`, which does not exist in an installed wheel,
+   so `se_method="bootstrap"` would have failed everywhere but this checkout.
+   Thinning moved into `hawkes_engine._simulate`; the reference keeps its own
+   independent cluster simulator.
+5. **The bootstrap seed mixer overflowed `np.uint64`.** Harmless modular
+   arithmetic, but it warned on every draw and made the stream depend on a
+   NumPy conversion. Rewritten in Python integers with an explicit mask.
+6. **The test helper for the dense Hessian applied the step twice.** It passed
+   basis vectors that already carried `h`, so the effective width was `h`
+   squared and every derived-versus-dense comparison read 3x low. Found by
+   testing the helper on a known quadratic before trusting it. The library was
+   correct throughout; the check was not.
+
+No defect was found in the frozen reference at H3 either. `oracle/` is
+unchanged.
 
 ## Defects found during H2
 
@@ -130,26 +249,42 @@ own sake.
 - `docs/competitor-analysis.md` has been rewritten from live sources, but
   `hawkes (CRAN)` lists no GitHub repository, so no star count exists for it.
   That is stated rather than filled in.
-- Local pip installs are blocked by the sandbox classifier. The extension is
-  currently verified by building with CMake into `build-dev/` and copying the
-  artifact into `python/hawkes_engine/`. This is a local-environment
-  workaround, not a repository defect; CI installs normally.
+- Local pip installs are blocked by the sandbox classifier in this session,
+  for `pip install -e` in both Bash and PowerShell. Everything was therefore
+  verified in a `.venv`, which installs normally: `python -m venv .venv` then
+  `./.venv/Scripts/python.exe -m pip install -e ".[test]"`. This is a
+  local-environment restriction, not a repository defect; CI installs normally.
+- An earlier N=20000 time-shift measurement took over ten minutes because the
+  reference thinning re-summed the intensity at every probe. The O(N^2) form
+  was replaced by the section 4 recursion; 23000 events now simulate in 0.26 s.
 
 ## Owner actions
 
-- **None outstanding from H2.** Pages was reported as not deploying earlier in
-  this gate; the `Deploy to GitHub Pages` job has since run green, so either
-  the Pages source was already configured or it was enabled in the meantime.
-  Worth a one-time look at Settings -> Pages to confirm the source is
-  "GitHub Actions" rather than a branch, so it does not regress.
-- A stray untracked file, `cpp/tests/test_main.cpp`, may exist in a local
-  checkout. It is in no commit and is referenced by nothing; deleting it is
-  cosmetic.
+- **Delete the stale extension copy in the system interpreter.** The package in
+  `C:\Users\Freddy\AppData\Local\Programs\Python\Python312\Lib\site-packages\hawkes_engine\`
+  contains a `_core` built at 09:31 that predates the H2 likelihood; it exports
+  `build_info` and nothing else. scikit-build-core's redirect finder maps
+  `hawkes_engine._core` to that copy, so `import hawkes_engine` in the system
+  interpreter fails with `AttributeError: loglik` on 94 tests. Reinstalling
+  from the repository fixes it; the `.venv` is unaffected. This is the defect
+  Phase 0 was asked to find, and it is the reason every command in this session
+  runs through `.venv/Scripts/python.exe`.
+- The untracked `cpp/tests/test_main.cpp` could not be deleted: the file
+  removal was blocked by the sandbox classifier. It is in no commit and
+  referenced by nothing, so `rm cpp/tests/test_main.cpp` is cosmetic.
+- Six untracked HTML files in the repository root (`p2.html`, `page.html`,
+  `w.html` through `w6.html`, about 372 KB each) are saved GitHub pages from an
+  earlier session, not repository content. They should be deleted or added to
+  `.gitignore` by the owner; this session left them alone because they are not
+  related to the gate.
+- Pages: previously confirmed running as "GitHub Actions". No change.
 
 ## Next step
 
-H3: the fit driver and Hessian. The core already exposes the natural-space
-gradient and a log-space variant, so the objective wrapper for
-`scipy.optimize.minimize` is a thin one. What H3 must settle is the treatment
-of the `alpha`-`beta` ridge and what a fit reports when the Hessian is
-near-singular (`mathematics.md` section 7).
+H4: the C++ thinning and cluster simulators, each agreeing with the reference
+on the stationary mean and the event count. The reference they must agree with
+is `hawkes_engine._simulate.simulate_thinning` for the thinning half and
+`tests/_simulate_reference.simulate_cluster` for the branching half. Both are
+checked against `(I - Gamma)^{-1} mu` already, at 0.3% and 0.8% respectively on
+5000 seconds, and the H3 recovery studies run through the thinning one, so it
+is exercised at every realistic parameter set rather than only in isolation.
