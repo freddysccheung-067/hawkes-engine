@@ -5,17 +5,22 @@
 ### Correctness
 
 - The compiled likelihood and gradient agree with the frozen reference to a
-  measured 7.5e-14 relative on the value and 3.6e-12 per gradient entry across
-  52 configurations (M in 2..7, N in 10..5000, shared and non-shared decay).
+  measured 7.5e-14 relative on the value and 3.6e-12 per gradient entry. The
+  measurement grid is M in {1,2,3,4,6} x N in {1,2,10,50,200,1000}, 30
+  configurations, every entry of every gradient block compared; the assertions
+  add N in {0,1,2} and the shared-decay variants.
 - The reference itself is verified against complex-step differentiation over
-  every parameter entry and every block, holding across 60 configurations.
-- Both simulators (thinning and cluster) reproduce the stationary mean to within
-  two standard errors of the sample across 1000 draws at each of 12
-  configurations, and produce the same distribution as each other (Cramér-von
-  Mises, p > 0.4).
-- Time-rescaling under the true parameters produces gaps that pass both the
-  Kolmogorov-Smirnov test against Exp(1) and the Ljung-Box test for independence
-  (p > 0.05) across 50 realisations, tested for M=2 and M=4.
+  every parameter entry and every block, across 20 configurations
+  (M in {1,2,3,4} x N in {1,2,10,50,200}), at 1e-9.
+- Both simulators reproduce the stationary mean within two between-path
+  standard errors across 400 paths at each of 9 (M, rho) configurations, 18
+  checks in all. They agree with each other on counts (Mann-Whitney U plus
+  two-sample Kolmogorov-Smirnov per dimension) and on pooled gaps
+  (two-sample KS, Bonferroni over pairs).
+- Time-rescaling under the true parameters passes both the Kolmogorov-Smirnov
+  test against Exp(1) and the Ljung-Box test for independence (p > 0.05) on 10
+  checks (5 (M, rho) cases x 2 methods), each with a negative control that must
+  reject.
 - The zero-copy contract is proved: `test_zero_copy.py` asserts that the C++
   core receives the caller's buffer, not a copy of it, by comparing data
   addresses across the language boundary.
@@ -26,13 +31,21 @@
 
 ### Performance
 
-- The compiled likelihood is 40–60× faster than the reference (M=2, N=1000,
-  Core i5-13600K).
-- Simulation produces 12.4e6 events/s for thinning and 11.2e6 events/s for
-  cluster on the same hardware (M=2, ρ=0.15).
-- Memory: one `fit` call with 10000 events and M=2 uses 2.8 MiB for the event
-  data and parameter workspace. The Hessian standard errors add 1.6 KiB for the
-  observed information; the bootstrap adds 320 KiB per 100 replications.
+All figures below are from `benchmarks/results/*_2026-10-19.csv`, one machine:
+Windows 11, MSVC 19.44, Python 3.12.10, Intel Family 6 Model 198 (Alder Lake
+class). They are not claims about other hardware.
+
+- At M=2, N=1000 the core runs at about 37 ns/event against the reference's
+  about 453 ns/event, roughly 12x. The ratio grows with N because the
+  reference is O(N^2) and the core is O(N); the largest comparison the
+  benchmark file carries is N=1000, so no larger figure is claimed.
+- Simulation throughput spans 3.7e6 to 22.3e6 events/s for thinning and 3.6e6
+  to 7.9e6 for cluster over M in {2,4,8} x rho in {0.5,0.9}.
+- `fit` cost at M=2: 49 ms per iteration at N=1e5, 217 ms at N=1e6. At M=4,
+  39 ms and 368 ms. A Hessian pass adds `2 n_params` gradient evaluations.
+- Peak memory has not been measured. `tests/test_zero_copy.py` asserts no RSS
+  growth across 20 repeated simulate calls, which catches the leak class but
+  is not a memory budget for a fit.
 
 ### Reliability
 
@@ -45,9 +58,12 @@ Every fit returns a `reliable` verdict of `"reliable"`, `"marginal"` or
 - The alpha-beta correlation implied by the covariance
 - The event count per free parameter
 
-A `"reliable"` fit is a well-conditioned stationary point with no coordinate on
-a bound and events-per-parameter above 50. It says nothing about bias or
-coverage, which are properties of the estimator and are the subject of H6.
+A `"reliable"` fit is a well-conditioned stationary point, with no coordinate on
+a bound, whose condition number is below 1e6 and whose events-per-parameter is
+above 10 (the thresholds in `trust.THRESHOLDS`). It says nothing about bias or
+coverage, which are properties of the estimator and are the subject of H6. None
+of the thresholds is calibrated; they are engineering judgement until H6
+replaces them with measured values.
 
 ## What is open
 

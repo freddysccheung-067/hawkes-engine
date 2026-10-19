@@ -8,10 +8,10 @@ when that test passes, not when the code is written.
 | H0 | Specification, ADRs, CI, package skeleton | Package installs and imports on all three platforms | Done |
 | H1 | Reference implementation of likelihood and gradient | Gradient agrees with complex-step differentiation to 1e-10 | Done |
 | H2 | C++ likelihood and gradient | Matches the reference implementation to 1e-12 | Done |
-| H3 | Estimation (MLE, standard errors) | Recovers known parameters from simulated data within the asymptotic standard errors | Next |
-| H4 | Simulators (thinning and branching) | Both simulators reproduce the analytic stationary mean | — |
-| H5 | Python API and I/O | End-to-end fit of a Parquet file through the public API | — |
-| H6 | Trust calibration study | Recovery error mapped across the parameter space | — |
+| H3 | Estimation (MLE, standard errors) | Recovers known parameters from simulated data within the asymptotic standard errors | Done |
+| H4 | Simulators (thinning and branching) | Both simulators reproduce the analytic stationary mean | Done |
+| H5 | Bindings, wheels and packaging | Zero-copy and GIL release proved; wheels build on all three platforms | Done |
+| H6 | Trust calibration study | Bias and coverage mapped across the parameter space | Next |
 | H7 | Performance | Throughput and memory characterised against the targets | — |
 | H8 | Documentation and examples | Docs build warning-free, examples run in CI | — |
 | H9 | v0.1.0 release | Wheels on PyPI for all supported platforms | — |

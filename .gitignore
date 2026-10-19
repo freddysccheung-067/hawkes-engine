@@ -62,3 +62,7 @@ scratch/
 
 # Stray page captures in the repo root
 /*.html
+
+# Built wheels belong in CI artifacts, never in history
+wheelhouse/
+*.whl
