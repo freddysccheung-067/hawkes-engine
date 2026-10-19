@@ -2,11 +2,12 @@
 
 Multi-dimensional Hawkes process library with trust calibration.
 
-**Status: pre-alpha.** Gate H2 of 9 is complete. The specification, the
-architecture decisions, the frozen reference implementation and the compiled
-likelihood with its gradient are in place. The estimator, simulators and trust
-map arrive in later gates; until they do, there is nothing here that fits a
-model.
+**Status: pre-alpha.** Gate H5 of 9 is complete. The specification, the
+architecture decisions, the frozen reference implementation, the compiled
+likelihood with its gradient, the estimator, both exact simulators, the
+time-rescaling diagnostics and the reliability report are in place. The trust
+calibration map (H6), the performance characterisation (H7) and PyPI wheels (H9)
+arrive in later gates.
 
 ## What is a Hawkes process
 
@@ -27,6 +28,7 @@ of that excitation.
 ```{toctree}
 :maxdepth: 1
 
+install
 ROADMAP
 verification-rule
 ```
@@ -39,16 +41,8 @@ users.
 
 ## Installation
 
-hawkes-engine is not on PyPI yet. To build from source:
-
-```bash
-git clone https://github.com/freddysccheung-067/hawkes-engine.git
-cd hawkes-engine
-pip install -e "."
-```
-
-A C++20 compiler and CMake 3.24 or newer are required. Wheels will be published
-at v0.1.0.
+See [](install.md) for building from source, installing a CI wheel, or building
+your own wheel with cibuildwheel. hawkes-engine is not on PyPI yet.
 
 ## License
 
