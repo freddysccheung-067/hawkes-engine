@@ -1,56 +1,60 @@
 ﻿# Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
 .Python
 build/
-develop-eggs/
 dist/
-downloads/
+*.egg-info/
 eggs/
 .eggs/
-lib/
-lib64/
-parts/
 sdist/
 var/
 wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
 
-# C++
-*.o
-*.obj
-*.exe
-*.out
-*.app
-*.dll
-*.so
-*.dylib
+# Compiled extension
+*.pyd
+*.pdb
+*.lib
+*.exp
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
+CMakeUserPresets.json
+_deps/
 Makefile
 
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
+# C++ object files
+*.o
+*.obj
+*.a
+*.dll
+*.dylib
+*.exe
 
 # Docs
 docs/_build/
 docs/_static/
 docs/_templates/
 
-# OS
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
+
+# Local working files
+.claude/settings.local.json
+planning/
+scratch/
