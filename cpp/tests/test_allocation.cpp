@@ -8,6 +8,7 @@
 // before the flag goes up, so its buffers are not counted, and the gradient
 // outputs are caller-owned vectors for the same reason.
 
+#include <cmath>
 #include <cstddef>
 #include <cstdlib>
 #include <new>
