@@ -30,8 +30,16 @@ Every gradient entry is compared, not the array maximum, in all three blocks.
 The per-entry floor is 1e-12 of the block's largest magnitude, so a true
 derivative near zero is not scored on rounding noise.
 
-The reference's own complex-step check passes at 1e-9 over 72 cases. The
-oracle itself was not modified at any point in H2.
+The reference's own complex-step check passes at 1e-9 over 72 cases. Measured
+worst relative error across that grid: **3.49e-13** (d/dbeta, M = 1, N = 60),
+inside the 8.1e-13 the earlier audit reported. The oracle itself was not
+modified at any point in H2.
+
+`oracle/verify_complex_step.py` does not exist: it was folded into
+`oracle/test_oracle_gradient.py` at `H1-oracle-locked-v2`, as the revision
+history in `docs/verification-rule.md` records. The number above was measured
+by calling that suite's own `_complex_step_gradient` helper, so it is the same
+check, not a reimplementation of it.
 
 ## Other verification
 
