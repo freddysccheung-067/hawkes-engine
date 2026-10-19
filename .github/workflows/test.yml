@@ -120,7 +120,16 @@ jobs:
           cmake --build --preset asan --config Release
 
       - name: Run under AddressSanitizer
-        run: ./build/asan/hawkes_tests
+        run: |
+          # The job log is not readable without admin rights, so a sanitizer
+          # report would otherwise surface only as "exit code 1".
+          if ! ./build/asan/hawkes_tests > asan.log 2>&1; then
+            grep -iE "ERROR|runtime error|FAILED|REQUIRE|with expansion|SUMMARY" asan.log | head -30 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            tail -40 asan.log
+            exit 1
+          fi
 
       - name: Build with UndefinedBehaviorSanitizer
         run: |
@@ -128,7 +137,16 @@ jobs:
           cmake --build --preset ubsan --config Release
 
       - name: Run under UndefinedBehaviorSanitizer
-        run: ./build/ubsan/hawkes_tests
+        run: |
+          # The job log is not readable without admin rights, so a sanitizer
+          # report would otherwise surface only as "exit code 1".
+          if ! ./build/ubsan/hawkes_tests > ubsan.log 2>&1; then
+            grep -iE "ERROR|runtime error|FAILED|REQUIRE|with expansion|SUMMARY" ubsan.log | head -30 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            tail -40 ubsan.log
+            exit 1
+          fi
 
   lint:
     name: Lint and type-check
