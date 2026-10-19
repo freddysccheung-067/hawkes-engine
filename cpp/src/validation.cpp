@@ -7,6 +7,8 @@
 
 #include "hawkes/validation.hpp"
 
+#include "hawkes/diagnostics.hpp"
+
 #include <cmath>
 #include <cstddef>
 #include <sstream>
@@ -112,6 +114,25 @@ void validate_params(const ParamView& p) {
 
 void validate_params_shared(const ParamView& p) {
     validate_common(p, "beta", p.M);
+}
+
+void validate_simulation(const ParamView& p, Real T, Real t0, Real burn_in) {
+    validate_params(p);
+    if (!std::isfinite(T) || !std::isfinite(t0) || !(t0 < T)) {
+        throw std::invalid_argument("simulation window requires finite t0 < T, got t0 = " +
+                                    std::to_string(t0) + ", T = " + std::to_string(T));
+    }
+    if (!std::isfinite(burn_in) || burn_in < 0.0) {
+        throw std::invalid_argument("burn_in must be finite and non-negative, got " +
+                                    std::to_string(burn_in));
+    }
+    const Real rho = spectral_radius(p);
+    if (!(rho < 1.0)) {
+        std::ostringstream os;
+        os.precision(17);
+        os << "spectral radius of alpha/beta is " << rho << ", must be < 1";
+        throw std::domain_error(os.str());
+    }
 }
 
 }  // namespace hawkes

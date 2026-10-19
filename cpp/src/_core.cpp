@@ -11,6 +11,7 @@
 namespace py = pybind11;
 
 void register_loglik(py::module_& m);
+void register_simulate(py::module_& m);
 
 namespace {
 
@@ -48,4 +49,5 @@ PYBIND11_MODULE(_core, m) {
           "Return the compiler and pybind11 versions used to build this module.");
 
     register_loglik(m);
+    register_simulate(m);
 }

@@ -21,8 +21,11 @@ option(HAWKES_WERROR "Treat warnings as errors" OFF)
 
 add_library(hawkes_core STATIC
     cpp/src/loglik.cpp
+    cpp/src/diagnostics.cpp
     cpp/src/loglik_shared.cpp
     cpp/src/rng.cpp
+    cpp/src/simulate_cluster.cpp
+    cpp/src/simulate_thin.cpp
     cpp/src/validation.cpp
     cpp/src/workspace.cpp
 )
@@ -73,7 +76,7 @@ endif()
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)
 
-pybind11_add_module(_core MODULE cpp/src/_core.cpp cpp/src/bindings.cpp)
+pybind11_add_module(_core MODULE cpp/src/_core.cpp cpp/src/bindings.cpp cpp/src/bindings_sim.cpp)
 target_link_libraries(_core PRIVATE hawkes_core)
 target_include_directories(_core PRIVATE cpp/include)
 

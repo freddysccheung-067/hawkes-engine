@@ -11,6 +11,8 @@
 #pragma once
 
 #include <cstdint>
+#include <utility>
+#include <vector>
 
 namespace hawkes {
 
@@ -59,5 +61,9 @@ struct ParamView {
     const Real* alpha;
     const Real* beta;
 };
+
+// Simulated events: strictly time-sorted, with the type of each. Owned, because
+// a simulator produces data rather than viewing it.
+using EventStream = std::pair<std::vector<Real>, std::vector<std::uint8_t>>;
 
 }  // namespace hawkes

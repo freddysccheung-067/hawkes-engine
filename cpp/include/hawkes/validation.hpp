@@ -28,4 +28,13 @@ void validate_params(const ParamView& params);
 // Shared-decay overload: beta has M entries, one per source, not M*M.
 void validate_params_shared(const ParamView& params);
 
+// Checks shared by both simulators, so neither core loop carries its own copy.
+// Throws std::invalid_argument for bad parameters, T, t0 or burn_in, and
+// std::domain_error, with rho(Gamma) in the message, when rho >= 1: past the
+// pole the process explodes and no finite window is representative.
+//
+// Event time may be negative only through burn_in; t0 and T are the window
+// [t0, T] and must satisfy t0 < T.
+void validate_simulation(const ParamView& params, Real T, Real t0, Real burn_in);
+
 }  // namespace hawkes
