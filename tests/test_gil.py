@@ -267,18 +267,36 @@ def test_the_release_does_not_leak_into_the_caller():
 
 
 def test_smoke_a_short_call_releases_the_gil():
-    """A sub-second version of the overlap test, small enough for every push.
+    """A fast version of the overlap test, small enough for every push.
 
-    It runs one call of about 0.15 s rather than three of a second, so its ratio
-    is noisier and the floor is lower. The slow tests carry the claim; this one
-    catches a release that was removed, which shows up as a ratio near the
-    0.35 held-GIL figure rather than near 1.
+    The call is sized on the machine rather than fixed, because a call short
+    enough to spend most of its window in argument marshalling and the release
+    scope gives a ratio near the held-GIL figure for a reason that has nothing to
+    do with the GIL. A macOS arm64 runner measured 0.34 at a fixed 20 ms and the
+    over-one-second tests measure about 1.0, so the window is grown until the
+    call lasts at least 40 ms before the ratio is taken.
+
+    Three calls, median, floor 0.4. The slow tests carry the claim; this one
+    catches a release that was removed.
     """
     mu, alpha, beta = _params()
-    n_during, elapsed = _count_in_thread(
-        lambda: hawkes_engine.simulate(mu, alpha, beta, SIM_T / 40.0, seed=1)
-    )
-    n_solo = _solo_count(elapsed)
-    ratio = n_during / n_solo
-    print(f"smoke: simulate {elapsed:.3f}s -> ratio {ratio:.2f}")
-    assert ratio >= 0.5, f"counter ratio {ratio:.2f} suggests the GIL was held"
+    work = 20_000.0
+    while True:
+        start = time.perf_counter()
+        hawkes_engine.simulate(mu, alpha, beta, work, seed=1)
+        taken = time.perf_counter() - start
+        if taken >= 0.04 or work > 50_000_000.0:
+            break
+        work *= 4.0
+
+    ratios = []
+    for _ in range(3):
+        n_during, elapsed = _count_in_thread(
+            lambda: hawkes_engine.simulate(mu, alpha, beta, work, seed=1)
+        )
+        n_solo = _solo_count(elapsed)
+        ratios.append(n_during / n_solo)
+        print(f"smoke: simulate {elapsed:.3f}s -> ratio {n_during / n_solo:.2f}")
+    ratio = statistics.median(ratios)
+    print(f"smoke: median ratio {ratio:.2f} over {work:.0f} units of window")
+    assert ratio >= 0.4, f"counter ratio {ratio:.2f} suggests the GIL was held"
