@@ -52,6 +52,19 @@ void* operator new[](std::size_t size) {
     return p;
 }
 
+// libstdc++ draws temporary buffers (std::stable_sort) from the nothrow form. If
+// it were left to the default, the sanitizer would see memory from its own
+// operator new released through the replaced delete below, which calls free.
+void* operator new(std::size_t size, const std::nothrow_t&) noexcept {
+    note_alloc(size);
+    return std::malloc(size == 0 ? 1 : size);
+}
+
+void* operator new[](std::size_t size, const std::nothrow_t&) noexcept {
+    note_alloc(size);
+    return std::malloc(size == 0 ? 1 : size);
+}
+
 void operator delete(void* p) noexcept { std::free(p); }
 void operator delete[](void* p) noexcept { std::free(p); }
 void operator delete(void* p, std::size_t) noexcept { std::free(p); }
