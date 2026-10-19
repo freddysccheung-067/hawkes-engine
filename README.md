@@ -17,18 +17,22 @@ magnitude. hawkes-engine reports that region explicitly instead of hiding it.
 
 ## Status
 
-**Pre-alpha.** Gate H1 of 9 is complete. What exists today:
+**Pre-alpha.** Gate H2 of 9 is complete. What exists today:
 
 - A written specification (`docs/spec/mathematics.md`) covering the likelihood,
   gradient, stability condition and both simulation algorithms
 - A frozen reference implementation in NumPy, verified against complex-step
   differentiation over every parameter entry
-- A C++20 build path that compiles and imports on Linux, macOS and Windows
+- A compiled likelihood and gradient in C++20, agreeing with that reference to
+  a measured 7.5e-14 on the value and 3.6e-12 per gradient entry
+- `hawkes_engine.loglik(times, types, mu, alpha, beta, T, grad=True)`, which
+  evaluates the likelihood and its natural-space gradient. A shared-decay
+  parameterization drops the cost from O(NM²) to O(NM).
 - Eight architecture decision records
 
-What does not exist yet: the estimator, the simulators, the Python API and the
-trust map. Installation works; nothing in it is useful for fitting data.
-See [docs/ROADMAP.md](docs/ROADMAP.md) for what each gate proves.
+What does not exist yet: the estimator, the simulators and the trust map.
+You can evaluate a likelihood; you cannot fit one. See
+[docs/ROADMAP.md](docs/ROADMAP.md) for what each gate proves.
 
 ## Installation
 
@@ -44,6 +48,28 @@ pytest
 
 On Windows this needs Visual Studio 2022 with the C++ workload; on macOS,
 `xcode-select --install`; on Linux, GCC 10 or newer.
+
+## Usage
+
+```python
+import numpy as np
+from hawkes_engine import loglik
+
+times = np.array([0.4, 1.1, 1.9, 3.0, 4.2])       # sorted, seconds from session start
+types = np.array([0, 1, 0, 1, 0], dtype=np.uint8)
+mu = np.array([0.6, 0.9])                          # baseline intensities
+alpha = np.array([[0.10, 0.35], [0.20, 0.05]])     # row = target, column = source
+beta = np.array([[1.30, 1.70], [1.30, 1.70]])      # decay rates
+T = 6.0                                            # end of the observation window
+
+out = loglik(times, types, mu, alpha, beta, T, grad=True)
+print(out["value"], out["dmu"], out["dalpha"], out["dbeta"], sep="\n")
+```
+
+Convince yourself of the conventions before using them: **rows are targets and
+columns are sources**, so `alpha[i, j]` is the excitation a type-`j` event
+applies to the intensity of type `i`. Two events at the same timestamp do not
+excite each other.
 
 ## Design
 
