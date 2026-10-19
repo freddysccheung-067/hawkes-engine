@@ -34,7 +34,15 @@ html_title = "hawkes-engine"
 # Only the user-facing pages are published. The specification and the ADRs stay
 # in the repository: they matter to maintainers and are noise on a docs site.
 # Excluding them here keeps sphinx-build -W quiet about orphans.
-exclude_patterns = ["_build", "adr/**", "spec/**", "competitor-analysis.md"]
+# STATE.md is a maintainer note, not a published page; excluding it keeps
+# sphinx-build -W from reporting it as an orphan.
+exclude_patterns = [
+    "_build",
+    "adr/**",
+    "spec/**",
+    "competitor-analysis.md",
+    "STATE.md",
+]
 
 autodoc_typehints = "description"
 napoleon_google_docstring = True

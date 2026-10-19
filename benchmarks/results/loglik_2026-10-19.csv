@@ -1,0 +1,52 @@
+implementation,kernel,work,M,N,best_s,median_s,ns_per_event
+hawkes-engine,pair,value,2,100000,0.0040089,0.0041917,41.917
+hawkes-engine,pair,value+grad,2,100000,0.0051602,0.0051878,51.878
+hawkes-engine,shared,value,2,100000,0.0026335,0.002647,26.470
+hawkes-engine,shared,value+grad,2,100000,0.0035961,0.0036,36.000
+hawkes-engine,pair,value,2,1000000,0.0368279,0.0372283,37.228
+hawkes-engine,pair,value+grad,2,1000000,0.0522702,0.0527515,52.751
+hawkes-engine,shared,value,2,1000000,0.0319859,0.0372681,37.268
+hawkes-engine,shared,value+grad,2,1000000,0.0448519,0.0449917,44.992
+hawkes-engine,pair,value,4,100000,0.0091347,0.0097932,97.932
+hawkes-engine,pair,value+grad,4,100000,0.0115042,0.0121164,121.164
+hawkes-engine,shared,value,4,100000,0.0043649,0.0045235,45.235
+hawkes-engine,shared,value+grad,4,100000,0.0062259,0.0067927,67.927
+hawkes-engine,pair,value,4,1000000,0.0844323,0.101676,101.676
+hawkes-engine,pair,value+grad,4,1000000,0.115501,0.116568,116.568
+hawkes-engine,shared,value,4,1000000,0.0291505,0.0298806,29.881
+hawkes-engine,shared,value+grad,4,1000000,0.0393643,0.0394517,39.452
+hawkes-engine,pair,value,8,100000,0.0243079,0.0248421,248.421
+hawkes-engine,pair,value+grad,8,100000,0.0305082,0.0305636,305.636
+hawkes-engine,shared,value,8,100000,0.0041162,0.0042209,42.209
+hawkes-engine,shared,value+grad,8,100000,0.0051766,0.0053013,53.013
+hawkes-engine,pair,value,8,1000000,0.261575,0.271768,271.768
+hawkes-engine,pair,value+grad,8,1000000,0.405493,0.41033,410.330
+hawkes-engine,shared,value,8,1000000,0.0474665,0.0489615,48.961
+hawkes-engine,shared,value+grad,8,1000000,0.0584001,0.0748526,74.853
+oracle,naive,value,2,200,0.0109408,0.0109408,54704.000
+oracle,naive,value+grad,2,200,0.0262608,0.0262608,131304.000
+oracle,naive,value,2,1000,0.453054,0.453054,453054.000
+oracle,naive,value+grad,2,1000,0.897193,0.897193,897193.200
+oracle,naive,value,2,2000,1.33941,1.33941,669706.450
+oracle,naive,value+grad,2,2000,3.47775,3.47775,1738872.650
+oracle,naive,value,4,200,0.0294849,0.0294849,147424.500
+oracle,naive,value+grad,4,200,0.0491159,0.0491159,245579.500
+oracle,naive,value,4,1000,0.448563,0.448563,448563.100
+oracle,naive,value+grad,4,1000,0.893841,0.893841,893840.600
+oracle,naive,value,4,2000,1.76171,1.76171,880853.400
+oracle,naive,value+grad,4,2000,5.6562,5.6562,2828102.450
+oracle,naive,value,8,200,0.0314952,0.0314952,157476.000
+oracle,naive,value+grad,8,200,0.0703779,0.0703779,351889.500
+oracle,naive,value,8,1000,0.970927,0.970927,970927.500
+oracle,naive,value+grad,8,1000,2.08108,2.08108,2081080.500
+oracle,naive,value,8,2000,3.53838,3.53838,1769189.850
+oracle,naive,value+grad,8,2000,7.70237,7.70237,3851182.900
+
+# machine
+# date,2026-10-19
+# platform,Windows-11-10.0.26200-SP0
+# processor,"Intel64 Family 6 Model 198 Stepping 2, GenuineIntel"
+# python,3.12.10
+# numpy,2.5.4
+# compiler,msvc 1944
+# cxx_standard,20

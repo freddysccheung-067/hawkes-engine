@@ -2,10 +2,11 @@
 
 Multi-dimensional Hawkes process library with trust calibration.
 
-**Status: pre-alpha.** Gate H1 of 9 is complete. The specification, the
+**Status: pre-alpha.** Gate H2 of 9 is complete. The specification, the
 architecture decisions, the frozen reference implementation and the compiled
-build are in place. The estimator, simulators and trust map arrive in later
-gates.
+likelihood with its gradient are in place. The estimator, simulators and trust
+map arrive in later gates; until they do, there is nothing here that fits a
+model.
 
 ## What is a Hawkes process
 

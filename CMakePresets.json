@@ -1,0 +1,61 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "dev",
+      "displayName": "Developer build with tests",
+      "binaryDir": "${sourceDir}/build/dev",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "HAWKES_BUILD_TESTS": "ON",
+        "HAWKES_WERROR": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release build",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "HAWKES_BUILD_TESTS": "OFF",
+        "HAWKES_WERROR": "ON"
+      }
+    },
+    {
+      "name": "asan",
+      "displayName": "Address sanitizer",
+      "binaryDir": "${sourceDir}/build/asan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "HAWKES_BUILD_TESTS": "ON",
+        "HAWKES_WERROR": "ON",
+        "HAWKES_SANITIZE": "address"
+      }
+    },
+    {
+      "name": "ubsan",
+      "displayName": "Undefined behaviour sanitizer",
+      "binaryDir": "${sourceDir}/build/ubsan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "HAWKES_BUILD_TESTS": "ON",
+        "HAWKES_WERROR": "ON",
+        "HAWKES_SANITIZE": "undefined"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "dev", "configurePreset": "dev" },
+    { "name": "release", "configurePreset": "release" },
+    { "name": "asan", "configurePreset": "asan" },
+    { "name": "ubsan", "configurePreset": "ubsan" }
+  ],
+  "testPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}

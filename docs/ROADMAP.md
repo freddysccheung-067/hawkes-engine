@@ -7,8 +7,8 @@ when that test passes, not when the code is written.
 |------|------|-----------|--------|
 | H0 | Specification, ADRs, CI, package skeleton | Package installs and imports on all three platforms | Done |
 | H1 | Reference implementation of likelihood and gradient | Gradient agrees with complex-step differentiation to 1e-10 | Done |
-| H2 | C++ likelihood and gradient | Matches the reference implementation to 1e-12 | Next |
-| H3 | Estimation (MLE, standard errors) | Recovers known parameters from simulated data within the asymptotic standard errors | — |
+| H2 | C++ likelihood and gradient | Matches the reference implementation to 1e-12 | Done |
+| H3 | Estimation (MLE, standard errors) | Recovers known parameters from simulated data within the asymptotic standard errors | Next |
 | H4 | Simulators (thinning and branching) | Both simulators reproduce the analytic stationary mean | — |
 | H5 | Python API and I/O | End-to-end fit of a Parquet file through the public API | — |
 | H6 | Trust calibration study | Recovery error mapped across the parameter space | — |

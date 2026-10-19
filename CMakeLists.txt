@@ -23,6 +23,18 @@ add_library(hawkes_core STATIC
 )
 target_include_directories(hawkes_core PUBLIC cpp/include)
 
+# Sanitizers for local and CI verification (ADR-006). Never part of a wheel.
+set(HAWKES_SANITIZE "" CACHE STRING "address, undefined, or empty")
+if(HAWKES_SANITIZE)
+    if(MSVC)
+        message(FATAL_ERROR "HAWKES_SANITIZE is not supported on MSVC")
+    endif()
+    target_compile_options(hawkes_core PRIVATE -fsanitize=${HAWKES_SANITIZE}
+                                               -fno-omit-frame-pointer
+                                               -fno-sanitize-recover=all)
+    target_link_options(hawkes_core PRIVATE -fsanitize=${HAWKES_SANITIZE})
+endif()
+
 # Deterministic floating point. ADR-006: -ffast-math is forbidden because the
 # likelihood uses -inf as a value, and /fp:fast on MSVC has the same defect.
 if(MSVC)
