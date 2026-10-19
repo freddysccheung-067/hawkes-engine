@@ -8,6 +8,9 @@ Last updated: 2026-10-19
 exist, and the properties they claim are measured. **Next: H4** (the C++
 simulators, agreeing with the reference).
 
+Last green CI on `main`: **`5185ed2`**, run `39245354755`, all 14 jobs green,
+the nightly job skipped as designed (it is schedule-only).
+
 | Gate | Status |
 |------|--------|
 | H0 | Done |
