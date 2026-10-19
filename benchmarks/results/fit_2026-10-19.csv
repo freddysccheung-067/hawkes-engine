@@ -1,0 +1,5 @@
+implementation,kernel,M,n_events,nit,wall_s,s_per_iteration,loglik,rho,reliable,machine
+hawkes-engine,pair,2,100956,46,2.2604,0.049140,-157407.076112,0.302784,reliable,"Windows 11, AMD64, Python 3.12.10, NumPy 2.5.4"
+hawkes-engine,pair,2,1001621,46,9.9896,0.217166,-1568977.155995,0.301178,reliable,"Windows 11, AMD64, Python 3.12.10, NumPy 2.5.4"
+hawkes-engine,pair,4,100827,231,9.0699,0.039264,-227478.369542,0.304604,reliable,"Windows 11, AMD64, Python 3.12.10, NumPy 2.5.4"
+hawkes-engine,pair,4,1001698,246,90.4355,0.367624,-2266213.907776,0.301738,reliable,"Windows 11, AMD64, Python 3.12.10, NumPy 2.5.4"
