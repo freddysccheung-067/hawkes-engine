@@ -4,12 +4,14 @@ Last updated: 2026-10-19
 
 ## Gate
 
-**H3 complete**: the fit driver, the standard errors and the reliability report
-exist, and the properties they claim are measured. **Next: H4** (the C++
-simulators, agreeing with the reference).
+**H4 complete**: two independent exact simulators, the time-rescaling
+diagnostics and the tests that show they sample the same law. **Next: H5**
+(bindings polish, zero-copy test, GIL release proof, cibuildwheel wheels on all
+three OSes).
 
-Last green CI on `main`: **`5185ed2`**, run `39245354755`, all 14 jobs green,
-the nightly job skipped as designed (it is schedule-only).
+Last green CI on `main`: **`a978fdd`**, run `39269488822`, all 14 jobs green
+including ASan and UBSan on Linux, the nightly job skipped as designed. The
+first push (`64a610d`) failed only the ASan job; see "Defects found".
 
 | Gate | Status |
 |------|--------|
@@ -17,7 +19,89 @@ the nightly job skipped as designed (it is schedule-only).
 | H1 | Done, tag `H1-oracle-locked-v2` |
 | H2 | Done |
 | H3 | Done |
-| H4 | Next |
+| H4 | Done |
+
+## H4: simulators
+
+`simulate_thin` (Ogata) and `simulate_cluster` (branching) share only `rng.hpp`
+and `validate_simulation`; `test_the_two_simulators_share_no_source` greps the
+includes. The generator is PCG64 seeded by SplitMix64 (ADR-005, amended: uniforms
+are 52-bit midpoints in the open interval (0, 1) so `log(U)` is finite). Its
+engine was checked against NumPy's `PCG64` from the same state: first 10 raw
+outputs identical for four seeds. Golden values are in `tests/golden/rng.txt`.
+`uniform01` and the integer stream are bit-identical across platforms;
+`exponential` and `poisson` use `log1p`/`lgamma`, so their golden check carries
+a 1e-14 relative tolerance on `exponential` and exact integers on `poisson`.
+
+`spectral_radius` is power iteration on `Gamma + I` with Collatz-Wielandt
+bounds, so it stops on a certified bracket and handles periodic `Gamma`.
+
+### Measured
+
+All from `pytest -s tests/test_simulators.py`, fixed seeds.
+
+| Quantity | Result |
+|---|---|
+| Stationary mean, 400 paths, M in {1,2,3} x rho in {0.3,0.6,0.85}, both methods | worst abs z 1.95 (cluster, M=2, rho=0.85); limit 4 |
+| Count distribution, 2000 paths, Mann-Whitney + KS per dimension | p = 1.0 |
+| Gap distribution, thinning vs cluster vs NumPy reference, pairwise | p = 1.0 (Bonferroni) |
+| Rescaling under the truth, KS + Ljung-Box, 10 cases | p from 0.12 to 1.0 |
+| Rescaling negative control (mu x 1.5) | p from 2e-6 (cluster, M=3, rho=0.85) to 1e-249; all reject |
+| Poisson limit | thinning p = 1.0, cluster p = 0.088 |
+| Mean cluster size, rho = 0.3 / 0.6 | 1.419 +- 0.012 / 2.463 +- 0.027 vs truncated exact 1.427 / 2.491 |
+| Burn-in, rho = 0.85, first unit of time | cold 0.775 / 0.738, warm 3.35 / 3.00, stationary 3.256 |
+| Loglik of true vs perturbed parameters | +0.0101 per event, z = 6.1 |
+| Compiled vs oracle loglik on simulated paths | 3.1e-15 worst relative |
+
+### Calibration
+
+`benchmarks/results/calibration.txt`: every check under 200 seeds, null
+rejection rates at the 1e-3 level (stationary mean at |z| > 4). Result: **no
+check exceeded 2 rejections**. Counts: `count_distribution` 1, `gap_distribution`
+1, `rescaling[thinning,M=3,rho=0.85]` 1, `poisson_limit[thinning]` 2 (probability
+of two or more at a true level of 1e-3 is 0.0175, so it is the one to watch
+rather than a failure), every stationary-mean and cluster-size check 0.
+
+### Throughput
+
+`benchmarks/results/simulate_2026-10-19.csv`, about 1e6 events, median of three,
+Windows 11 / MSVC. Thinning 3.7e6 to 2.2e7 events/s depending on M (M = 2 to 8);
+cluster 3.6e6 to 8.0e6. It is one machine and not a claim for others.
+
+### Properties found false or corrected
+
+- **The requested cluster-size check is false as stated.** Mean cluster size
+  `1/(1-rho)` holds for the untruncated tree. At T = 400, rho = 0.6 the window
+  removes 0.009 of a 2.5 mean, which is three standard errors at 20000 paths.
+  The test therefore compares against the exact truncated value and separately
+  asserts it is within 1% of `1/(1-rho)`.
+- **Gap independence.** Consecutive gaps inside a path are dependent, so the
+  pooled-gap KS uses every 10th gap; the calibration run confirms the nominal
+  level (1 rejection in 200).
+- **Mean-intensity SE** comes from between-path variance, as requested; the
+  variance-to-mean ratio of counts is 3.5 to 4.2 at rho = 0.6, so a Poisson SE
+  would have understated it by about 1.9.
+
+### Defects found
+
+- ASan alloc-dealloc-mismatch: `test_allocation.cpp` replaces `operator new` and
+  `delete` with `malloc`/`free`, but not the nothrow `new`, which
+  `std::stable_sort` in the cluster simulator uses on libstdc++. Fixed by
+  replacing the nothrow forms. Only the Linux job could see it.
+- CI logs need admin rights, so the sanitizer steps now re-emit findings as
+  annotations, as the build step already did.
+- Local `.venv` had no ruff or mypy and no pybind11; installed the pinned ones.
+
+### Not done
+
+- `simulate_many` is serial. The result is thread-count free by construction and
+  tested against a ThreadPool, but no parallel speedup is claimed.
+- The cluster simulator's `max_nodes` default (1e8) is tested with a limit of
+  10, not by reaching 1e8.
+- ASan/UBSan were never run locally (MSVC); only CI runs them.
+- The golden-value test passed on Linux, macOS and Windows CI, so the integer
+  stream, uniforms, and the `exponential`/`poisson` values reproduce across all
+  three.
 
 ## H3: what the estimator is and what it is not
 
@@ -263,31 +347,21 @@ own sake.
 
 ## Owner actions
 
-- **Delete the stale extension copy in the system interpreter.** The package in
-  `C:\Users\Freddy\AppData\Local\Programs\Python\Python312\Lib\site-packages\hawkes_engine\`
-  contains a `_core` built at 09:31 that predates the H2 likelihood; it exports
-  `build_info` and nothing else. scikit-build-core's redirect finder maps
-  `hawkes_engine._core` to that copy, so `import hawkes_engine` in the system
-  interpreter fails with `AttributeError: loglik` on 94 tests. Reinstalling
-  from the repository fixes it; the `.venv` is unaffected. This is the defect
-  Phase 0 was asked to find, and it is the reason every command in this session
-  runs through `.venv/Scripts/python.exe`.
-- The untracked `cpp/tests/test_main.cpp` could not be deleted: the file
-  removal was blocked by the sandbox classifier. It is in no commit and
-  referenced by nothing, so `rm cpp/tests/test_main.cpp` is cosmetic.
-- Six untracked HTML files in the repository root (`p2.html`, `page.html`,
-  `w.html` through `w6.html`, about 372 KB each) are saved GitHub pages from an
-  earlier session, not repository content. They should be deleted or added to
-  `.gitignore` by the owner; this session left them alone because they are not
-  related to the gate.
+- The system interpreter no longer has a `hawkes-engine` install (`pip show`
+  reports it not found), so the stale-extension owner action from H3 is closed.
+  `import hawkes_engine._core` from the `.venv` resolves to
+  `.venv\Lib\site-packages\hawkes_engine\_core.cp312-win_amd64.pyd`.
+- Eight untracked HTML files sit in the repository root (`p2.html`, `page.html`,
+  `w.html`, `w2.html` to `w6.html`). `/*.html` is now in `.gitignore`; delete
+  them whenever convenient.
+- The GitHub API is queried without a token from here and is limited to 60
+  requests an hour, which ran out while polling CI. A token in the environment
+  would remove that.
 - Pages: previously confirmed running as "GitHub Actions". No change.
 
 ## Next step
 
-H4: the C++ thinning and cluster simulators, each agreeing with the reference
-on the stationary mean and the event count. The reference they must agree with
-is `hawkes_engine._simulate.simulate_thinning` for the thinning half and
-`tests/_simulate_reference.simulate_cluster` for the branching half. Both are
-checked against `(I - Gamma)^{-1} mu` already, at 0.3% and 0.8% respectively on
-5000 seconds, and the H3 recovery studies run through the thinning one, so it
-is exercised at every realistic parameter set rather than only in isolation.
+H5: bindings polish, a zero-copy test for the `adopt` path in
+`bindings_sim.cpp`, a proof that the GIL is released during `simulate` and
+`time_rescale` (two threads, wall-clock overlap), and cibuildwheel wheels on all
+three operating systems.
