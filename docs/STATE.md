@@ -43,7 +43,8 @@ check, not a reimplementation of it.
 
 ## Other verification
 
-- `pytest -q`: 99 passed.
+- `pytest -q`: 106 passed (the 7 oracle-suite tests plus 99 of the package's
+  own).
 - Catch2 suite: 8 cases, 60 assertions. Covers the N = 0 and N = 1 closed
   forms, simultaneous timestamps, the `-inf` path, shared-versus-pair equality,
   the log-space chain rule, validation messages, and zero allocation.
