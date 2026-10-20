@@ -429,3 +429,28 @@ alongside it.
 partial observation, and any model outside the exponential-kernel Hawkes process.
 Queries in those regions get `"unknown"` from the shipped lookup, and the paper's
 limitations section names them.
+
+---
+
+## Amendment 1 — 2026-10-20, correcting section 10
+
+**What changed.** Section 10 said the seed derivation "is implemented in
+`studies/grid.py` and asserted against a golden vector committed alongside it."
+At the moment this file was tagged `H6-preregistration` (commit `7bb8fae`) that
+sentence was false: `studies/grid.py` does not exist yet. The harness is Phase 2
+work and had not been written when the design was frozen, which is the correct
+order — the design must not depend on the code that runs it.
+
+**Correction.** The derivation in section 10 is **normative**: it states what the
+harness must implement, not what it does. `studies/grid.py` and its golden seed
+vector will be committed before the pilot, and the pilot's first assertion is that
+the golden vector reproduces. Every number that the harness produces is checkable
+against a sentence that existed before the harness.
+
+**Why an amendment and not an edit.** The text above the amendment is what a
+referee reads at the tag. Quietly fixing a false claim would defeat the point of
+freezing it, and the false claim is itself informative: it shows the freeze
+happened before the code, which is the property the freeze is for.
+
+**Nothing else changed.** No hypothesis, threshold, grid point, replication count
+or decision rule is affected.
