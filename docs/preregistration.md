@@ -489,3 +489,104 @@ reproduction of H3, `theta_0` can be built directly from
 `alpha = [[0.20, 0.10], [0.15, 0.25]]`; the grid's job is comparability across
 cells, and a common construction rule delivers that better than four hand-picked
 arrays would.
+
+---
+
+## Amendment 3 — 2026-10-20, decisions taken before the full run
+
+Written after the pilot (20 replications in each of 8 cells) and before any
+full-grid cell has been run. It resolves four points on which this file was silent
+or ambiguous. It changes no hypothesis threshold, no grid point, no `R`, and no
+decision rule in section 4. Where it adds a rule, the rule is stated here, in
+advance of the data it governs, and is derived from quantities fixed in
+`studies/theta0.json` rather than from any estimate.
+
+### 3.1 The seed derivation (section 10)
+
+Section 10 writes `sha256(...)[:16]` and does not say whether `16` counts bytes or
+hexadecimal characters. The two readings give different seeds. For the anchor cell
+`h6-v1|2|2000|0.3028|0.0|1.0`:
+
+| reading | `cell_seed` |
+|---|---|
+| first 16 **bytes**, big-endian (32 hex characters) | `4711469738829716385` |
+| first 16 **hex characters** (8 bytes) | `13345796171862938757` |
+
+**The first reading is normative and is what `studies/grid.py` implements.** The
+digest's leading 16 bytes are read big-endian as a 128-bit integer, which
+`SplitMix64` then reduces modulo 2^64. Neither reading is statistically better;
+both yield well-separated streams. The choice is recorded so that a referee can
+reproduce every seed from this file alone. `tests/test_study_harness.py` pins the
+anchor value above.
+
+### 3.2 Burn-in (section 3, "stationary start")
+
+Section 3 asks for a stationary start and does not specify a burn-in. The harness
+simulates from time `-b` and discards events before 0, with
+
+    b = 10 / (min(beta) * (1 - rho)).
+
+This is normative. It was chosen because a cold start realises only 5 to 12
+percent of `N_target` at `rho = 0.95, c = 1e-3` (measured over 300 paths per cell,
+`studies/HARNESS_NOTES.md` Q2), which would contradict section 5.1's definition of
+`N` as the *target expected count*. Two relaxation times were tried and are not
+enough (first-decile rate z = -25 at `N = 50000`). The simulator is `thinning`,
+matching H3, whose bias finding H6.1 replicates.
+
+### 3.3 Quantisation and the `c = 1e-3` cells (H6.4, section 5.1)
+
+Quantisation is applied to the data before the fit, with `delta = r / min(beta)`,
+rounding to the nearest tick and clipping into `[0, floor(T/delta) * delta]`.
+
+Section 5.1 freezes this `delta` for every `c`. At `c = 1e-3` it is 10 or 100 time
+units against windows of 12 to 3000, so some cells contain only a handful of
+ticks. In the pilot, **all 20 replications of `M2_N50000_rho0.95_r0.1_c0.001`
+returned no standard errors** (the Hessian could not be inverted). That is the
+frozen design producing a region where the estimator is undefined, not a harness
+fault.
+
+**Rule, fixed here and defined only from the frozen grid.** Let
+`ticks = T / delta` for a cell. An `r > 0` cell is **resolved** if `ticks >= 100`
+and **unresolved** otherwise. Of the 80 `M = 2` cells with `r > 0`, **50 are
+resolved** (all 40 at `c = 1`, whose minimum is 119.4 ticks, and 10 of the 40 at
+`c = 1e-3`) and 30 are unresolved. The threshold of 100 is stated before the full
+run and is not tuned to any result.
+
+- **H6.4 is evaluated on resolved `r > 0` cells only**, each compared with its
+  matching `r = 0` cell at the same `(N, rho, c)`. Its threshold, direction and
+  falsifier in section 4 are unchanged.
+- **Unresolved cells are run, stored and reported.** They stay in the shipped map
+  with their convergence and `no_se_rate`, labelled "estimator undefined at this
+  tick resolution". They are not dropped, and they are not evidence about H6.4 in
+  either direction.
+- **No cell is added, removed or re-pointed.** The 128-cell grid and its digest
+  are unchanged.
+
+If, after the run, fewer than 10 resolved cells have both a converged fit and a
+standard error at `R = 2000`, H6.4 is reported **inconclusive** and the count is
+stated.
+
+### 3.4 The pilot's replications are the study's replications
+
+`studies/pilot.py` runs `run_cell` with the study's own seed derivation, so the
+first 20 replications of each pilot cell are the same draws as replications 1 to
+20 of the full run. They are not independent data and are not discarded: the full
+run regenerates them identically and the pilot files are not used in any estimand.
+No hypothesis was evaluated on them. What the pilot did inform is stated
+completely here: the per-fit cost, the peak working set per worker, the
+`c = 1e-3` finding above, and the burn-in. Nothing in section 4 was changed in
+response to a pilot estimate.
+
+### 3.5 Compute
+
+Measured against the section 6 projection, the pilot's grid estimate is 9.8 hours
+at one worker against a projected 10.0, a ratio of 0.977, below the 1.6 amendment
+trigger. The pilot's per-worker peak working set was 97 MB. The harness will run
+with 12 workers, the physical core count. That figure is a cap, not a measurement:
+scaling past 8 workers was not observable with 8 cells, and the first hour of the
+full run is the measurement. A wall-time shortfall is a scheduling matter and
+changes nothing above. If `R = 2000` cannot complete for a cell, section 9
+applies unchanged.
+
+**Nothing else changed.** No hypothesis, threshold, grid point, replication count
+or decision rule is affected.
