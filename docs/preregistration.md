@@ -700,3 +700,139 @@ time.
 
 **Nothing else changed.** The grid, its digest, `R`, and every hypothesis threshold
 and decision rule are as at the tag, with Amendments 1 to 3.
+
+---
+
+## Amendment 5 — 2026-10-20, the multiplicity procedure, before `analyze.py` exists
+
+No estimand has been computed. `studies/analyze.py` does not exist. The raw rows
+have been seen only through the counts in `studies/RUN_REPORT.md` and the
+disclosure in Amendment 4. This amendment supplies a procedure that section 7
+names ("the `p`-values implied by the decision rules") and does not define, and
+corrects two statements in this file that are wrong against the frozen grid. It
+changes no threshold, region, direction or decision rule.
+
+### 5.1 The Holm family has four members, not six
+
+Section 7 says Holm–Bonferroni is applied "across the six hypotheses" and, two
+bullets later, that H6.1 and H6.2 are reported **outside** the Holm family. Both
+cannot hold. The second is the explicit and later-stated design, and it follows
+from section 2's rule that an exploratory result cannot carry the headline. The
+family is therefore **H6.3, H6.4, H6.5 and H6.6**, `m = 4`. H6.1 and H6.2 are
+reported with their own `z` and one-sided `p`, labelled exploratory, outside the
+family. "Six" in section 7 is read as "six hypotheses in total".
+
+### 5.2 The statistic and the `p`-value for each hypothesis
+
+Every decision rule in section 4 has the form *statistic minus `k` standard errors
+exceeds a threshold*, or a difference of two such statistics. Each rule therefore
+implies a **standardised statistic** and a **one-sided `p`-value** under the null
+that sits at the threshold:
+
+    z = (T - tau) / SE(T),        p = 1 - Phi(z)
+
+with `T` the estimand, `tau` the threshold in that hypothesis's rule, and `SE(T)`
+the Monte Carlo standard error section 3 prescribes for it, with the changes in
+5.3. `Phi` is the standard normal CDF. The one-sided form is used because every
+hypothesis states a direction.
+
+| Hypothesis | `T` | `tau` | `SE(T)` |
+|---|---|---|---|
+| H6.3 | `cov(0.3028) - cov(0.95)`, pooled over `N ∈ {2000, 10 000}` | 0 | `sqrt(SE(cov_0.3028)^2 + SE(cov_0.95)^2)` |
+| H6.4 | `rel_beta(r=0.1) - rel_beta(r=0)`, mean over resolved cells | 0.01 | root sum of squares of the two cell-level SEs, combined across cells as the SE of their mean |
+| H6.5 | pooled `q` over the 12 `M = 2` cells (Amendment 4.4) | 1, direction `q < 1`, so `z = (1 - q)/SE(q)` | bootstrap, 5.3 |
+| H6.6 | `Delta = cov_reliable - cov_unreliable` | 0.02 | `SE(Delta)` by the delta method on the two binomial coverages |
+
+H6.3 is a **conjunction** of its threshold clause and its monotonicity clause
+(section 4). Its `p`-value is that of the threshold clause. Confirmation requires
+both clauses; the monotonicity clause cannot rescue a failed threshold clause, and
+a failed monotonicity clause blocks confirmation whatever `p` is.
+
+### 5.3 The standard error of `q` is the bootstrap's, not the normal-theory one
+
+Section 3 says E3.6's standard error is "by the delta method". The delta method for
+`q = mse / sd` uses the large-sample variance of `sd`, which for `R` replications of
+normal data is about `sd^2 / (2(R - 1))`. A check on simulated data with `R = 2000`
+shows the relative standard error of `sd` is **0.015 for normal data and 0.34 for a
+`t` distribution with 2.2 degrees of freedom**, a factor of 22. `beta_hat` in the
+small-`N` cells has a tail of that kind (Amendment 4: median 1.305, mean 37.99,
+maximum 43 914), so the delta-method standard error would be wrong in the
+direction that makes `q` look more precise than it is.
+
+**For H6.5 only,** `SE(q)` is therefore the standard deviation of `q` over the 1000
+bootstrap resamples already specified in Amendment 4.2, resampling replications
+within each cell, with the pre-fixed seed `"h6-v1-boot|<cell key>"`. The pooled
+`q` is recomputed in each resample, so the bootstrap carries the pooling. The
+delta-method value is computed and reported alongside as a sensitivity check,
+labelled as such. If the two differ by more than a factor of 2, both are reported
+and the **larger** governs the decision, so that the correction can only make
+H6.5 harder to confirm.
+
+This changes a standard error, not a threshold or a direction, and it can only move
+a decision towards "inconclusive".
+
+### 5.4 The Holm procedure
+
+The four `p`-values are ordered ascending. At step `k = 1..4` the `k`-th smallest is
+compared with `0.05 / (5 - k)`; the procedure stops at the first failure and
+declares the remaining hypotheses not confirmed.
+
+| step | threshold on `p` | equivalent `z` |
+|---|---|---|
+| 1 | 0.0125 | 2.241 |
+| 2 | 0.01667 | 2.128 |
+| 3 | 0.025 | 1.960 |
+| 4 | 0.05 | 1.645 |
+
+**Two bars apply, and both must be cleared.** Section 4's own rule (`T - 2·SE > tau`,
+`z > 2`) is looser than Holm at steps 1 and 2 (`z >= 2.241`, `2.128`) and stricter
+at steps 3 and 4 (`z >= 1.960`, `1.645`). A hypothesis is **confirmed** only if it
+passes its section 4 rule **and** survives Holm. A hypothesis that passes section 4
+but not Holm is reported as **"confirmed before correction, not confirmed after"**,
+with both numbers. A hypothesis that fails section 4 is not confirmed whatever its
+Holm standing. Section 4's existing clause stands unchanged: a result within two MC
+standard errors of its threshold is reported **inconclusive** rather than claimed
+in either direction. No further inconclusive band is added here.
+
+### 5.5 Clarification to Amendment 3.3: which resolved cells H6.4 uses
+
+Amendment 3.3's counts are correct: of the 80 `M = 2` cells with `r > 0`, 50 are
+resolved (`ticks >= 100`), 40 at `c = 1` and 10 at `c = 1e-3`. Its sentence "H6.4 is
+evaluated on resolved `r > 0` cells only" is looser than section 4, which frames
+H6.4 on **`r = 0.1` cells only**. Section 4 governs. Split by `r`, the 50 resolved
+cells are:
+
+| | `c = 1` | `c = 1e-3` | total |
+|---|---|---|---|
+| `r = 0.01` | 20 | 8 | 28 |
+| `r = 0.1` | 20 | 2 | **22** |
+
+- **H6.4's population is the 22 resolved `r = 0.1` cells,** each compared with its
+  matching `r = 0` cell. The pre-committed floor in 3.3 (fewer than 10 resolved
+  cells with a converged fit and a standard error is inconclusive) is applied to
+  those 22. Twenty are at `c = 1`, where the fit is defined. The 2 at `c = 1e-3`
+  are expected to carry no standard error (`studies/RUN_REPORT.md`, section 2) and
+  are counted out by the floor's own wording.
+- The 28 resolved `r = 0.01` cells are reported in the map. They are not evidence
+  for or against H6.4.
+- This clarification reduces H6.4's population from the 50 that 3.3's wording
+  could be read to imply to the 22 that section 4 states. It moves no threshold.
+
+### 5.6 What `analyze.py` must produce for this amendment
+
+Per hypothesis: `T`, `tau`, `SE(T)` and which standard error was used, `z`, the
+one-sided `p`, the section 4 verdict, the Holm step and threshold it met or
+missed, and the final label from {confirmed, confirmed before correction only,
+not confirmed, inconclusive}. For H6.5, the bootstrap and delta-method standard
+errors side by side. The test suite includes a fixture in which the Holm ordering
+and the "both bars" rule produce a known outcome by hand.
+
+### 5.7 What this amendment cannot do
+
+It cannot change which side of any threshold a hypothesis falls on, except that the
+bootstrap standard error in 5.3 and the Holm bar in 5.4 can only move a result
+towards "not confirmed" or "inconclusive". It adds no hypothesis, no region and no
+cell.
+
+**Nothing else changed.** The grid, its digest, `R`, every hypothesis threshold and
+decision rule, and Amendments 1 to 4 are as written.
