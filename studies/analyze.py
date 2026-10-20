@@ -232,6 +232,12 @@ def _binom_se(p: float, n: int) -> float:
     return math.sqrt(max(p * (1.0 - p), 0.0) / n)
 
 
+def _div(a: float, b: float) -> float:
+    """IEEE division: a zero spread gives inf or nan, reported, never an exception."""
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return float(np.float64(a) / np.float64(b))
+
+
 def _mean_or_nan(x: np.ndarray) -> float:
     return float(np.mean(x)) if x.size else math.nan
 
@@ -278,10 +284,10 @@ def _spread_stats(
     else:
         se_mse = math.nan
     with np.errstate(divide="ignore", invalid="ignore"):
-        q = mse / sd  # E3.6
-        se_q_delta = abs(q) * math.sqrt((se_mse / mse) ** 2 + 1.0 / (2 * (R - 1)))
+        q = _div(mse, sd)  # E3.6
+        se_q_delta = abs(q) * math.sqrt(_div(se_mse, mse) ** 2 + 1.0 / (2 * (R - 1)))
         sd_matched = float(np.sqrt(np.mean(np.var(X[has], axis=0)))) if n_se else math.nan
-        q_matched = mse / sd_matched
+        q_matched = _div(mse, sd_matched)
     se_bias = sd / math.sqrt(R)
     return {
         "R": R,
