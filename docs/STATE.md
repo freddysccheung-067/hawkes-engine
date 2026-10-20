@@ -125,9 +125,26 @@ Frozen so far:
   H6.5 (reported SE versus empirical SD) and H6.6 (does the verdict separate
   coverage) are the confirmatory results.
 
-Not yet done at this commit: the harness (`studies/grid.py`, `run_cell.py`,
-`collect.py`), the pilot that measures real per-replication cost, the run itself,
-the shipped parquet, the `trust.py` lookup, the paper and the figures.
+**Harness complete, run not started.** `studies/grid.py`, `run_cell.py`,
+`run_study.py`, `pilot.py` and `collect.py` exist; `tests/test_study_harness.py`
+proves resumability, bit-for-bit `--force` determinism, failures-as-rows,
+quantisation and collection. Places the preregistration was silent are in
+[`studies/HARNESS_NOTES.md`](../studies/HARNESS_NOTES.md); items Q1 (quantisation
+is degenerate at `c = 1e-3`) and Q4 (`[:16]` bytes versus hex characters in the
+seed) need an owner decision before the run.
+
+Pilot (20 replications, `studies/results/pilot.json`): fit+simulate median
+10.9 ms at N=200, 308 to 474 ms at N=50000, 1070 ms at the M=4, N=20000
+satellite cell. Whole grid **9.8 h at one worker** against the preregistration's
+13.0 h (ratio 0.98 against the same model on the same grid; the 1.6x amendment
+trigger is not met). Peak RSS is about 97 MB per worker, so memory allows 56
+workers; the recommendation is **12** (physical cores), giving about 0.8 h. Only
+the 12-worker cap is unmeasured at full scale. Start command:
+
+    .venv\Scripts\python.exe -m studies.run_study --workers 12
+
+Not yet done: the run itself, `analyze.py` (Phase 4), the shipped map, the
+`trust.py` lookup, the paper and the figures. H6 is not complete.
 
 H7 (performance characterisation) will measure wall-clock time and memory across
 the same grid and document what scale of problem the library handles before
