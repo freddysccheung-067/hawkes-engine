@@ -454,3 +454,38 @@ happened before the code, which is the property the freeze is for.
 
 **Nothing else changed.** No hypothesis, threshold, grid point, replication count
 or decision rule is affected.
+
+---
+
+## Amendment 2 — 2026-10-20, correcting the anchor claim in section 5.1
+
+**What changed.** Section 5.1 says that at `rho = 0.3028, c = 1` the construction
+"reproduces the H3 configuration exactly". It does not. H3's configuration has
+`rho = 0.3028235666139891`; the grid point is `0.3028`, which is
+**7.782 292e-05 relative** away. Scaling `alpha` by that ratio changes every
+entry in the fifth decimal:
+
+| entry | H3 | grid anchor | absolute difference |
+|---|---|---|---|
+| `alpha[0,0]` | 0.20 | 0.19998444 | 1.556e-05 |
+| `alpha[0,1]` | 0.10 | 0.09999222 | 7.782e-06 |
+| `alpha[1,0]` | 0.15 | 0.14998833 | 1.167e-05 |
+| `alpha[1,1]` | 0.25 | 0.24998054 | 1.946e-05 |
+
+**Why it is left as it is.** The grid point is **not** changed. A 7.8e-5 relative
+shift in the excitation entries cannot move any estimand in section 3 by an amount
+this study could resolve — `R = 2000` resolves relative bias to 1.1e-2, which is
+140 times larger. Changing a frozen grid point to fix a discrepancy four orders of
+magnitude below the noise floor would be a worse error than the one being
+corrected: it would be adjusting the design to a cosmetic ideal.
+
+**What the reader should take instead.** The `rho = 0.3028` cell is the H3
+configuration **to within 8e-5 relative**, which is far closer than any statistic
+this study computes. It is the calibration anchor in that sense, and the paper
+states the tolerance rather than the word "exactly".
+
+**What this costs.** Nothing measurable. If a later reader wants an exact
+reproduction of H3, `theta_0` can be built directly from
+`alpha = [[0.20, 0.10], [0.15, 0.25]]`; the grid's job is comparability across
+cells, and a common construction rule delivers that better than four hand-picked
+arrays would.
