@@ -11,6 +11,18 @@ about the procedure.
 
 Every threshold lives in :data:`THRESHOLDS` with the argument for its value, so
 that H6 replaces a number rather than editing logic.
+
+**This verdict is not a trust guarantee.** H6 (study ``h6-v1``) measured it
+against coverage over 2000 replications per cell. Averaged over the cells that
+hold both classes, ``reliable`` replications cover 0.78 more often than
+``unreliable`` ones, but 96 percent of ``unreliable`` replications carry no
+standard error and so cover nothing by definition. Among replications that do
+carry one, the measured separation is ``+0.07 +/- 0.04``, and 3211 fits with a
+``beta`` estimate more than ten times its true value were called ``reliable``.
+The verdict flags fits that could not produce an interval; it does not detect
+intervals that are wrong. For measured coverage in a regime, use
+:func:`hawkes_engine.trust_map.lookup`, which is a separate map and does not
+change these thresholds.
 """
 
 from __future__ import annotations
@@ -23,9 +35,10 @@ from hawkes_engine.model import FitResult
 
 __all__ = ["ReliabilityReport", "THRESHOLDS", "report"]
 
-# Thresholds, each with the reasoning behind the value. H6 calibrates these
-# against measured coverage; until then they are engineering judgement and are
-# labelled as such.
+# Thresholds, each with the reasoning behind the value. They are engineering
+# judgement, unchanged by H6: the study measured the verdict they produce (see the
+# module docstring and hawkes_engine.trust_map) but recalibrating them would be a
+# new study, not a reading of this one.
 THRESHOLDS: dict[str, float] = {
     # cond(H) below this leaves at least three digits of the inverse intact,
     # which is enough for an SE to mean something. The information matrix is a
