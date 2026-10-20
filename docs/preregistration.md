@@ -590,3 +590,113 @@ applies unchanged.
 
 **Nothing else changed.** No hypothesis, threshold, grid point, replication count
 or decision rule is affected.
+
+---
+
+## Amendment 4 — 2026-10-20, after the full grid and before any estimand
+
+**Disclosure first.** The full grid has run (256 000 rows, every cell produced at
+commit `58b6b0b`, which is the commit that appended Amendment 3). A counts-only
+pass over those rows, `studies/RUN_REPORT.md`, was read **before** this amendment
+was written. It computed no bias, coverage, `q` or hypothesis test, but it did show
+the shape of the data, and this amendment responds to that shape. A reader should
+weigh it accordingly: it is a decision made with knowledge of a feature of the
+data, not a prediction made without it. The case for making it anyway is that the
+alternative is to find the feature after the estimands are computed and add
+something silently. No estimand has been computed and no `analyze.py` exists.
+
+What the pass showed, in three counts. At `c = 1`, `r = 0`, `N <= 2000`, a share of
+converged fits return a `beta_hat` more than ten times the largest true beta
+(48.2 percent at `N = 200, rho = 0.3028`; 4.7 percent at `N = 2000, rho = 0.3028`;
+0.1 percent or less at `N >= 10 000`). In the anchor cell, `beta[0,1]` has median
+1.305 and mean 37.99 against a true 1.2, with a maximum of 43 914. And the mean is
+not a stable summary of a quantity with that tail.
+
+### 4.1 What is **not** changed
+
+E3.1 to E3.7 are exactly as defined in section 3, are computed exactly as written,
+and are the quantities every hypothesis in section 4 is decided on. Every
+threshold, direction, region, decision rule and falsifier in section 4 is
+unchanged, except the pooling clarification in 4.4 below. The Holm family, the
+exploratory separation and `R = 2000` are unchanged. **Nothing in this amendment
+can turn a refuted or inconclusive hypothesis into a confirmed one, or the
+reverse.**
+
+### 4.2 Companion estimands (added, never substituted)
+
+For each cell, block `B` and coordinate `j`, the following are computed **in
+addition**, from the same rows, and reported in a separate table labelled
+"robust companions":
+
+- **E4.1 Median bias.** `medbias_B = mean_{j∈J(B)} ( median_r theta_hat_r^j −
+  theta_0^j )`, and `medrel_B = medbias_B / mean_{j∈J(B)} |theta_0^j|`.
+- **E4.2 Robust spread.** `mad_B = mean_{j∈J(B)} 1.4826 · median_r |theta_hat_r^j −
+  median_r theta_hat_r^j|`, the median absolute deviation scaled to a standard
+  deviation under normality.
+- **E4.3 Robust honesty ratio.** `qrob_B = mean_{j∈J(B)} median_r( se_r^j ) /
+  mad_j`, over replications that have a standard error. It answers the same
+  question as E3.6 with a statistic that a tail of 43 914 cannot move.
+- **E4.4 Tail share of `beta`.** `tail`: the share of **converged** replications in
+  which any `beta_hat` coordinate exceeds `10 · max_j beta_0^j`. This is the
+  quantity the counts-only pass reported, defined here exactly as that pass
+  computed it. It counts the phenomenon; it is not a test.
+
+Monte Carlo standard errors for E4.1 to E4.3 are obtained by a **nonparametric
+bootstrap over replications within the cell, 1000 resamples, with a seed derived
+from the cell seed** by the section 10 construction applied to the message
+`"h6-v1-boot|<cell key>"`. Percentile intervals are reported. The bootstrap seed
+is fixed here, before it is used.
+
+**These companions decide nothing.** They are reported next to E3.1, E3.3 and E3.6
+so that a reader can see whether the frozen mean-based estimand and a robust one
+agree. Where they disagree materially, the paper reports both and says which
+hypothesis verdicts would differ **if** the companion had been the estimand,
+labelled as a sensitivity statement and not as a result. If a hypothesis is
+confirmed on E3.x and the companion disagrees in sign, the verdict stays
+"confirmed" and the disagreement is stated in the same sentence.
+
+### 4.3 Why this is an addition and not a replacement
+
+Replacing a mean by a median after seeing that the mean misbehaves is the standard
+way an analysis acquires the answer its author expected. It is not done here. The
+frozen estimands are the pre-registered claim. A robust companion is a
+pre-registered **check on that claim**, added before any estimand is computed, with
+its own seed and its own rule for when it may be mentioned. The paper states in its
+honesty section that the companions were added after the raw rows were seen and
+before any estimand was computed, and cites this amendment.
+
+### 4.4 A clarification to H6.5's pooling, resolved without reference to results
+
+H6.5's region reads "all cells with `N ≥ 2000`, `c = 1`, `r = 0`, weighted by
+coordinate count". Read literally that includes the four `M = 4` satellite cells
+(`N ∈ {2000, 20000}`, `rho ∈ {0.3028, 0.85}`). Counting coordinates, the region
+holds 12 `M = 2` cells at 10 parameters each (120 coordinates) and 4 `M = 4`
+satellite cells at 36 parameters each (144 coordinates). **The satellite would
+carry 55 percent of the weight**, which contradicts section 5.2, which describes
+it as "a single guard against a result that is an artefact of M = 2; it is not a
+second full grid."
+
+The reading adopted, which is the one consistent with section 5.2: **H6.5's pooled
+`q` is computed over the 12 `M = 2` cells only.** The four satellite cells are
+reported separately with their own `q`, and the paper states whether the satellite
+agrees in direction with the `M = 2` pooled result. This is derived from the
+structure of the grid in `studies/theta0.json` and from section 5.2's stated
+purpose, not from any estimate.
+
+### 4.5 `analyze.py` is held to the preregistration, not to this amendment
+
+`analyze.py` implements section 3's formulas as written and the section 4 decision
+rules as written, and adds the E4 companions. Its tests include a hand-computed
+fixture for E3.1 to E3.7 so that a transcription error in an estimand cannot
+survive. Any number in the paper is produced by it and nothing is typed by hand.
+
+### 4.6 What would require a further amendment
+
+A change of estimand, threshold, region or rule; a different treatment of the
+`c = 1e-3` cells than Amendment 3.3's; a different bootstrap seed or resample
+count; or the addition of any further companion after `analyze.py` has produced a
+result. Each would be appended, dated, and labelled with what had been seen at the
+time.
+
+**Nothing else changed.** The grid, its digest, `R`, and every hypothesis threshold
+and decision rule are as at the tag, with Amendments 1 to 3.
