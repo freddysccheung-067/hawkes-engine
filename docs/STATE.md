@@ -125,26 +125,30 @@ Frozen so far:
   H6.5 (reported SE versus empirical SD) and H6.6 (does the verdict separate
   coverage) are the confirmatory results.
 
-**Harness complete, run not started.** `studies/grid.py`, `run_cell.py`,
-`run_study.py`, `pilot.py` and `collect.py` exist; `tests/test_study_harness.py`
-proves resumability, bit-for-bit `--force` determinism, failures-as-rows,
-quantisation and collection. Places the preregistration was silent are in
-[`studies/HARNESS_NOTES.md`](../studies/HARNESS_NOTES.md); items Q1 (quantisation
-is degenerate at `c = 1e-3`) and Q4 (`[:16]` bytes versus hex characters in the
-seed) need an owner decision before the run.
+**The full grid has run.** 128 cells, 2000 replications each, 256 000 rows,
+12 workers, 6763 s (1.88 h) against the pilot's 0.8 h estimate at 12 workers,
+because the five most expensive M=4 and N=50000 cells ran serially at the tail.
+Every cell was produced at commit `58b6b0b`, which appended Amendment 3, so the
+run followed the final design freeze. `python -m studies.collect` reports 128 of
+128 complete with every checksum verified; `studies/results/manifest.json`
+records the per-cell hashes. The raw rows (185 MB) are gitignored and exist only
+on the machine that ran the study.
 
-Pilot (20 replications, `studies/results/pilot.json`): fit+simulate median
-10.9 ms at N=200, 308 to 474 ms at N=50000, 1070 ms at the M=4, N=20000
-satellite cell. Whole grid **9.8 h at one worker** against the preregistration's
-13.0 h (ratio 0.98 against the same model on the same grid; the 1.6x amendment
-trigger is not met). Peak RSS is about 97 MB per worker, so memory allows 56
-workers; the recommendation is **12** (physical cores), giving about 0.8 h. Only
-the 12-worker cap is unmeasured at full scale. Start command:
+What the raw rows show, before any estimand, is in
+[`studies/RUN_REPORT.md`](../studies/RUN_REPORT.md). Two findings need an owner
+decision before `analyze.py`:
 
-    .venv\Scripts\python.exe -m studies.run_study --workers 12
+- **The `c = 1e-3` half of the grid is estimator-undefined.** `beta_min * T` is
+  below 3 in 15 of 20 `r = 0` cells there; 75 percent of those fits return no
+  standard error and the fitted beta runs to its upper bound, with or without
+  quantisation. Amendment 3.3's "resolved" rule will likely leave H6.4 inconclusive.
+- **At `c = 1` and small N, a share of converged fits return an implausible beta
+  and are labelled `reliable`.** 5454 fits across the 20 `M = 2`, `r = 0` cells,
+  3211 of them `reliable`. A count, not a test; H6.6 is still decided by its
+  pre-committed rule.
 
-Not yet done: the run itself, `analyze.py` (Phase 4), the shipped map, the
-`trust.py` lookup, the paper and the figures. H6 is not complete.
+Not yet done: `analyze.py` (Phase 4), the shipped map, the `trust.py` lookup, the
+paper and the figures. H6 is not complete.
 
 H7 (performance characterisation) will measure wall-clock time and memory across
 the same grid and document what scale of problem the library handles before
