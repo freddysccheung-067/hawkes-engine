@@ -143,6 +143,76 @@ confirm the 0.5, or set another rule.
 
 ## Owner decisions
 
-Listed as they arise; each says what is blocked.
+Listed as they arise; each says what is blocked. Everything in this section was
+written **after** `analyze.py` had run on the raw rows (2026-10-21, analysis commit
+`a6427a9`), and says so.
 
-*(none yet: this section is filled from the run)*
+**D1. H6.4 lands on two sides of its bar (C3 x C4). BLOCKS the H6.4 label and
+therefore H6 completion.** The two `c = 1e-3` cells in the population,
+`M2_N50000_rho0.3028_r0.1_c0.001` and `M2_N50000_rho0.6_r0.1_c0.001`, do carry
+converged fits with a standard error (22 and 2 of 2000 replications). Amendment
+5.5 expected them to carry none and to be "counted out by the floor's own
+wording"; that premise is false against the data, so the floor counts 22 cells,
+not 20. Their matched `r = 0` cells have `rel_beta` of 1.1e8 and 2.6e8 (the
+`c = 1e-3` estimator runs to its bound), so they dominate any mean over cells.
+
+| form | cells | `T` | `SE` | `z` | section 4 |
+|---|---|---|---|---|---|
+| C3A-C4A (independent cells, all 22) | 22 | -1.70e7 | 3.50e6 | -4.85 | refuted, negative |
+| C3B-C4A (between-cell, all 22) | 22 | -1.70e7 | 1.27e7 | -1.34 | inconclusive |
+| C3A-C4B (independent, `c = 1` only) | 20 | -815 | 497 | -1.64 | inconclusive |
+| C3B-C4B (between-cell, `c = 1` only) | 20 | -815 | 710 | -1.15 | inconclusive |
+
+The final label is "not confirmed" in one form and "inconclusive" in three; it is
+**not "confirmed" in any**. The owner must decide (a) whether the two `c = 1e-3`
+cells enter (C4) and (b) how cell SEs combine (C3). Either answer is an amendment.
+
+A fact the owner should have in view, and which is **not** a verdict: at
+`N >= 10 000`, `c = 1`, every one of the eight `r = 0.1` cells has
+`rel_beta(0.1) - rel_beta(0)` between -0.37 and -0.62 with cell-level SE below
+0.008, i.e. quantisation biases beta **downward** by roughly 40 to 60 percent,
+the opposite of H6.4's direction. The mean over cells is dominated by the
+small-`N` cells, whose `r = 0` `rel_beta` is inflated by the heavy tail (+8 at
+`N = 2000`, +260 at `N = 200`). Section 4 already names a significantly negative
+difference as a refutation "with its direction"; whether the mean over cells is
+the right aggregate when the `r = 0` arm is tail-dominated is the owner's call.
+
+**D2. H6.6 is confirmed, and is substantially mechanical.** (Post hoc; recorded
+as a finding, not as a change.) In the H6.6 region, 3661 of the 3799
+`unreliable` replications (96.4 percent) have no standard error, and E3.5 counts
+those as coverage 0 by definition, while `trust.report` returns `unreliable`
+whenever the information matrix cannot be inverted. Among replications that
+**do** carry a standard error, the mean over the 11 cells holding both classes is
+`Delta = +0.073 +/- 0.039` (independent cells) or `+/- 0.034` (between-cell
+spread): above 0.02 but within two SE of it under the first form. The
+pre-registered verdict stands as computed. The owner should decide whether the
+paper leads with it, given that the separation mostly reflects the verdict
+flagging fits that returned no interval at all. This diagnostic was not named
+before the run and is reported as post hoc.
+
+**D3. `estimator_undefined` rule for the map (M1).** Confirm the 0.5 `no_se_rate`
+threshold or set another. Blocks nothing in the hypotheses.
+
+**D4. H6.3's monotonicity clause fails on a rise, not a fall.** Coverage rises
+from `rho = 0.3028` (0.9334 +/- 0.0039) to `0.60` (0.9450 +/- 0.0036), a step of
++0.0116 against an allowance of 0.0107 (form C2A) or 0.0072 (C2B). The threshold
+clause passes (`z = 2.84`), so section 4 gives "refuted" in all four forms and the
+label is "not confirmed" in every form. Nothing is pending; it is recorded because
+the failing step is the anchor end of the sequence, where the heavy tail of
+`beta[0,1]` lowers coverage at `N = 2000`.
+
+## Phase 3 findings (after the run)
+
+- **Independent recomputation.** `studies/sanity_independent.py`, pure Python,
+  three cells, five statistics, four blocks: worst relative difference 2.4e-16.
+- **Row counts.** 128 cells x 6 estimand populations: zero mismatches against rows
+  minus the exclusions recounted from the raw `failure` strings.
+- **Extremes.** 223 of 384 cell-blocks have coverage exactly 0 or 1 or `q` outside
+  [0.2, 5]: 176 are estimator-undefined cells, 32 are `sd` inflated by the heavy
+  `beta_hat` tail (`sd > 10 x` mean SE), 2 have more than 20 percent no-SE
+  replications, and 13 are `r = 0.1, c = 1` cells at `N >= 1000` where alpha and
+  beta are biased by 40 to 56 percent, 8 to 12 times the mean SE, so every interval
+  misses while `q` stays near 1 (the SE is honest about spread, not about bias).
+  The likelihood's tie rule (`cpp/src/workspace.cpp`: simultaneous events do not
+  excite each other) is a plausible mechanism for the downward bias; it was not
+  tested here.
