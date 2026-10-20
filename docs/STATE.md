@@ -103,10 +103,31 @@ replaces them with measured values.
 
 ## What is next
 
-H6 (trust calibration) is the next gate. It will run a pre-registered study
-across the (M, N, ρ, events-per-parameter, decay structure) grid and report
-measured bias and coverage for every region, so that a user reading `reliable`
-knows what that means in their configuration.
+H6 (trust calibration) has begun. **The design is frozen and tagged
+`H6-preregistration`** at commit `7bb8fae`, before any H6 measurement. The
+preregistration is [`preregistration.md`](preregistration.md) and the prior
+evidence it builds on is [`studies/PRIOR_EVIDENCE.md`](../studies/PRIOR_EVIDENCE.md).
+
+Frozen so far:
+
+- **Question, estimands, six hypotheses, grid, R, correction and stopping rule**
+  in the preregistration. 128 cells: 120 at M=2 over N, rho, beta·delta and a
+  decay scale, plus an 8-cell M=4 satellite.
+- **`R = 2000`** replications per cell, derived from the Monte Carlo standard
+  error of an estimated coverage and of a relative bias, not chosen for
+  roundness. Cost projection is 13.0 h single-core at 8 workers.
+- **The grid itself**, frozen in `studies/theta0.json` with canonical digest
+  `f735ae41…`. Generation is `studies/make_theta0.py`; the run must match the
+  digest or refuse to start.
+- **Confirmatory status is partial and disclosed.** H3 measured a 4.63-sigma
+  excess at 2000 events before H6 was designed, so H6.1 and H6.2 are labelled
+  exploratory in the preregistration and cannot carry the paper's headline.
+  H6.5 (reported SE versus empirical SD) and H6.6 (does the verdict separate
+  coverage) are the confirmatory results.
+
+Not yet done at this commit: the harness (`studies/grid.py`, `run_cell.py`,
+`collect.py`), the pilot that measures real per-replication cost, the run itself,
+the shipped parquet, the `trust.py` lookup, the paper and the figures.
 
 H7 (performance characterisation) will measure wall-clock time and memory across
 the same grid and document what scale of problem the library handles before
