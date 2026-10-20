@@ -34,14 +34,16 @@ html_title = "hawkes-engine"
 # Only the user-facing pages are published. The specification and the ADRs stay
 # in the repository: they matter to maintainers and are noise on a docs site.
 # Excluding them here keeps sphinx-build -W quiet about orphans.
-# STATE.md is a maintainer note, not a published page; excluding it keeps
-# sphinx-build -W from reporting it as an orphan.
+# STATE.md and preregistration.md are maintainer and referee documents, not
+# published pages; excluding them keeps sphinx-build -W from reporting them as
+# orphans. The pre-registration is read at the tag, where its text is frozen.
 exclude_patterns = [
     "_build",
     "adr/**",
     "spec/**",
     "competitor-analysis.md",
     "STATE.md",
+    "preregistration.md",
 ]
 
 autodoc_typehints = "description"
