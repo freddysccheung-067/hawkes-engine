@@ -1,0 +1,49 @@
+﻿rows read: 256000
+failure reasons: {'se:none': 127974, 'not_converged': 12945}
+verdicts: {'reliable': 126031, 'unreliable': 97492, 'marginal': 32477}
+cells with convergence below 0.50: [('M2_N50000_rho0.85_r0.01_c0.001', 0.476)]
+
+beta_min * T for r = 0 cells (M = 2)
+ c = 1.0
+  N=   200  rho 0.3028:    172.26  rho 0.6:     97.47  rho 0.85:     36.04  rho 0.95:     11.94
+  N=  1000  rho 0.3028:    861.31  rho 0.6:    487.36  rho 0.85:    180.22  rho 0.95:     59.70
+  N=  2000  rho 0.3028:   1722.63  rho 0.6:    974.72  rho 0.85:    360.45  rho 0.95:    119.39
+  N= 10000  rho 0.3028:   8613.14  rho 0.6:   4873.60  rho 0.85:   1802.25  rho 0.95:    596.96
+  N= 50000  rho 0.3028:  43065.69  rho 0.6:  24368.00  rho 0.85:   9011.24  rho 0.95:   2984.80
+ c = 0.001
+  N=   200  rho 0.3028:      0.17  rho 0.6:      0.10  rho 0.85:      0.04  rho 0.95:      0.01
+  N=  1000  rho 0.3028:      0.86  rho 0.6:      0.49  rho 0.85:      0.18  rho 0.95:      0.06
+  N=  2000  rho 0.3028:      1.72  rho 0.6:      0.97  rho 0.85:      0.36  rho 0.95:      0.12
+  N= 10000  rho 0.3028:      8.61  rho 0.6:      4.87  rho 0.85:      1.80  rho 0.95:      0.60
+  N= 50000  rho 0.3028:     43.07  rho 0.6:     24.37  rho 0.85:      9.01  rho 0.95:      2.98
+
+mean per-cell rates by regime (M = 2)
+  c=0.001  r0.0   cells=20  converged=0.943  no-SE=0.754  bound-hit=0.411
+  c=0.001  r0.01  cells=20  converged=0.848  no-SE=0.999  bound-hit=0.983
+  c=0.001  r0.1   cells=20  converged=0.943  no-SE=0.998  bound-hit=0.998
+  c=1      r0.0   cells=20  converged=0.991  no-SE=0.067  bound-hit=0.052
+  c=1      r0.01  cells=20  converged=0.988  no-SE=0.092  bound-hit=0.085
+  c=1      r0.1   cells=20  converged=0.970  no-SE=0.165  bound-hit=0.158
+
+c = 1, r = 0: converged fits with a beta_hat above 10x the largest true beta
+  N=   200 rho=0.3028 converged= 1982 wild=  956 ( 48.2%) reliable= 573
+  N=   200 rho=0.6    converged= 1982 wild=  616 ( 31.1%) reliable= 466
+  N=   200 rho=0.85   converged= 1934 wild= 1079 ( 55.8%) reliable= 676
+  N=   200 rho=0.95   converged= 1780 wild= 1682 ( 94.5%) reliable= 558
+  N=  1000 rho=0.3028 converged= 1999 wild=  269 ( 13.5%) reliable= 196
+  N=  1000 rho=0.6    converged= 2000 wild=   63 (  3.1%) reliable=  57
+  N=  1000 rho=0.85   converged= 1994 wild=   71 (  3.6%) reliable=  64
+  N=  1000 rho=0.95   converged= 1984 wild=  516 ( 26.0%) reliable= 442
+  N=  2000 rho=0.3028 converged= 1999 wild=   94 (  4.7%) reliable=  78
+  N=  2000 rho=0.6    converged= 2000 wild=    8 (  0.4%) reliable=   7
+  N=  2000 rho=0.85   converged= 1995 wild=    7 (  0.4%) reliable=   7
+  N=  2000 rho=0.95   converged= 1999 wild=   92 (  4.6%) reliable=  86
+  N= 10000 rho=0.3028 converged= 2000 wild=    1 (  0.1%) reliable=   1
+  N= 10000 rho=0.6    converged= 2000 wild=    0 (  0.0%) reliable=   0
+  N= 10000 rho=0.85   converged= 2000 wild=    0 (  0.0%) reliable=   0
+  N= 10000 rho=0.95   converged= 2000 wild=    0 (  0.0%) reliable=   0
+  N= 50000 rho=0.3028 converged= 2000 wild=    0 (  0.0%) reliable=   0
+  N= 50000 rho=0.6    converged= 2000 wild=    0 (  0.0%) reliable=   0
+  N= 50000 rho=0.85   converged= 2000 wild=    0 (  0.0%) reliable=   0
+  N= 50000 rho=0.95   converged= 2000 wild=    0 (  0.0%) reliable=   0
+  total wild 5454, of which verdict 'reliable' 3211
