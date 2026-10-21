@@ -1,0 +1,37 @@
+# date: 2026-10-21
+# cpu: Intel(R) Core(TM) Ultra 9 275HX
+# logical_cores: 24
+# ram_gib: 31.4
+# os: Windows-11-10.0.26200-SP0 (build 10.0.26200)
+# compiler: msvc 1944, C++20
+# python: 3.12.10
+# numpy: 2.5.4
+# hawkes_engine: 0.1.0.dev0
+# profiler: cProfile (Python level) plus timing decomposition; no native profiler
+
+== cProfile, fit(M=4, N=100483), top 8 by internal time ==
+         18897 function calls (18742 primitive calls) in 6.082 seconds
+
+   Ordered by: internal time
+   List reduced from 277 to 8 due to restriction <8>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+      152    3.217    0.021    3.217    0.021 {built-in method hawkes_engine._core.loglik_grad_log_space}
+      145    2.729    0.019    2.729    0.019 {built-in method hawkes_engine._core.loglik}
+      284    0.055    0.000    0.055    0.000 {built-in method scipy.optimize._lbfgsb.setulb}
+      152    0.009    0.000    3.237    0.021 D:\hawkes-engine-v2\python\hawkes_engine\fit.py:90(__call__)
+      298    0.006    0.000    0.009    0.000 D:\hawkes-engine-v2\python\hawkes_engine\_layout.py:153(pack_natural)
+        1    0.004    0.004    2.728    2.728 D:\hawkes-engine-v2\python\hawkes_engine\hessian.py:110(observed_information)
+        1    0.004    0.004    3.286    3.286 D:\hawkes-engine-v2\.venv\Lib\site-packages\scipy\optimize\_lbfgsb_py.py:272(_minimize_lbfgsb)
+      300    0.003    0.000    3.204    0.011 D:\hawkes-engine-v2\.venv\Lib\site-packages\scipy\optimize\_optimize.py:71(_compute_if_needed)
+
+
+
+== compiled likelihood, N about 1e5, pair decay ==
+M  value_ns/ev  grad_ns/ev  value/M^2  grad/M^2   (ns per event per M^2)
+2         65.9        96.3      16.49     24.08
+4        138.1       187.3       8.63     11.71
+6        267.4       341.8       7.43      9.50
+8        437.5       581.7       6.84      9.09
+
+numpy np.exp throughput on this machine: 10.39 ns per call (vectorised)
