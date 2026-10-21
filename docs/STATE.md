@@ -1,4 +1,4 @@
-# Project state after gate H5
+# Project state after gate H8
 
 ## What is measured
 
@@ -44,9 +44,9 @@ class). They are not claims about other hardware.
   to 7.9e6 for cluster over M in {2,4,8} x rho in {0.5,0.9}.
 - `fit` cost at M=2: 49 ms per iteration at N=1e5, 217 ms at N=1e6. At M=4,
   39 ms and 368 ms. A Hessian pass adds `2 n_params` gradient evaluations.
-- Peak memory has not been measured. `tests/test_zero_copy.py` asserts no RSS
+- Peak memory was not measured at H5. `tests/test_zero_copy.py` asserts no RSS
   growth across 20 repeated simulate calls, which catches the leak class but
-  is not a memory budget for a fit.
+  is not a memory budget for a fit. H7 measured it; see the H7 section below.
 
 ### Reliability
 
@@ -62,17 +62,17 @@ Every fit returns a `reliable` verdict of `"reliable"`, `"marginal"` or
 A `"reliable"` fit is a well-conditioned stationary point, with no coordinate on
 a bound, whose condition number is below 1e6 and whose events-per-parameter is
 above 10 (the thresholds in `trust.THRESHOLDS`). It says nothing about bias or
-coverage, which are properties of the estimator and are the subject of H6. None
-of the thresholds is calibrated; they are engineering judgement until H6
-replaces them with measured values.
+coverage, which are properties of the estimator. H6 measured the verdict against
+coverage but did not recalibrate it: the thresholds are still engineering
+judgement, and 3211 fits whose beta estimate was more than ten times the truth
+were labelled `reliable` (H6 section below).
 
 ## What is open
 
 ### Gaps in coverage
 
-- The calibration map that converts a `"reliable"` verdict into a measured bias
-  and coverage statement is H6. Until that gate, the verdict is a conditioning
-  report, not a trust guarantee.
+- The verdict is a conditioning report, not a trust guarantee. The H6 map reports
+  measured coverage for a regime; it does not change the verdict.
 - No PyPI wheels. The first release is H9. Until then, install from source or
   from a CI wheel downloaded manually from the Actions tab.
 
@@ -219,6 +219,46 @@ Owner actions: run `capability_wall.py` and `capability_memory.py` on a Linux ma
 to exercise the `VmHWM` path and a second CPU; optionally time the bootstrap at
 M=4, N=1e6 and at M >= 6, which would take hours.
 
-**Next: H8 (documentation and examples).**
+**H8 is complete.** Documentation and runnable examples, organised around the
+places where the library can mislead rather than around its features.
 
-H9 is the first PyPI release.
+- **Pages** (`docs/`, built with `sphinx-build -W --keep-going`): `quickstart`,
+  `concepts`, `fitting`, `trust`, `limits`, `performance`, `reference`, with
+  `install`, `ROADMAP` and `verification-rule` as before. `spec/`, `adr/`,
+  `preregistration.md`, `competitor-analysis.md` and this file stay in the
+  repository and out of the toctree. The hypothesis table, the wall-clock,
+  bootstrap and pair-against-shared tables are extracted from the committed
+  outputs by `docs/_gen.py` at build time (`docs/_generated/` is gitignored).
+- **Examples** (`examples/01` to `05`, each under 60 lines, seeded, run by
+  `tests/test_examples.py`): simulate and fit; the time-rescaling check under the
+  truth, a wrong baseline and a fitted model; the three `trust_lookup` outcomes;
+  a 50-replicate look at the standard-error ratio; pair against shared decay.
+- **Claims test** (`tests/test_docs_claims.py`) pins these figures to their
+  sources: q = 0.779 +/- 0.011, the beta block 0.61 (and the mu and alpha blocks
+  and the satellite), 128 cells, 2000 replications, 67 undefined cells, 96.4
+  percent of `unreliable` fits with no SE, +0.0726, 5454 and 3211 heavy-tail fits,
+  the 13.8 min and 828.62 s wall figures, the bootstrap costs in the fitting
+  guide, and the labels of H6.3 to H6.6 and H6.1/H6.2. It also checks that every
+  repository link resolves, that no published page uses an unmeasured adjective,
+  and that the toctree matches the pages. `tests/test_docs_code.py` runs every
+  code block in them.
+- **What the examples revealed.** The README's old example (T = 2000, seed 1)
+  returned beta of about 452 against a truth of 1.7, converged and labelled
+  `reliable`, and the time-rescaling check also passed it; both are now on the
+  Limits page. Separately, example 04's 50 replicates at the anchor cell did not
+  reproduce q < 1 for the alpha block (it came out at 1.118), which its header
+  says; the pooled result over 12 cells is what supports the finding.
+- **Stale text corrected.** `paper/draft.md` (regenerated from
+  `studies/make_paper.py`) still said H6.4 awaited a decision and counted five
+  amendments; ROADMAP called the map "validated"; this file's heading was H5.
+
+Remaining for H9: the PyPI release itself (trusted publishing, a version bump
+from `0.1.0.dev0`, the first `CHANGELOG` entry); GitHub private vulnerability
+reporting, if SECURITY.md is to point at it; and the decision below.
+
+**Owner decision.** `ljung_box` and `ReliabilityReport` are used in the docs but
+are not in `__all__` (the surface is pinned by `tests/test_api.py`). The docs
+import `ljung_box` from `hawkes_engine.diagnostics`. Exporting both would be a
+one-line change plus the pinned list.
+
+**Next: H9 (v0.1.0 release).**

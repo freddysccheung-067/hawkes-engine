@@ -38,4 +38,5 @@ must re-run `pip install -e .`; editing only Python files does not require it.
 
 ## Current gate
 
-H1 is complete. H2 (C++ likelihood) is next; see `docs/ROADMAP.md`.
+H8 (documentation and examples) is complete. H9, the first release, is next;
+see `docs/ROADMAP.md`.

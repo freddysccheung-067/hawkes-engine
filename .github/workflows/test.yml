@@ -55,7 +55,12 @@ jobs:
           # Same reason as above: the job log needs admin rights, and a failing
           # test name is invisible without it. Re-emit the failure summary and
           # each assertion line as an annotation.
-          if ! pytest -q -m "not slow" > pytest.log 2>&1; then
+          # The examples and the documentation tests have their own step below,
+          # so a failure there is named as such and they run once, not twice.
+          if ! pytest -q -m "not slow" \
+              --ignore=tests/test_examples.py \
+              --ignore=tests/test_docs_claims.py \
+              --ignore=tests/test_docs_code.py > pytest.log 2>&1; then
             python - <<'PY'
           import pathlib, re
           text = pathlib.Path("pytest.log").read_text(errors="replace")
@@ -74,6 +79,20 @@ jobs:
             exit 1
           fi
           tail -5 pytest.log
+
+      - name: Run the examples and the documentation tests
+        shell: bash
+        run: |
+          # Examples run as subprocesses; docs_claims pins quoted figures to their
+          # committed sources; docs_code runs the code blocks in the pages.
+          if ! pytest -q -m "not slow" tests/test_examples.py tests/test_docs_claims.py tests/test_docs_code.py > docs-tests.log 2>&1; then
+            grep -E "^(FAILED|ERROR) |^E " docs-tests.log | head -40 | while IFS= read -r line; do
+              echo "::error::${line:0:300}"
+            done
+            tail -40 docs-tests.log
+            exit 1
+          fi
+          tail -3 docs-tests.log
 
   cpp:
     name: C++ tests on ${{ matrix.os }}
@@ -118,7 +137,7 @@ jobs:
         run: |
           pip install scikit-build-core numpy
           pip install -e ".[test]"
-          pytest -q -m "not slow"
+          pytest -q -m "not slow" --ignore=tests/test_examples.py --ignore=tests/test_docs_claims.py --ignore=tests/test_docs_code.py
 
   sanitizers:
     name: ASan and UBSan
