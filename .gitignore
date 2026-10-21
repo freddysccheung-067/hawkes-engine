@@ -73,3 +73,6 @@ studies/results/logs/
 studies/results/pilot/
 studies/results/all.csv
 benchmarks/.cache/
+
+# Documentation fragments generated from committed measurements (docs/_gen.py)
+docs/_generated/

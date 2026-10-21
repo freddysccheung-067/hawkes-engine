@@ -6,6 +6,13 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "python"))
+sys.path.insert(0, str(Path(__file__).parent))
+
+import _gen  # noqa: E402
+
+# Fragments copied from committed measurements (docs/_gen.py). Rebuilt on every
+# build, gitignored, and pulled into pages with the MyST include directive.
+_gen.generate(Path(__file__).parent / "_generated")
 
 project = "hawkes-engine"
 author = "Freddy Shi Chun Cheung"
@@ -37,6 +44,7 @@ html_title = "hawkes-engine"
 # STATE.md and preregistration.md are maintainer and referee documents, not
 # published pages; excluding them keeps sphinx-build -W from reporting them as
 # orphans. The pre-registration is read at the tag, where its text is frozen.
+# _generated holds include fragments, not pages.
 exclude_patterns = [
     "_build",
     "adr/**",
@@ -44,6 +52,8 @@ exclude_patterns = [
     "competitor-analysis.md",
     "STATE.md",
     "preregistration.md",
+    "_generated",
+    "_gen.py",
 ]
 
 autodoc_typehints = "description"

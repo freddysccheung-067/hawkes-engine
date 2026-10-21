@@ -7,7 +7,7 @@ source of truth for correctness. It was written directly from
 ## The rule
 
 - The pre-commit hook rejects every edit to `oracle/*.py`.
-- Every fast implementation (C++, from H2) is tested against the reference.
+- Every compiled implementation (C++, from H2) is tested against the reference.
 - Two independent simulators (thinning, cluster) cross-check each other.
 - **Tests are never weakened to pass.** If the reference and the C++ code
   disagree, one of them is wrong; the disagreement is diagnosed, not smoothed

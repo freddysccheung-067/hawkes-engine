@@ -13,8 +13,8 @@ when that test passes, not when the code is written.
 | H5 | Bindings, wheels and packaging | Zero-copy and GIL release proved; wheels build on all three platforms | Done |
 | H6 | Trust calibration study | Bias and coverage mapped across the parameter space | Done |
 | H7 | Performance | Throughput and memory characterised against the targets | Done |
-| H8 | Documentation and examples | Docs build warning-free, examples run in CI | — |
-| H9 | v0.1.0 release | Wheels on PyPI for all supported platforms | — |
+| H8 | Documentation and examples | Docs build warning-free, examples run in CI | Done |
+| H9 | v0.1.0 release | Wheels on PyPI for all supported platforms | Next |
 
 ## What "trust calibration" means
 
@@ -23,15 +23,17 @@ when the branching ratio approaches one, $\alpha$ and $\beta$ trade off against
 each other and the likelihood becomes flat along a ridge. A fit can converge to
 a number that looks precise and is not.
 
-The library's distinguishing feature is a map from parameters to expected
-recovery error, so a user can see whether a given fit sits in the trustworthy
-region before relying on it. That is built and validated at H6. Until then,
-the branching ratio $\rho(\Gamma)$ is reported with every fit, and a value near
+The library's distinguishing feature is a map from parameters to measured
+coverage and standard-error honesty, so a user can see what a pre-registered study
+found in a regime like theirs. That map was measured at H6 and ships with the
+package. What it found is mixed: the reported standard errors understate sampling
+spread, and the estimator is undefined in part of the grid (see the Limits page).
+The branching ratio $\rho(\Gamma)$ is reported with every fit, and a value near
 one is a warning, not a result.
 
 ## Ordering rationale
 
-The reference implementation comes before the fast one so that the fast one has
+The reference implementation comes before the compiled one so that the compiled one has
 something to be checked against that it cannot influence. The simulators come
 after the likelihood because the likelihood is what the simulation results are
 tested with. The trust study comes after everything it measures exists.

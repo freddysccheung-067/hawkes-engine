@@ -1,48 +1,81 @@
 # hawkes-engine
 
-Multi-dimensional Hawkes process library with trust calibration.
+Multivariate Hawkes processes with exponential kernels for Python: a compiled
+likelihood and gradient, a maximum-likelihood fit with standard errors, two
+independent exact simulators, time-rescaling diagnostics, and a lookup of what a
+pre-registered simulation study measured about the fit's standard errors in a given
+regime.
 
-**Status: pre-alpha.** Gate H5 of 9 is complete. The specification, the
-architecture decisions, the frozen reference implementation, the compiled
-likelihood with its gradient, the estimator, both exact simulators, the
-time-rescaling diagnostics and the reliability report are in place. The trust
-calibration map (H6), the performance characterisation (H7) and PyPI wheels (H9)
-arrive in later gates.
+**Status: pre-alpha, not on PyPI.** Gates H0 to H8 of nine are complete; H9 is the
+first release. See [](install.md) for building from source or installing a CI wheel.
 
-## What is a Hawkes process
+## A fit in a few lines
 
-A Hawkes process is a point process whose intensity rises after every event and
-decays back towards a baseline. One event makes the next more likely. The
-multivariate form has one intensity per event type, with cross-type excitation:
+```python
+import numpy as np
+import hawkes_engine as he
 
-$$
-\lambda_i(t) = \mu_i + \sum_j \sum_{t^j_m < t} \alpha_{ij} e^{-\beta_{ij}(t - t^j_m)}
-$$
+mu = np.array([0.6, 0.9])
+alpha = np.array([[0.10, 0.35], [0.20, 0.05]])  # row = target, column = source
+beta = np.array([[1.30, 1.70], [1.30, 1.70]])
 
-Here $\mu_i$ is the baseline rate of type $i$, $\alpha_{ij}$ is the excitation
-that a type-$j$ event injects into type $i$, and $\beta_{ij}$ is the decay rate
-of that excitation.
+times, types = he.simulate(mu, alpha, beta, T=20000.0, seed=1)
+fit = he.fit(times, types, M=2, T=20000.0, seed=1)
+print(fit)
+print(he.trust_lookup(N=len(times), rho_hat=fit.rho, beta=fit.beta.min(), T=20000.0).status)
+```
 
-## Contents
+## What was measured
+
+Over 128 simulation cells with 2000 replications each, the standard errors the fit
+reports were smaller than the spread of its estimates: the ratio of mean reported
+standard error to empirical standard deviation is 0.779 +/- 0.011 pooled over the
+12 cells of two types with at least 2000 events, and 0.61 for the decay block. The
+estimator is undefined where the window holds only a fraction of one decay time.
+
+## What is not established
+
+- Two of the six pre-registered hypotheses, H6.3 and H6.4, were not confirmed. H6.6
+  was confirmed but is mostly mechanical: 96.4 percent of `unreliable` fits have no
+  standard error to begin with.
+- `FitResult.reliable` is a conditioning report. It labelled fits `reliable` whose
+  decay estimate was more than ten times the truth.
+- Nothing above one million events was timed, every timing is from one machine, and
+  only two types (and a four-type satellite) were calibrated.
+- No comparison with any other library has been made.
+
+The full list, each item with its evidence, is on [](limits.md).
+
+## Where the evidence is
+
+The specification (`docs/spec/mathematics.md`), the architecture decision records
+(`docs/adr/`), the pre-registration (`docs/preregistration.md`), the project state
+(`docs/STATE.md`) and the competitor survey (`docs/competitor-analysis.md`) are kept
+in the [repository](https://github.com/freddysccheung-067/hawkes-engine) rather than
+published here. Measurements are in `studies/results/analysis/` and
+`benchmarks/results/`.
 
 ```{toctree}
 :maxdepth: 1
+:caption: User guide
+
+quickstart
+concepts
+fitting
+trust
+limits
+performance
+reference
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: Project
 
 install
 ROADMAP
 verification-rule
 ```
-
-The specification (`docs/spec/mathematics.md`) and the architecture decision
-records (`docs/adr/`) are kept in the repository rather than published here.
-The specification is normative for every formula the code implements; the ADRs
-record why decisions were made, which is useful to maintainers and noise for
-users.
-
-## Installation
-
-See [](install.md) for building from source, installing a CI wheel, or building
-your own wheel with cibuildwheel. hawkes-engine is not on PyPI yet.
 
 ## License
 
