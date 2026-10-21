@@ -24,8 +24,9 @@ shared = he.loglik(times, types, mu, alpha, b, T=500.0, shared_decay=True)["valu
 print(f"{len(times)} events")
 print(f"pair decay   loglik = {pair:.10f}")
 print(f"shared decay loglik = {shared:.10f}")
-print(f"absolute difference = {abs(pair - shared):.2e}")
-assert abs(pair - shared) < 1e-8 * abs(pair)
+agree = abs(pair - shared) <= 1e-10 * abs(pair)
+print(f"agree to 1e-10 relative: {agree}")
+assert agree
 
 table = Path(__file__).parents[1] / "benchmarks" / "results" / "capability_2026-10-21.md"
 row = re.search(

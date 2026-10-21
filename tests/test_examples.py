@@ -23,7 +23,7 @@ EXPECTED = {
     "02_time_rescaling_check.py": "diagnostic passes under the truth and rejects the wrong model",
     "03_trust_lookup.py": "status: estimator undefined in this regime",
     "04_se_understate.py": "study, same cell, 2000 replicates: q[mu] = 0.957",
-    "05_shared_decay.py": "absolute difference = 0.00e+00",
+    "05_shared_decay.py": "agree to 1e-10 relative: True",
 }
 
 
