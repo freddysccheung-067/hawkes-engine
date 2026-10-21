@@ -58,6 +58,8 @@ exclude_patterns = [
     "competitor-analysis.md",
     "STATE.md",
     "preregistration.md",
+    # The maintainer's release checklist: repository-only, like STATE.md.
+    "RELEASING.md",
     "_generated",
     "_gen.py",
 ]
