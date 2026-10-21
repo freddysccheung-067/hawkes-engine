@@ -75,6 +75,7 @@ reference
 install
 ROADMAP
 verification-rule
+release_notes_0.1.0
 ```
 
 ## License
