@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "hawkes-engine"
+abstract: >-
+  Multivariate Hawkes processes with exponential kernels for Python: a compiled
+  likelihood and gradient, a maximum-likelihood fit with standard errors, two
+  independent exact simulators, time-rescaling diagnostics, and a lookup of what a
+  pre-registered simulation study measured about the fit's standard errors.
+type: software
+version: 0.1.0.dev0
+authors:
+  - family-names: Cheung
+    given-names: Freddy Shi Chun
+license: MIT
+repository-code: "https://github.com/freddysccheung-067/hawkes-engine"
+url: "https://freddysccheung-067.github.io/hawkes-engine/"
+keywords:
+  - Hawkes process
+  - point process
+  - maximum likelihood
+  - time rescaling

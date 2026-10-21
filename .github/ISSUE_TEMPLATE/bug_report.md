@@ -16,12 +16,14 @@ import hawkes_engine as he
 ```
 
 **Expected behavior**
-What you expected to happen.
+What you expected to happen. If the report is about a number, name the committed
+output or page that says otherwise.
 
 **Environment:**
 - OS: [e.g., Ubuntu 22.04]
 - Python version: [e.g., 3.11]
-- hawkes-engine version: [e.g., 0.1.0]
+- hawkes-engine version: output of `hawkes_engine.__version__` (there is no release yet)
+- Installed from: [source checkout, CI wheel]
 
 **Additional context**
 Add any other context about the problem here.

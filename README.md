@@ -1,135 +1,92 @@
 # hawkes-engine
 
-Multivariate Hawkes processes for Python, built around a question most libraries
-leave to the user: *when can you trust the fit?*
-
-A Hawkes process is a point process that excites itself: every event raises the
-intensity for a while afterwards, so events cluster. Fitting one to real data is
-routine; knowing whether the parameters mean anything is not. As the branching
-ratio approaches one, the decay rates and the excitation weights trade off
-against each other, the likelihood flattens along a ridge, and an optimizer will
-return a confident-looking number that is wrong by an order of magnitude.
-hawkes-engine reports that region instead of hiding it.
-
 [![Tests](https://github.com/freddysccheung-067/hawkes-engine/actions/workflows/test.yml/badge.svg)](https://github.com/freddysccheung-067/hawkes-engine/actions/workflows/test.yml)
-[![Docs](https://github.com/freddysccheung-067/hawkes-engine/actions/workflows/docs.yml/badge.svg)](https://freddysccheung-067.github.io/hawkes-engine/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+Multivariate Hawkes processes with exponential kernels for Python: a compiled
+likelihood and gradient, a maximum-likelihood fit with standard errors, two
+independent exact simulators, time-rescaling diagnostics, and a lookup of what a
+pre-registered simulation study measured about the fit's standard errors in a given
+regime.
 
 ## Status
 
-**Pre-alpha.** Gate H5 of nine is complete; H9 is the first release.
+**Pre-alpha. Not on PyPI.** Gates H0 to H8 of nine are complete; H9 is the first
+release. The wheel matrix is CPython 3.10 to 3.12 on Linux x86-64, macOS (x86-64 and
+arm64) and Windows AMD64, built by CI and not yet published.
 
-What exists today:
+## A fit in a few lines
 
-- A written specification (`docs/spec/mathematics.md`) covering the likelihood,
-  gradient, stability condition and both simulation algorithms
-- A frozen NumPy reference implementation, verified against complex-step
-  differentiation over every parameter entry, and unchanged since it was tagged
-- A compiled C++20 likelihood and gradient, agreeing with that reference to a
-  measured 7.5e-14 relative on the value and 3.6e-12 per gradient entry
-- A maximum-likelihood estimator with analytic gradients, Hessian standard
-  errors, a parametric bootstrap, and a reliability verdict per fit
-- Two independent exact simulators (Ogata thinning and the branching
-  representation) that are tested against each other and against the stationary
-  mean
-- Time-rescaling diagnostics: rescaled gaps, KS and Ljung-Box tests, Q-Q data
-- Wheels for CPython 3.10-3.12 on Linux x86-64, macOS x86-64 and arm64, and
-  Windows AMD64, built by CI
+```python
+import numpy as np
+import hawkes_engine as he
 
-What does not exist yet: the performance characterisation (H7) and a PyPI
-release (H9). The trust calibration map ships as of H6, measured over 128
-simulation cells and 2000 replications per cell; `trust_lookup` answers from it or
-says `"unknown"` outside the measured box. `FitResult.reliable` is separate and
-reports only whether *this* fit is well conditioned, not whether it is unbiased.
+mu = np.array([0.6, 0.9])
+alpha = np.array([[0.10, 0.35], [0.20, 0.05]])  # row = target, column = source
+beta = np.array([[1.30, 1.70], [1.30, 1.70]])
+
+times, types = he.simulate(mu, alpha, beta, T=20000.0, seed=1)
+fit = he.fit(times, types, M=2, T=20000.0, seed=1)
+print(fit)
+print(fit.alpha.round(3).tolist(), fit.se["alpha"].round(3).tolist())
+print(he.trust_lookup(N=len(times), rho_hat=fit.rho, beta=fit.beta.min(), T=20000.0).status)
+```
+
+Rows are targets and columns are sources: `alpha[i, j]` is the excitation a type-`j`
+event applies to type `i`.
+
+## What was measured
+
+Over 128 simulation cells with 2000 replications each, the standard errors the fit
+reports were smaller than the spread of its estimates: the ratio of mean reported
+standard error to empirical standard deviation is 0.779 +/- 0.011 pooled over the 12
+cells of two types with at least 2000 events, and 0.61 for the decay block. The
+estimator is undefined where the observation window holds only a fraction of one
+decay time.
+
+## What is not established
+
+- Two of the six pre-registered hypotheses, H6.3 and H6.4, were not confirmed. H6.6
+  was confirmed but is mostly mechanical: 96.4 percent of `unreliable` fits have no
+  standard error to begin with.
+- `FitResult.reliable` is a conditioning report, not a statement about bias or
+  coverage. It labelled fits `reliable` whose decay estimate was more than ten times
+  the truth.
+- Nothing above one million events was timed, every timing is from one machine, and
+  only two types (and a four-type satellite) were calibrated.
+- No comparison with any other library has been made.
+
+Each item, with its evidence, is on the [Limits page](docs/limits.md).
 
 ## Installation
 
-**Not on PyPI.** During pre-alpha, build from source or install a CI wheel:
+Not on PyPI. Build from source (a C++20 compiler and CMake 3.24 are required) or
+install a wheel from the Actions tab:
 
 ```bash
 git clone https://github.com/freddysccheung-067/hawkes-engine.git
 cd hawkes-engine
 python -m venv .venv
 .venv/bin/python -m pip install -e ".[test]"   # .venv\Scripts\ on Windows
+.venv/bin/python examples/01_simulate_and_fit.py
 ```
 
-This needs a C++20 compiler and CMake 3.24. `docs/install.md` has the exact
-commands for each OS, including the Visual Studio workload on Windows.
+[docs/install.md](docs/install.md) has the commands for each operating system.
 
-## Usage
+## Where the evidence is
 
-```python
-import numpy as np
-import hawkes_engine as he
+| Question | File |
+|---|---|
+| What the fit's standard errors were measured to do | [studies/results/analysis/hypotheses.json](studies/results/analysis/hypotheses.json), [paper/draft.md](paper/draft.md) |
+| How the study was designed, before it ran | [docs/preregistration.md](docs/preregistration.md) at the tag `H6-preregistration` |
+| What each gate established, and what is open | [docs/STATE.md](docs/STATE.md) |
+| How long a fit takes, and how much memory | [benchmarks/results/capability_2026-10-21.md](benchmarks/results/capability_2026-10-21.md) |
+| The mathematics the code implements | [docs/spec/mathematics.md](docs/spec/mathematics.md) |
+| Why the reference implementation is frozen | [docs/verification-rule.md](docs/verification-rule.md) |
 
-rng = np.random.default_rng(0)
-mu = np.array([0.6, 0.9])
-alpha = np.array([[0.10, 0.35], [0.20, 0.05]])   # row = target, column = source
-beta = np.array([[1.30, 1.70], [1.30, 1.70]])
-
-times, types = he.simulate(mu, alpha, beta, T=2000.0, seed=1)
-result = he.fit(times, types, M=2, seed=1)
-print(result)
-print(result.reliable, result.rho)
-```
-
-Convince yourself of the conventions before using them: **rows are targets and
-columns are sources**, so `alpha[i, j]` is the excitation a type-`j` event applies
-to the intensity of type `i`. Two events at the same timestamp do not excite each
-other. `loglik` takes the parameters explicitly and needs no fit:
-
-```python
-out = he.loglik(times[:100], types[:100], mu, alpha, beta, T=times[100], grad=True)
-print(out["value"], out["dmu"], out["dalpha"], out["dbeta"], sep="\n")
-```
-
-## What a fit does and does not claim
-
-`fit` returns a `FitResult` carrying the estimates, their standard errors where
-the information matrix is invertible, the branching ratio and its delta-method
-interval, and a `reliable` verdict built from the conditioning of the observed
-information, whether a coordinate stopped on a search bound, the alpha-beta
-correlation, and the event count per parameter.
-
-The verdict is about the fit, not the estimator. A `"reliable"` fit is a
-well-conditioned stationary point. Whether the estimator is unbiased at that
-sample size, and whether an interval covers at its nominal rate, are measured in
-the pre-registered study at H6 and are not claimed yet.
-
-## Design
-
-| Document | Contents |
-|----------|----------|
-| [docs/spec/mathematics.md](docs/spec/mathematics.md) | The specification. Normative. |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Gates H0-H9 and their exit tests |
-| [docs/STATE.md](docs/STATE.md) | What is measured, what is open, what is next |
-| [docs/verification-rule.md](docs/verification-rule.md) | How correctness is established, and why the reference is frozen |
-| [docs/adr/](docs/adr/) | Architecture decision records |
-
-The reference implementation is written from the specification before the fast
-one exists, and is frozen with a pre-commit hook. Everything compiled is tested
-against it. The point is that the thing doing the checking cannot be quietly
-edited to agree with the thing being checked.
-
-Releasing the GIL is part of the contract, not an optimisation: a multi-second
-likelihood evaluation must not stall every other thread in the caller's process.
-`tests/test_gil.py` proves it by measuring a Python counter's rate during a C++
-call against its rate on its own.
-
-## Cost
-
-Measured fit times, peak memory and bootstrap cost for one machine, across M, N
-and the branching ratio, are in
-[benchmarks/results/capability_2026-10-21.md](benchmarks/results/capability_2026-10-21.md),
-including the configurations that are slow. Each figure there is produced by a
-script in `benchmarks/`.
-
-## Contributing
-
-The repository is a work in progress and the gates are sequential; the most
-useful contribution right now is a defect report against the specification or the
-reference implementation. See `CLAUDE.md` for build commands and the rules the
-code is held to.
+Documentation: https://freddysccheung-067.github.io/hawkes-engine/. The
+`examples/` directory has five scripts that run in CI. See also
+[CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and
+[CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
