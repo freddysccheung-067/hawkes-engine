@@ -68,13 +68,26 @@ class FitResult:
         This states whether the fit converged and is well conditioned. It does
         **not** state whether the estimator is unbiased or whether an interval
         covers at the nominal rate; those are properties of the estimator, not
-        of this fit, and are the subject of the pre-registered study at H6.
+        of this fit; the pre-registered study measured them (see
+        :func:`hawkes_engine.trust_lookup`). The value comes from
+        :func:`hawkes_engine.report`; ``"unknown"`` is a placeholder that ``fit``
+        replaces before returning.
     notes
         One line per reason a field is ``None``, non-finite, or not to be
         trusted. Empty when there is nothing to say.
     data
         The inputs and derived summaries: ``n_events``, ``T``, ``M``,
-        ``shared_decay``, ``seed``, ``zero_diagonal``, ``residual_gaps_summary``.
+        ``shared_decay``, ``seed``, ``zero_diagonal``, ``n_starts``,
+        ``se_method``, ``residual_gaps_summary``.
+    n_params
+        Number of free parameters.
+    status, nit
+        scipy's termination status and iteration count for the winning start.
+    bound_hit, bound_coordinates
+        Whether a coordinate stopped on a search bound, and which. A fit that
+        did is a boundary value, not a stationary point.
+    theta
+        The log-space optimum over the free parameters.
     """
 
     mu: FloatArray

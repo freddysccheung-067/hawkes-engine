@@ -11,8 +11,8 @@ The measured box is ``M = 2`` (plus the ``M = 4`` satellite), pair decay,
 ``rho <= 0.95``, ``200 <= N <= 50 000``, ``beta * delta <= 0.13``, with
 ``beta_min * T`` inside the range the grid measured. A fitted ``rho`` below the
 lowest grid value (0.3028) is answered from the nearest cell, and the reported
-distance says how far that is. Outside it the answer is ``"unknown"``. In a cell where the estimator
-is undefined (unresolved ticks, or most fits returning no standard error) the
+distance says how far that is. Outside it the answer is ``"unknown"``. In a cell
+where the estimator is undefined (unresolved ticks, or most fits returning no standard error) the
 answer is ``"estimator undefined in this regime"`` and carries no coverage
 number.
 
@@ -58,7 +58,33 @@ _R_AXIS = (0.0, 0.01, 0.1)
 
 @dataclass(frozen=True)
 class MapAnswer:
-    """What the map can say about a regime, and how far away it measured it."""
+    """What the map can say about a regime, and how far away it measured it.
+
+    Attributes
+    ----------
+    status
+        ``"measured"``, ``"unknown"`` or ``"estimator undefined in this regime"``.
+    cell
+        Key of the nearest measured grid cell, or ``None`` when ``status`` is
+        ``"unknown"``.
+    distance
+        Distance to that cell in grid-step units over ``(log10 N, rho, r,
+        log10 beta_min*T)``; 0 is a grid point, 1 is about one grid step. The
+        lookup does not refuse a large distance, so read it.
+    coverage
+        Per block (``"mu"``, ``"alpha"``, ``"beta"``, ``"all"``), the measured
+        coverage of nominal-95 percent intervals as ``(estimate, Monte Carlo SE)``.
+        A missing standard error counts as a miss. ``None`` unless measured.
+    q
+        Per block, ``(mean reported SE / empirical SD, bootstrap SE)``. Below 1
+        means the reported standard errors were smaller than the spread of the
+        estimates. ``None`` unless measured.
+    convergence_rate, no_se_rate
+        Share of replications in the cell that converged, and that returned no
+        standard error. ``None`` when ``status`` is ``"unknown"``.
+    study_id, note
+        The study that produced the map, and a sentence on how to read the answer.
+    """
 
     status: str
     cell: str | None
@@ -111,6 +137,10 @@ def lookup(
 ) -> MapAnswer:
     """The measured cell nearest to a fitted model's regime.
 
+    The one constraint that matters: the answer describes the nearest cell of one
+    fixed parameter set per cell, not the query's own parameters, and it is
+    given however far that cell is. Check ``distance``.
+
     Parameters
     ----------
     N
@@ -122,9 +152,12 @@ def lookup(
     T
         The observation window.
     resolution
-        Timestamp resolution in the same units as ``T``; 0 for exact times.
+        Timestamp resolution in the same units as ``T``; 0 for exact times. The
+        measured range of ``beta * resolution`` is 0 to 0.13.
     M
         Number of event types. Only 2 (and 4, the satellite) were measured.
+    rows
+        Map rows to search; ``None`` loads the shipped map. For tests.
 
     Returns
     -------

@@ -99,6 +99,11 @@ def ks_test(gaps: list[FloatArray]) -> TestResult:
     to test, and a pass would read as evidence. Use it together with
     :func:`ljung_box`; the marginal law can be right while the dependence is
     wrong.
+
+    The p-values assume the parameters were fixed before seeing the data. When
+    the gaps come from parameters fitted to the same events, the nominal
+    p-values are not calibrated, and a pass is absence of evidence against the
+    model, not evidence for it.
     """
     stat = np.full(len(gaps), np.nan)
     pval = np.full(len(gaps), np.nan)

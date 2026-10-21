@@ -5,12 +5,12 @@ estimate a well-conditioned stationary point?* It reports whether the fit
 converged and is well-conditioned. It does **not** report whether the estimator
 is unbiased, whether the intervals cover at the nominal rate, or whether the
 model fits. Those are properties of the estimator and the model, measurable
-only by a pre-registered study over repeated simulations, which is the subject
-of gate H6. A number here is evidence about this dataset; it is not a claim
-about the procedure.
+only by a pre-registered study over repeated simulations, which gate H6 ran.
+A number here is evidence about this dataset; it is not a claim about the
+procedure.
 
 Every threshold lives in :data:`THRESHOLDS` with the argument for its value, so
-that H6 replaces a number rather than editing logic.
+that a recalibration replaces a number rather than editing logic.
 
 **This verdict is not a trust guarantee.** H6 (study ``h6-v1``) measured it
 against coverage over 2000 replications per cell. Averaged over the cells that
@@ -21,8 +21,8 @@ carry one, the measured separation is ``+0.07 +/- 0.04``, and 3211 fits with a
 ``beta`` estimate more than ten times its true value were called ``reliable``.
 The verdict flags fits that could not produce an interval; it does not detect
 intervals that are wrong. For measured coverage in a regime, use
-:func:`hawkes_engine.trust_map.lookup`, which is a separate map and does not
-change these thresholds.
+:func:`hawkes_engine.trust_lookup`, which is a separate map and does not change
+these thresholds.
 """
 
 from __future__ import annotations

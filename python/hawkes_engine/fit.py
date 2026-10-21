@@ -312,18 +312,26 @@ def fit(
     zero_diagonal: bool = False,
     n_bootstrap: int = 200,
 ) -> FitResult:
-    """Fit the model by maximum likelihood.
+    """Fit the model by maximum likelihood; return the estimates and what is known about them.
+
+    The one constraint that matters: the reported standard errors are asymptotic
+    and were measured to understate the sampling spread of the estimates. See
+    :func:`hawkes_engine.trust_lookup` for the measured ratio in a regime, and the
+    "Limits" page of the documentation.
 
     Parameters
     ----------
     times, types
-        The event stream, as for :func:`hawkes_engine.loglik`.
+        The event stream, as for :func:`hawkes_engine.loglik`: ``times`` sorted
+        and non-negative, ``types`` integers in ``0..M-1`` (at most 256 types).
     mu, alpha, beta
         Optional fixed values. A block supplied here is held constant and is not
         estimated; this is what makes a Poisson-limit test possible without a
         second entry point. ``None`` estimates that block.
     T
-        End of the observation window. Defaults to the last event time.
+        End of the observation window. Defaults to the last event time. Pass it
+        explicitly when the window extends past the last event: the likelihood
+        depends on ``T`` through the compensator.
     M
         Number of types. Inferred from ``mu`` or ``alpha`` when given, otherwise
         required.
@@ -338,11 +346,15 @@ def fit(
         draws from the OS entropy pool, so a fit without a seed is not
         reproducible; with one it is bit-reproducible.
     se_method
-        ``"hessian"`` for the observed information, ``"bootstrap"`` for a
-        parametric bootstrap, or ``None`` to skip standard errors entirely.
+        ``"hessian"`` for the observed information (the default, and the only
+        method the calibration study measured), ``"bootstrap"`` for a parametric
+        bootstrap that refits ``n_bootstrap`` times, or ``None`` to skip standard
+        errors, in which case ``reliable`` is ``"unreliable"`` by construction.
+        On Windows and macOS the bootstrap starts worker processes, so the
+        calling script needs an ``if __name__ == "__main__":`` guard.
     ridge_report
-        Reserved for the H6 calibration map; in v0.1 it changes nothing,
-        because the reliability report always runs.
+        Accepted for compatibility. It has no effect: the reliability report
+        always runs.
     zero_diagonal
         Constrain ``alpha_ii = 0``. Masked out of the free vector, not projected
         after the fact: a projected coordinate is still a coordinate.
@@ -355,13 +367,15 @@ def fit(
         The estimates, their standard errors where they exist, and a
         ``reliable`` verdict. ``reliable`` describes how well conditioned this
         fit is; it says nothing about bias or coverage, which are properties of
-        the estimator and are measured at H6.
+        the estimator and are reported by :func:`hawkes_engine.trust_lookup`.
 
     Raises
     ------
     ValueError
         If the event stream is unsorted, an event lies after ``T``, a type index
-        is not less than ``M``, or a supplied fixed block is outside its domain.
+        is not less than ``M``, a supplied fixed block is outside its domain,
+        ``se_method`` is not one of the three values above, or ``n_starts`` is
+        below 1.
 
     Notes
     -----
