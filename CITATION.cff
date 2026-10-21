@@ -12,6 +12,9 @@ authors:
   - family-names: Cheung
     given-names: Freddy Shi Chun
 license: MIT
+# Set to the tag date by the release checklist (docs/RELEASING.md). CFF requires
+# this field for type: software.
+date-released: 2026-10-21
 repository-code: "https://github.com/freddysccheung-067/hawkes-engine"
 url: "https://freddysccheung-067.github.io/hawkes-engine/"
 keywords:
