@@ -481,6 +481,38 @@ def test_section4_band():
     assert analyze.section4_verdict(-2.0) == "refuted"
 
 
+# ---------------------------------------------- Amendment 6.3: disagreeing forms
+
+
+def test_least_favourable_takes_the_weakest_label():
+    # A disagreement between admissible forms can only weaken a claim, never
+    # strengthen it, so the label is the minimum under the pre-declared order.
+    assert analyze.least_favourable({"confirmed"}) == "confirmed"
+    assert analyze.least_favourable({"confirmed", "inconclusive"}) == "inconclusive"
+    assert (
+        analyze.least_favourable({"confirmed", "confirmed before correction only"})
+        == "confirmed before correction only"
+    )
+    assert analyze.least_favourable({"inconclusive", "not confirmed"}) == "not confirmed"
+    assert (
+        analyze.least_favourable({"confirmed", "inconclusive", "not confirmed"}) == "not confirmed"
+    )
+    # The order itself is the pre-declared one, worst last.
+    rank = analyze._LABEL_RANK
+    assert rank["confirmed"] > rank["confirmed before correction only"]
+    assert rank["confirmed before correction only"] > rank["inconclusive"]
+    assert rank["inconclusive"] > rank["not confirmed"]
+
+
+def test_least_favourable_rejects_an_unranked_label():
+    try:
+        analyze.least_favourable({"confirmed", "pending owner decision"})
+    except ValueError as exc:
+        assert "unranked" in str(exc)
+    else:
+        raise AssertionError("an unranked label must not be silently ordered")
+
+
 # ---------------------------------------------- combinations Amendment 5 leaves open
 
 

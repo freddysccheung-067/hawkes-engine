@@ -147,14 +147,23 @@ Listed as they arise; each says what is blocked. Everything in this section was
 written **after** `analyze.py` had run on the raw rows (2026-10-21, analysis commit
 `a6427a9`), and says so.
 
-**D1. H6.4 lands on two sides of its bar (C3 x C4). BLOCKS the H6.4 label and
-therefore H6 completion.** The two `c = 1e-3` cells in the population,
+**D1. H6.4 lands on two sides of its bar (C3 x C4). RESOLVED by Amendment 6,
+2026-10-21.** The two `c = 1e-3` cells in the population,
 `M2_N50000_rho0.3028_r0.1_c0.001` and `M2_N50000_rho0.6_r0.1_c0.001`, do carry
 converged fits with a standard error (22 and 2 of 2000 replications). Amendment
 5.5 expected them to carry none and to be "counted out by the floor's own
 wording"; that premise is false against the data, so the floor counts 22 cells,
 not 20. Their matched `r = 0` cells have `rel_beta` of 1.1e8 and 2.6e8 (the
 `c = 1e-3` estimator runs to its bound), so they dominate any mean over cells.
+
+**Resolution.** Amendment 6.1 keeps all 22 cells (no cell is dropped for being
+unflattering) and states that the mean in this region is not interpretable
+because of that domination; 6.2 adopts the independent-cell SE (C3 form A),
+with the between-cell form reported beside it; 6.3 replaces
+`pending owner decision` with the least-favourable rule, under which H6.4 is
+**not confirmed**; 6.4 requires the direction reversal at `N >= 10 000` to be
+stated wherever the verdict is. The label is now produced by
+`analyze.least_favourable`, tested in `tests/test_analyze.py`.
 
 | form | cells | `T` | `SE` | `z` | section 4 |
 |---|---|---|---|---|---|

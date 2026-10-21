@@ -199,9 +199,6 @@ def build() -> str:
     cov_range = re.findall(r"coverage range over the 10 coordinates: (\S+) to (\S+)", p3)
     b01 = re.search(r"beta\[0,1\]: median (\S+), mean (\S+), p95 (\S+), p99 (\S+), max (\S+)", p3)
     n_undef = sum(c["estimator_undefined"] == "1" for c in cells)
-    pending = [
-        k for k in ("H6.3", "H6.4", "H6.5", "H6.6") if h[k]["label"] == "pending owner decision"
-    ]
     q_dir = "understates" if h5["T"] < 1 else "overstates"
     q_dir_pl = "understate" if h5["T"] < 1 else "overstate"
     pb = h5["per_block"]
@@ -213,11 +210,9 @@ def build() -> str:
     tag_sha = prov["preregistration_commit"]
     big_q = [v["q"] for k, v in h5["per_cell"].items() if int(k.split("_")[1][1:]) >= 10000]
     pending_text = (
-        "Hypotheses pending an owner decision: "
-        + ", ".join(pending)
-        + ". See `studies/ANALYSIS_NOTES.md`, D1."
-        if pending
-        else "Nothing is pending."
+        "Amendment 6.3 resolves a disagreement between admissible forms by taking the "
+        "least favourable label any of them produces. H6.4's label is "
+        f'"{h4["label"]}" under that rule.'
     )
     head = _git("rev-parse", "HEAD")
 
@@ -300,8 +295,8 @@ Holm family at `alpha = 0.05`; H6.1 and H6.2 are exploratory and outside it
 
 `p` for H6.1 and H6.2 is `1 - Phi(z)` of the most extreme cell in the region and is
 not corrected for that maximum. For H6.3, H6.4 and H6.6 the row shows form A of each
-standard-error combination that Amendment 5 leaves open; the label is the one every
-form agrees on, or "pending owner decision" when they disagree. H6.4's other forms are
+standard-error combination; where the forms disagree the label is the least
+favourable one any of them produces (Amendment 6.3). H6.4's other forms are
 tabulated below.
 
 **H6.5, the primary estimand.** Pooled `q` = {pm(h5['T'], h5['se'])}. The library
@@ -348,11 +343,14 @@ hundreds of millions. The verdict depends on two choices Amendment 5 does not ma
 
 {h64_table(h)}
 
-The label is {labels_h4} across the forms and **pending owner decision**. It is not
-"confirmed" in any form. Outside the decision: at `N >= 10 000`, `c = 1`, every
-`r = 0.1` cell shows quantisation moving relative `beta` bias by between
-{f(beta_lo)} and {f(beta_hi)} (cell SE at most {f(beta_se, 4)}), **downward**, the
-opposite of the hypothesised direction.
+The label is **{h4['label']}**, the least favourable of {labels_h4} under Amendment
+6.3. The label is right and the direction is the result: at `N >= 10 000`, `c = 1`,
+every one of the eight `r = 0.1` cells shows quantisation moving relative `beta` bias
+by between {f(beta_lo)} and {f(beta_hi)} (cell SE at most {f(beta_se, 4)}),
+**downward**, the opposite of the hypothesised direction. The large negative mean
+over all 22 cells is an artefact of the small-`N` cells, whose `r = 0` arm is
+inflated by the heavy tail of `beta_hat`, not evidence of a large downward effect at
+every sample size.
 
 **H6.1 and H6.2 (exploratory).** H6.1: in at least one cell of its region relative
 `alpha` bias exceeds 0.05 by more than 2 SE (largest `z` {f(h1['z'], 2)}, at `rel_alpha` =

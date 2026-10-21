@@ -69,7 +69,27 @@ LABELS = (
     "not confirmed",
     "inconclusive",
 )
-PENDING = "pending owner decision"
+# Amendment 6.3: when admissible forms disagree, the label is the least favourable
+# one any of them produces. The order below is worst-last, so a disagreement can
+# only weaken a claim.
+_LABEL_RANK = {
+    "confirmed": 3,
+    "confirmed before correction only": 2,
+    "inconclusive": 1,
+    "not confirmed": 0,
+}
+
+
+def least_favourable(labels: set[str]) -> str:
+    """The weakest label among the admissible forms (Amendment 6.3)."""
+    if not labels:
+        raise ValueError("no labels to combine")
+    unknown = labels - set(_LABEL_RANK)
+    if unknown:
+        raise ValueError(f"unranked label(s): {sorted(unknown)}")
+    return min(labels, key=_LABEL_RANK.__getitem__)
+
+
 _SE_FORM = {"A": "independent cells", "B": "between-cell spread"}
 _POP_FORM = {"A": "all qualifying cells", "B": "c = 1 cells only"}
 
@@ -1066,7 +1086,7 @@ def decide(summaries: dict[str, Any], boots: dict[str, Any]) -> dict[str, Any]:
                 "se_used": entry.get("se_used", ""),
                 "holm": primary["holm"][h],
                 "labels_across_forms": sorted(labels),
-                "label": labels.pop() if len(labels) == 1 else PENDING,
+                "label": least_favourable(labels),
             }
         )
     for h in ("H6.1", "H6.2"):

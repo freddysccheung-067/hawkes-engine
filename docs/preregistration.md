@@ -836,3 +836,88 @@ cell.
 
 **Nothing else changed.** The grid, its digest, `R`, every hypothesis threshold and
 decision rule, and Amendments 1 to 4 are as written.
+
+---
+
+## Amendment 6 — 2026-10-21, resolving D1 and the form-disagreement rule
+
+**What had been seen.** `analyze.py` has run on the raw rows (analysis commit
+`a6427a9`), and its results exist in `studies/results/analysis/`. The H6.4 label is
+`pending owner decision` because four defensible SE/population combinations give
+different section 4 verdicts. This amendment resolves that, and it is written with
+the results in front of it. It is disclosed as such.
+
+The four combinations were left open because Amendment 5 did not say how to combine
+cell-level standard errors (C3) and because Amendment 5.5 assumed the two
+`c = 1e-3` cells would carry no standard error and be counted out by the floor (C4).
+The second assumption is false against the data: those cells do carry standard
+errors in 22 and 2 of 2000 replications.
+
+### 6.1 The population is the 22 resolved cells; no cell is dropped
+
+C4 form A (all 22) is adopted, consistent with section 4's region, Amendment 5.5's
+count, and the standing rule that a cell is never dropped for being unflattering.
+The two `c = 1e-3` cells stay in. Their matched `r = 0` arms have `rel_beta` of
+1.1e8 and 2.6e8 because the `c = 1e-3` estimator runs to its bound, and so they
+dominate any mean. That domination is **reported as the reason the mean is not
+interpretable in this region**, not removed by dropping them.
+
+### 6.2 The SE of the mean is the independent-cell form
+
+C3 form A, `SE = sqrt(sum(se_i^2)) / K`, is adopted. It is the form that treats the
+`K` cells as the independent runs they are, and it is the more conservative of the
+two here at `K = 22` (`3.50e6` against `1.27e7` — it is the *narrower* one, so this
+choice is stated plainly rather than justified as conservative). The between-cell
+form is reported alongside for every hypothesis it applies to, as a sensitivity
+value.
+
+**This choice changes no threshold and no direction, and it is made after the
+results are known.** A reader who believes B is the better estimator will find B's
+value in the same output, labelled as a sensitivity form.
+
+### 6.3 When forms disagree, the label is the least favourable
+
+The general rule, replacing `pending owner decision`:
+
+**The final label is the least favourable label any admissible form produces**, with
+order `confirmed` > `confirmed before correction only` > `inconclusive` >
+`not confirmed`.
+
+The direction is one-way on purpose: a disagreement between admissible
+formulations can only weaken a claim, never strengthen it. Under this rule H6.4's
+label is **not confirmed**, because C3A-C4A gives `z = -4.85` and section 4 refutes
+it.
+
+### 6.4 H6.4's substantive result, which the label does not express
+
+Section 4 already says a significantly negative difference is a refutation "with
+its direction". The direction is the finding and is stated wherever the verdict is:
+
+- At `N >= 10 000`, `c = 1`, every one of the eight `r = 0.1` cells has
+  `rel_beta(0.1) - rel_beta(0) between -0.37 and -0.62` with cell-level SE below
+  `0.008`: quantisation biases `beta` **downward** by roughly 40 to 60 percent, the
+  opposite of the hypothesis.
+- The mean over the 22 cells is dominated by the small-`N` cells, whose `r = 0` arm
+  is inflated by the heavy tail of `beta_hat` (`rel_beta` of +8 at `N = 2000` and
+  +260 at `N = 200`). The large negative mean is an artefact of that tail, not
+  evidence of a large downward effect at every sample size.
+
+Both statements go in the paper, and the second is why the first is the one to
+believe. The verdict "not confirmed" is correct and the direction reversal is the
+result.
+
+### 6.5 The c = 1e-3 cells in this hypothesis
+
+They remain in the population under 6.1, and the paper states that their `r = 0`
+arms are estimator-undefined, so their contribution to the mean reflects a fit at
+its bound rather than a quantisation effect. This is the same handling as the map's
+`estimator undefined` label, applied in words.
+
+### 6.6 What this amendment cannot do
+
+It cannot turn H6.4 into a confirmation. It changes no threshold, no direction, no
+region and no cell. It fixes two open readings and supplies a rule for form
+disagreement that can only move a label toward "not confirmed".
+
+**Nothing else changed.** The grid, its digest, `R`, every threshold and decision
+rule, and Amendments 1 to 5 are as written.

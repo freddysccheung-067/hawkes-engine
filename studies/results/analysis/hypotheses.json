@@ -3,13 +3,13 @@
   "study_id": "h6-v1",
   "preregistration_tag": "H6-preregistration",
   "preregistration_commit": "7bb8fae233a04618535c7905074f9d167025cb0c",
-  "analysis_commit": "a6427a9009139fb49b1409c8309587c6d93221f2",
-  "analyze_py_dirty": false,
+  "analysis_commit": "ce96fe9813924462ee2af99450ebc3f92bb14f29",
+  "analyze_py_dirty": true,
   "manifest_digest": "fd4b73b31c10d87f6af9f69759b6429aecc4231e3dde9dab5fa3c02d7b9f10e4",
   "cells": 128,
   "rows": 256000,
   "bootstrap_resamples": 1000,
-  "seconds": 887.2
+  "seconds": 1047.6
  },
  "H6.1": {
   "T": 0.2324694686524658,
@@ -1995,7 +1995,7 @@
    "inconclusive",
    "not confirmed"
   ],
-  "label": "pending owner decision"
+  "label": "not confirmed"
  },
  "H6.5": {
   "T": 0.7790733077756637,
