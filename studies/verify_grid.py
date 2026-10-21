@@ -37,25 +37,35 @@ check("tagged text has no amendment", "Amendment 1" not in tagged)
 head = (REPO / "docs" / "preregistration.md").read_text(encoding="utf-8")
 check("working text has the amendment", "Amendment 1" in head)
 
-# 2. The tag commit precedes every commit that reports an H6 measurement. The
-#    test is for commits that would carry results, not for the word "measure":
-#    the freeze commit's own subject says "before any H6 measurement".
+# 2. The tag commit precedes every commit that reports an H6 measurement.
+#
+#    Walk the tag's own ancestors, not `--all`: `git log` is newest-first, so
+#    reading down from the top until the tag is reached collects the commits that
+#    came AFTER it. That is what this check did before, and it failed on the
+#    analysis commits it was meant to permit.
+#
+#    Test what a commit TOUCHED, not what its subject says. A keyword list over
+#    subjects matches unrelated work ("Run the slow recovery studies nightly"
+#    is H3) and misses real results. Any commit that writes an H6 result artifact
+#    is a violation whatever its subject.
 tag_target_short = tag_target[:7]
-log = git("log", "--oneline", "--all")
-before_tag = []
-seen_tag = False
-for line in log.splitlines():
-    if line.startswith(tag_target_short):
-        seen_tag = True
-        continue
-    if not seen_tag:
-        before_tag.append(line)
-candidates = [
-    line
-    for line in before_tag
-    if any(k in line.lower() for k in ("coverage", "bias", "recovery", "result", "verdict"))
-]
-check("no commit before the tag mentions H6 results", not candidates, "; ".join(candidates))
+RESULT_PATHS = (
+    "studies/results/analysis/",
+    "studies/results/cells/",
+    "data/trust/",
+    "paper/",
+    "studies/figures/",
+    "studies/RUN_REPORT.md",
+)
+ancestors = git("log", "--format=%h %s", tag_target).splitlines()
+before_tag = [line for line in ancestors if not line.startswith(tag_target_short)]
+touching = []
+for line in before_tag:
+    short = line.split()[0]
+    files = git("show", "--pretty=", "--name-only", short)
+    if any(f.startswith(RESULT_PATHS) for f in files.splitlines()):
+        touching.append(line)
+check("no commit before the tag writes an H6 result", not touching, "; ".join(touching))
 
 # 3. The grid digest matches, computed from the committed blob.
 blob = subprocess.run(
