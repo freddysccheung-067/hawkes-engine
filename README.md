@@ -116,6 +116,14 @@ likelihood evaluation must not stall every other thread in the caller's process.
 `tests/test_gil.py` proves it by measuring a Python counter's rate during a C++
 call against its rate on its own.
 
+## Cost
+
+Measured fit times, peak memory and bootstrap cost for one machine, across M, N
+and the branching ratio, are in
+[benchmarks/results/capability_2026-10-21.md](benchmarks/results/capability_2026-10-21.md),
+including the configurations that are slow. Each figure there is produced by a
+script in `benchmarks/`.
+
 ## Contributing
 
 The repository is a work in progress and the gates are sequential; the most

@@ -11,8 +11,8 @@ when that test passes, not when the code is written.
 | H3 | Estimation (MLE, standard errors) | Recovers known parameters from simulated data within the asymptotic standard errors | Done |
 | H4 | Simulators (thinning and branching) | Both simulators reproduce the analytic stationary mean | Done |
 | H5 | Bindings, wheels and packaging | Zero-copy and GIL release proved; wheels build on all three platforms | Done |
-| H6 | Trust calibration study | Bias and coverage mapped across the parameter space | Next |
-| H7 | Performance | Throughput and memory characterised against the targets | — |
+| H6 | Trust calibration study | Bias and coverage mapped across the parameter space | Done |
+| H7 | Performance | Throughput and memory characterised against the targets | Done |
 | H8 | Documentation and examples | Docs build warning-free, examples run in CI | — |
 | H9 | v0.1.0 release | Wheels on PyPI for all supported platforms | — |
 
