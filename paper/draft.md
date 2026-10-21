@@ -6,9 +6,9 @@ no number below was typed by hand.*
 
 ## Abstract
 
-We measure whether a maximum-likelihood fit of a multivariate exponential-kernel Hawkes process, and the standard errors it reports, behave as a user would assume, over a pre-registered grid of 128 cells and 2000 simulated replications per cell. The primary confirmatory result is that the inverse-Hessian standard errors understate sampling spread: the ratio of mean reported SE to empirical SD, pooled over the 12 two-dimensional cells with at least 2000 events, is 0.779 +/- 0.011 (bootstrap SE), and the four-dimensional satellite agrees in direction (0.336 +/- 0.023). The library's `reliable` verdict separates measured coverage by 0.775 +/- 0.011, but 96.4 percent of `unreliable` fits return no interval at all, and among fits that do, a post hoc check gives +0.0726 +/- 0.0394. Coverage does not degrade monotonically toward criticality, and the effect of timestamp quantisation on the decay estimate depends on how cells are combined, which awaits the owner's decision. In 67 of 128 cells the estimator is undefined.
+We measure whether a maximum-likelihood fit of a multivariate exponential-kernel Hawkes process, and the standard errors it reports, behave as a user would assume, over a pre-registered grid of 128 cells and 2000 simulated replications per cell. The primary confirmatory result is that the inverse-Hessian standard errors understate sampling spread: the ratio of mean reported SE to empirical SD, pooled over the 12 two-dimensional cells with at least 2000 events, is 0.779 +/- 0.011 (bootstrap SE), and the four-dimensional satellite agrees in direction (0.336 +/- 0.023). The library's `reliable` verdict separates measured coverage by 0.775 +/- 0.011, but 96.4 percent of `unreliable` fits return no interval at all, and among fits that do, a post hoc check gives +0.0726 +/- 0.0394. Coverage does not degrade monotonically toward criticality, and timestamp quantisation moves the decay estimate downward at N of 10 000 and above, the opposite of the hypothesis. In 67 of 128 cells the estimator is undefined.
 
-<!-- abstract: 158 words -->
+<!-- abstract: 157 words -->
 
 ## 1. The question
 
@@ -18,7 +18,7 @@ error it reports, behave the way a user is entitled to assume, and can the
 library's `reliable` verdict tell the regions where it does from those where it
 does not? The question and every hypothesis below were frozen before any
 measurement, in `docs/preregistration.md` at the tag `H6-preregistration`
-(commit `7bb8fae233a0`), with five dated amendments appended since.
+(commit `7bb8fae233a0`), with six dated amendments appended since.
 
 ## 2. Model and estimator
 
@@ -255,13 +255,13 @@ Hawkes model. This study makes no speed or accuracy comparison with any of them.
   `python -m studies.figures.make_figures`, `python -m studies.make_paper`.
 - Preregistration tag `H6-preregistration` (commit `7bb8fae233a04618535c7905074f9d167025cb0c`).
 - Data: manifest digest `fd4b73b31c10d87f6af9f69759b6429aecc4231e3dde9dab5fa3c02d7b9f10e4`, cells produced at commit
-  `58b6b0b`; analysis at `ce96fe9813924462ee2af99450ebc3f92bb14f29`; this draft generated at `ce96fe9813924462ee2af99450ebc3f92bb14f29`.
+  `58b6b0b`; analysis at `ce96fe9813924462ee2af99450ebc3f92bb14f29`; this draft generated at `bef52ce2d953311c943c11f7a2bf8b7bfec971f4`.
 - Hardware: Windows 11, Intel Family 6 Model 198 (Alder Lake class), 24 logical
   threads; 12 worker processes.
 - Grid runtime: 6763 s wall clock (`studies/RUN_REPORT.md`); the per-cell
   `.done` markers sum to 58032 worker-seconds. The analysis took
   1048 s including 1000 bootstrap resamples per cell.
 
-## 9. Pending
+## 9. Status of the analysis
 
-Amendment 6.3 resolves a disagreement between admissible forms by taking the least favourable label any of them produces. H6.4's label is "not confirmed" under that rule.
+Nothing in the analysis is pending. Amendment 6.3 resolves a disagreement between admissible forms by taking the least favourable label any of them produces, and H6.4's label is "not confirmed" under that rule. The map's 0.5 no-SE threshold for the estimator-undefined flag was confirmed by the owner (ANALYSIS_NOTES D3).

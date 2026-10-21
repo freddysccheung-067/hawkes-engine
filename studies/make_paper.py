@@ -210,9 +210,10 @@ def build() -> str:
     tag_sha = prov["preregistration_commit"]
     big_q = [v["q"] for k, v in h5["per_cell"].items() if int(k.split("_")[1][1:]) >= 10000]
     pending_text = (
-        "Amendment 6.3 resolves a disagreement between admissible forms by taking the "
-        "least favourable label any of them produces. H6.4's label is "
-        f'"{h4["label"]}" under that rule.'
+        "Nothing in the analysis is pending. Amendment 6.3 resolves a disagreement between "
+        "admissible forms by taking the least favourable label any of them produces, and "
+        f'H6.4\'s label is "{h4["label"]}" under that rule. The map\'s 0.5 no-SE threshold for '
+        "the estimator-undefined flag was confirmed by the owner (ANALYSIS_NOTES D3)."
     )
     head = _git("rev-parse", "HEAD")
 
@@ -229,8 +230,8 @@ def build() -> str:
         f"{f(float(unrel[2]) * 100, 1) if unrel[2] != 'n/a' else 'n/a'} percent of "
         f"`unreliable` fits return no interval at all, and among fits that do, a post hoc "
         f"check gives {d_se[1]} +/- {d_se[2]}. Coverage does not degrade monotonically toward "
-        f"criticality, and the effect of timestamp quantisation on the decay estimate "
-        f"depends on how cells are combined, which awaits the owner's decision. In "
+        f"criticality, and timestamp quantisation moves the decay estimate downward at "
+        f"N of 10 000 and above, the opposite of the hypothesis. In "
         f"{n_undef} of 128 cells the estimator is undefined."
     )
     n_words = len(abstract.split())
@@ -255,7 +256,7 @@ error it reports, behave the way a user is entitled to assume, and can the
 library's `reliable` verdict tell the regions where it does from those where it
 does not? The question and every hypothesis below were frozen before any
 measurement, in `docs/preregistration.md` at the tag `H6-preregistration`
-(commit `{tag_sha[:12]}`), with five dated amendments appended since.
+(commit `{tag_sha[:12]}`), with six dated amendments appended since.
 
 ## 2. Model and estimator
 
@@ -459,7 +460,7 @@ Hawkes model. This study makes no speed or accuracy comparison with any of them.
   `.done` markers sum to {f(rt['cell_seconds'], 0)} worker-seconds. The analysis took
   {f(prov['seconds'], 0)} s including {prov['bootstrap_resamples']} bootstrap resamples per cell.
 
-## 9. Pending
+## 9. Status of the analysis
 
 {pending_text}
 """
