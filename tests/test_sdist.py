@@ -18,6 +18,7 @@ from __future__ import annotations
 import subprocess
 import sys
 import tarfile
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -47,19 +48,29 @@ FORBIDDEN_MARKERS = (".claude/", "CLAUDE.md", "wheelbuild.log")
 @pytest.fixture(scope="module")
 def sdist_members() -> list[str]:
     """Build the sdist once and return its member paths."""
-    pytest.importorskip("build")
+    # `importorskip("build")` is not enough: the repository has a build/ directory
+    # from the CMake presets, which imports as a namespace package and satisfies a
+    # bare import while having no CLI. Require the module the command actually
+    # runs, so a machine without the package skips instead of failing.
+    pytest.importorskip("build.__main__")
     out = ROOT / "dist"
     out.mkdir(exist_ok=True)
     version = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"][
         "version"
     ]
     tarball = out / f"hawkes_engine-{version}.tar.gz"
-    result = subprocess.run(
-        [sys.executable, "-m", "build", "--sdist", "--outdir", str(out)],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-    )
+    # Run from a scratch directory, not the repository: `python -m build` puts the
+    # current directory first on sys.path, and the repository has a build/ folder
+    # from the CMake presets, so running it here resolves `build` to that folder
+    # and dies with "No module named build.__main__". The package argument names
+    # the project, so the build reads the same tree either way.
+    with tempfile.TemporaryDirectory() as scratch:
+        result = subprocess.run(
+            [sys.executable, "-m", "build", "--sdist", "--outdir", str(out), str(ROOT)],
+            cwd=scratch,
+            capture_output=True,
+            text=True,
+        )
     if result.returncode != 0:
         pytest.fail(f"sdist build failed:\n{result.stdout[-2000:]}\n{result.stderr[-2000:]}")
     assert tarball.exists(), f"build reported success but {tarball} is missing"
