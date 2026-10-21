@@ -12,6 +12,7 @@ import numpy.typing as npt
 
 class BuildInfo(TypedDict):
     cxx_standard: int
+    version: str
     compiler: str
     compiler_version: str
     pybind11_version: str
@@ -23,7 +24,7 @@ class CoreResult(TypedDict, total=False):
     dbeta: npt.NDArray[np.float64]
 
 def build_info() -> BuildInfo:
-    """Return the compiler and pybind11 versions used to build this module."""
+    """Return the version and compiler used to build this module."""
     ...
 
 def loglik(

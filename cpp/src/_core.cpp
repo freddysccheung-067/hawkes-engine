@@ -18,6 +18,10 @@ namespace {
 py::dict build_info() {
     py::dict info;
     info["cxx_standard"] = 20;
+    // Stamped by CMake from CMakeLists.txt's project() VERSION. tests/test_version.py
+    // compares it against hawkes_engine.__version__, so a bump that misses one of
+    // them fails rather than shipping a wheel whose core and metadata disagree.
+    info["version"] = HAWKES_ENGINE_VERSION;
 
 #if defined(__clang__)
     info["compiler"] = "clang";

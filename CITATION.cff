@@ -7,7 +7,7 @@ abstract: >-
   independent exact simulators, time-rescaling diagnostics, and a lookup of what a
   pre-registered simulation study measured about the fit's standard errors.
 type: software
-version: 0.1.0.dev0
+version: 0.1.0
 authors:
   - family-names: Cheung
     given-names: Freddy Shi Chun
