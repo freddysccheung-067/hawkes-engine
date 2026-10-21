@@ -59,6 +59,11 @@ Issues = "https://github.com/freddysccheung-067/hawkes-engine/issues"
 minimum-version = "0.10"
 cmake.version = ">=3.24"
 wheel.packages = ["python/hawkes_engine"]
+# Editor and agent configuration is not part of a source distribution. setuptools'
+# default listing for an sdist is every tracked file, so without this a
+# .claude/settings.json in the repository would ship to every user who downloads
+# the tarball. test_version.py checks the built sdist does not contain it.
+sdist.exclude = [".claude/**", "wheelbuild.log"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "oracle"]
