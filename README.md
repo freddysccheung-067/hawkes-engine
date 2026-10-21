@@ -36,11 +36,11 @@ What exists today:
 - Wheels for CPython 3.10-3.12 on Linux x86-64, macOS x86-64 and arm64, and
   Windows AMD64, built by CI
 
-What does not exist yet: the trust calibration map (H6), the performance
-characterisation (H7) and a PyPI release (H9). `FitResult.reliable` reports
-whether *this* fit is well conditioned. It does not report measured bias or
-coverage, because those are properties of the estimator and are the subject of
-H6.
+What does not exist yet: the performance characterisation (H7) and a PyPI
+release (H9). The trust calibration map ships as of H6, measured over 128
+simulation cells and 2000 replications per cell; `trust_lookup` answers from it or
+says `"unknown"` outside the measured box. `FitResult.reliable` is separate and
+reports only whether *this* fit is well conditioned, not whether it is unbiased.
 
 ## Installation
 

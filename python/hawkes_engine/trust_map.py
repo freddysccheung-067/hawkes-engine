@@ -16,11 +16,13 @@ is undefined (unresolved ticks, or most fits returning no standard error) the
 answer is ``"estimator undefined in this regime"`` and carries no coverage
 number.
 
-The map is a CSV in the repository at ``data/trust/v1_excitation_only.csv``;
-reading it needs only the standard library. CSV rather than Parquet so that the
-runtime dependencies stay numpy and scipy. ``MAP_PATH`` resolves inside a source
-checkout; the wheel does not yet carry the file (``wheel.packages`` lists only the
-package directory), so an installed build must pass ``rows=load_map(path)``.
+The map is a CSV. It is shipped inside the package so that an installed wheel can
+find it: ``data/trust/v1_excitation_only.csv`` in the repository is installed to
+``hawkes_engine/data/v1_excitation_only.csv`` by CMake (see ``CMakeLists.txt``).
+``MAP_PATH`` prefers that installed copy and falls back to the source-checkout
+path, so both a wheel install and a developer checkout work without parameters.
+Reading it needs only the standard library. CSV rather than Parquet so that the
+runtime dependencies stay numpy and scipy.
 """
 
 from __future__ import annotations
@@ -33,7 +35,15 @@ from pathlib import Path
 __all__ = ["MAP_PATH", "STUDY_ID", "MapAnswer", "load_map", "lookup"]
 
 STUDY_ID = "h6-v1"
-MAP_PATH = Path(__file__).resolve().parents[2] / "data" / "trust" / "v1_excitation_only.csv"
+
+# Installed wheels carry the map beside this module; a source checkout has it at
+# the repository root. Prefer the installed copy so a wheel is self-contained.
+_HERE = Path(__file__).resolve().parent
+MAP_PATH = (
+    _HERE / "data" / "v1_excitation_only.csv"
+    if (_HERE / "data" / "v1_excitation_only.csv").exists()
+    else _HERE.parents[1] / "data" / "trust" / "v1_excitation_only.csv"
+)
 
 UNKNOWN = "unknown"
 UNDEFINED = "estimator undefined in this regime"

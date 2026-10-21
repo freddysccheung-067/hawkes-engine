@@ -25,6 +25,8 @@ DOCUMENTED = [
     "ks_test",
     "qq_data",
     "report",
+    "trust_lookup",
+    "MapAnswer",
     "spectral_radius",
     "stationary_mean",
 ]

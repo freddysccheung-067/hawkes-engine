@@ -186,21 +186,32 @@ small-`N` cells, whose `r = 0` `rel_beta` is inflated by the heavy tail (+8 at
 difference as a refutation "with its direction"; whether the mean over cells is
 the right aggregate when the `r = 0` arm is tail-dominated is the owner's call.
 
-**D2. H6.6 is confirmed, and is substantially mechanical.** (Post hoc; recorded
-as a finding, not as a change.) In the H6.6 region, 3661 of the 3799
-`unreliable` replications (96.4 percent) have no standard error, and E3.5 counts
-those as coverage 0 by definition, while `trust.report` returns `unreliable`
-whenever the information matrix cannot be inverted. Among replications that
-**do** carry a standard error, the mean over the 11 cells holding both classes is
-`Delta = +0.073 +/- 0.039` (independent cells) or `+/- 0.034` (between-cell
-spread): above 0.02 but within two SE of it under the first form. The
-pre-registered verdict stands as computed. The owner should decide whether the
-paper leads with it, given that the separation mostly reflects the verdict
-flagging fits that returned no interval at all. This diagnostic was not named
-before the run and is reported as post hoc.
+**D2. H6.6 is confirmed, and is substantially mechanical. RESOLVED, 2026-10-21.**
+(Post hoc; recorded as a finding, not as a change.) In the H6.6 region, 3661 of
+3799 `unreliable` replications (96.4 percent) have no standard error, and E3.5
+counts those as coverage 0 by definition, while `trust.report` returns
+`unreliable` whenever the information matrix cannot be inverted. Among
+replications that **do** carry a standard error, the mean over the 11 cells
+holding both classes is `Delta = +0.073 +/- 0.039` (independent cells) or
+`+/- 0.034` (between-cell spread): above 0.02 but within two SE of it under the
+first form.
 
-**D3. `estimator_undefined` rule for the map (M1).** Confirm the 0.5 `no_se_rate`
-threshold or set another. Blocks nothing in the hypotheses.
+**Resolution.** The pre-registered verdict stands as computed and the paper does
+**not** lead with it: H6.5 is the headline, and H6.6 is reported with the 96.4
+percent figure in the same sentence as its number, plus the post-hoc
+`+0.073 +/- 0.039` among fits that did carry an interval. Leading with a
+confirmed result that is mostly "the verdict flags fits with no interval" would
+misrepresent what was measured. This is a presentation decision and changes no
+verdict.
+
+**D3. `estimator_undefined` rule for the map (M1). RESOLVED, 2026-10-21.** The
+0.5 `no_se_rate` threshold is **confirmed** and stays. It is documented at the
+definition (`studies/analyze.py:62`, `UNDEFINED_NO_SE`) as a map flag that
+decides no hypothesis, and the map's `estimator_undefined` column carries it
+alongside the unresolved-tick rule, so a cell either way reports why. A different
+value would change the map's labels, not a hypothesis, and 0.5 has the property
+that it is the point at which "most replications returned no interval" is
+literally true.
 
 **D4. H6.3's monotonicity clause fails on a rise, not a fall.** Coverage rises
 from `rho = 0.3028` (0.9334 +/- 0.0039) to `0.60` (0.9450 +/- 0.0036), a step of

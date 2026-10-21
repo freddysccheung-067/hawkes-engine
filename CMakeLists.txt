@@ -93,6 +93,11 @@ target_compile_options(_core PRIVATE ${HAWKES_WARNINGS})
 
 install(TARGETS _core DESTINATION hawkes_engine)
 
+# The measured trust map ships inside the package so an installed wheel can answer
+# trust_lookup() without the repository. trust_map.py prefers this copy and falls
+# back to the source-checkout path.
+install(FILES data/trust/v1_excitation_only.csv DESTINATION hawkes_engine/data)
+
 # User opt-in native build, per ADR-006. Off by default so published wheels stay
 # portable across every x86-64 machine.
 option(NATIVE_OPTIMIZATIONS "Build for the host CPU (-march=native)" OFF)
