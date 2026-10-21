@@ -72,3 +72,4 @@ studies/results/cells/
 studies/results/logs/
 studies/results/pilot/
 studies/results/all.csv
+benchmarks/.cache/
