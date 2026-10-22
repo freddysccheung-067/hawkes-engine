@@ -24,6 +24,7 @@ a bootstrap that costs an hour is a bootstrap nobody runs.
 
 from __future__ import annotations
 
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
@@ -63,6 +64,14 @@ def _child_seed(seed: int | None, index: int) -> int:
     z = ((z ^ (z >> 30)) * 0xBF58476D1CE4E5B9) & mask
     z = ((z ^ (z >> 27)) * 0x94D049BB133111EB) & mask
     return (z ^ (z >> 31)) & mask
+
+
+_GUARD_HINT = (
+    'the bootstrap worker pool died. If this script has no `if __name__ == "__main__":` '
+    "guard, add one: on Windows and macOS each worker re-imports the main module. "
+    "Otherwise a worker was killed, for example for lack of memory; "
+    "try fewer replications (n_bootstrap) or se_method='hessian'."
+)
 
 
 def _one(args: tuple) -> np.ndarray | None:
@@ -112,6 +121,17 @@ def parametric_bootstrap(
     """Refit on ``n_bootstrap`` simulations from the fitted model."""
     from hawkes_engine.hessian import natural_standard_errors
 
+    # Where workers are spawned, an unguarded script re-runs fit() inside each worker.
+    # On some interpreters (seen on Python 3.10 on Windows) each of those starts its
+    # own pool and the run never ends, so refuse here, in the child, and let the
+    # parent report it. A bootstrap started from inside a spawned worker is refused
+    # for the same reason; run it from the main process.
+    if (
+        multiprocessing.parent_process() is not None
+        and multiprocessing.get_start_method() == "spawn"
+    ):
+        raise RuntimeError(_GUARD_HINT)
+
     jobs = [
         (
             _child_seed(seed, i),
@@ -138,12 +158,7 @@ def parametric_bootstrap(
         # `if __name__ == "__main__":` guard re-runs itself in every worker, and
         # the pool dies with this error and no hint of why. It is not the only
         # cause (a worker killed for memory gives the same error), so say so.
-        raise RuntimeError(
-            'the bootstrap worker pool died. If this script has no `if __name__ == "__main__":` '
-            "guard, add one: on Windows and macOS each worker re-imports the main module. "
-            "Otherwise a worker was killed, for example for lack of memory; "
-            "try fewer replications (n_bootstrap) or se_method='hessian'."
-        ) from exc
+        raise RuntimeError(_GUARD_HINT) from exc
 
     notes: list[str] = []
     if len(draws) < max(10, n_bootstrap // 2):

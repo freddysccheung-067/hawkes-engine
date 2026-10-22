@@ -41,7 +41,7 @@ def _run(script: str, tmp_path: Path) -> subprocess.CompletedProcess[str]:
         cwd=tmp_path,
         capture_output=True,
         text=True,
-        timeout=240,
+        timeout=120,
         check=False,
     )
 
