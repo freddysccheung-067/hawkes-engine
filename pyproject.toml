@@ -38,6 +38,8 @@ test = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "hypothesis>=6.98.0",
+    # tests/test_sdist.py builds a source distribution; without this it skips.
+    "build>=1.0.0",
     # tests/ read pyproject.toml; tomllib exists from Python 3.11.
     "tomli>=2.0; python_version < '3.11'",
 ]

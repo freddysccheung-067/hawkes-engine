@@ -83,8 +83,8 @@ FORBIDDEN_FRAGMENTS = (
 
 
 @pytest.fixture(scope="module")
-def sdist_members() -> list[str]:
-    """Build the sdist once and return its member paths."""
+def sdist_tarball() -> Path:
+    """Build the sdist once and return the path of the tarball."""
     # `importorskip("build")` is not enough: the repository has a build/ directory
     # from the CMake presets, which imports as a namespace package and satisfies a
     # bare import while having no CLI. Require the module the command actually
@@ -111,7 +111,12 @@ def sdist_members() -> list[str]:
     if result.returncode != 0:
         pytest.fail(f"sdist build failed:\n{result.stdout[-2000:]}\n{result.stderr[-2000:]}")
     assert tarball.exists(), f"build reported success but {tarball} is missing"
-    with tarfile.open(tarball) as tar:
+    return tarball
+
+
+@pytest.fixture(scope="module")
+def sdist_members(sdist_tarball: Path) -> list[str]:
+    with tarfile.open(sdist_tarball) as tar:
         return tar.getnames()
 
 
@@ -148,12 +153,7 @@ def test_sdist_excludes_what_the_configuration_claims() -> None:
     ), f"sdist.exclude is {sorted(excludes)}, the policy is {sorted(expected)}"
 
 
-def test_sdist_is_small_enough_to_download() -> None:
+def test_sdist_is_small_enough_to_download(sdist_tarball: Path) -> None:
     """A tarball that picked up the study outputs would be hundreds of megabytes."""
-    version = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"][
-        "version"
-    ]
-    tarball = ROOT / "dist" / f"hawkes_engine-{version}.tar.gz"
-    assert tarball.exists(), "run the sdist fixture first"
-    size_mb = tarball.stat().st_size / 1e6
+    size_mb = sdist_tarball.stat().st_size / 1e6
     assert size_mb < 10, f"the sdist is {size_mb:.1f} MB"
