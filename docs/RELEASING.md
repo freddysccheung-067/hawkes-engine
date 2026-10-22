@@ -3,15 +3,19 @@
 This is the maintainer's checklist. It is written for one person and one release
 at a time. Read it to the end before starting: steps 4 onwards cannot be undone.
 
-A session that prepares a release stops at step 3. Steps 4 to 9 are the owner's,
-because a tag, a publish and a DOI are public actions that cannot be taken back.
+A session that prepares a release stops before step 1. Steps 1 to 9 are the owner's,
+because a PyPI account, a tag, a publish and a DOI are public actions that cannot be
+taken back, and a preparing session has no credentials for any of them.
 
 ## What is irreversible
 
 | Step | Action | Reversible? |
 |---|---|---|
-| 4 | Merging `release/X.Y.Z` into `main` | Yes, but the branch is public once pushed |
-| 5 | Pushing the tag `vX.Y.Z` | **No.** Published tags are used to build wheels |
+| 1 | Creating the PyPI project and trusted publisher | Yes, until the first upload; the name is then taken |
+| 2 | Creating the `pypi` environment | Yes |
+| 3 | Merging `release/X.Y.Z` into `main` | Yes, but the branch is public once pushed |
+| 4 | Pushing the tag `vX.Y.Z` | **No.** Published tags are used to build wheels |
+| 5 | Watching the workflow | Yes, nothing is published yet |
 | 6 | Approving the publish environment | **No.** PyPI rejects a re-upload of the same version |
 | 7 | Installing from PyPI to verify | Yes |
 | 8 | Creating the GitHub Release | Yes, by deleting it, but the tag stays |
@@ -178,6 +182,6 @@ This is the third irreversible step.
 
 ## What a preparing session must not do
 
-A session that is asked to prepare a release has no credentials to do any of the
-above and must not be given any. It stops after step 3. If it finds itself able to
+A session that prepares a release has no credentials to do any of the
+above and must not be given any. It stops before step 1. If it finds itself able to
 push a tag or reach a PyPI token, that is a defect in the setup, not a shortcut.
