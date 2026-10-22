@@ -219,8 +219,9 @@ def test_two_concurrent_simulations_beat_their_serial_sum():
     assert all(r is not None for r in results)
     assert results[0][0].size > 0 and results[1][0].size > 0
     print(f"serial {serial:.2f}s, concurrent {concurrent:.2f}s, ratio {concurrent / serial:.2f}")
-    # Leave headroom for a busy runner: serial sum plus 25% is still a real
-    # overlap for a call that costs about a second.
+    # Leave headroom for a busy runner: two calls that truly overlap take about
+    # half the serial time, so finishing within 90% of it is a wide margin, and a
+    # call that serialised on a lock inside the core would take 100% or more.
     assert concurrent < serial * 0.9, (
         f"concurrent {concurrent:.2f}s is not below 90% of the serial sum " f"{serial:.2f}s"
     )
