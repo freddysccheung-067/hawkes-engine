@@ -79,7 +79,7 @@ wheel.packages = ["python/hawkes_engine"]
 sdist.exclude = [
     ".claude/**",
     "CLAUDE.md",
-    "wheelbuild.log",
+    "*.log",
     "docs/STATE.md",
     "docs/RELEASING.md",
     "studies/ANALYSIS_NOTES.md",

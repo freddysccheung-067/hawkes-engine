@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 *.so
@@ -62,6 +62,9 @@ scratch/
 
 # Stray page captures in the repo root
 /*.html
+
+# Logs the CI steps write into the checkout (build.log, pytest.log)
+*.log
 
 # Built wheels belong in CI artifacts, never in history
 wheelhouse/

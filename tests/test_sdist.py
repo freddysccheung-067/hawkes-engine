@@ -54,7 +54,7 @@ EXCLUDED_FILES = (
     "studies/ANALYSIS_NOTES.md",
     "studies/HARNESS_NOTES.md",
     "CLAUDE.md",
-    "wheelbuild.log",
+    "*.log",
 )
 EXCLUDED_TREES = (".claude/",)
 
