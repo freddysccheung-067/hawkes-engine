@@ -17,8 +17,9 @@ import sys
 
 import numpy as np
 
-from hawkes_engine import __version__, loglik, simulate
+from hawkes_engine import __version__, loglik, simulate, trust_lookup
 from hawkes_engine._core import build_info
+from hawkes_engine.trust_map import MAP_PATH
 
 
 def _check_likelihood() -> float:
@@ -54,15 +55,33 @@ def _check_simulation() -> int:
     return int(times.size)
 
 
+def _check_trust_map() -> str:
+    # The map is data, not code, so a wheel can import and compute and still
+    # lack it. Without the installed copy MAP_PATH falls back to a path inside a
+    # source checkout, which does not exist in site-packages, so is_file() fails
+    # exactly when the wheel is missing it.
+    if not MAP_PATH.is_file():
+        raise SystemExit(f"the trust map is missing: {MAP_PATH}")
+    measured = trust_lookup(N=2000, rho_hat=0.3028, beta=1.0, T=1722.6)
+    outside = trust_lookup(N=500_000, rho_hat=0.3028, beta=1.0, T=1722.6)
+    if measured.status != "measured" or measured.coverage is None:
+        raise SystemExit(f"trust_lookup at the anchor cell answered {measured.status!r}")
+    if outside.status != "unknown":
+        raise SystemExit(f"trust_lookup outside the box answered {outside.status!r}")
+    return measured.cell or ""
+
+
 def main() -> int:
     info = build_info()
     value = _check_likelihood()
     n_events = _check_simulation()
+    cell = _check_trust_map()
     print(
         f"hawkes-engine {__version__} on {sys.platform}, "
         f"built with {info['compiler']} {info['compiler_version']}, "
         f"pybind11 {info['pybind11_version']}: "
-        f"loglik = {value:.6f}, simulated {n_events} events"
+        f"loglik = {value:.6f}, simulated {n_events} events, "
+        f"trust map answered for {cell}"
     )
     return 0
 
