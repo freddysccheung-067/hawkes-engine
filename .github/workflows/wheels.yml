@@ -87,6 +87,16 @@ jobs:
           # build type from CMAKE_BUILD_TYPE, and a wheel built with CMake's
           # default (empty) is a debug build.
           CIBW_ENVIRONMENT: CMAKE_BUILD_TYPE=Release
+          # An explicit floor for the macOS x86-64 wheel. Without it the target is
+          # whatever the interpreter was built for, so the wheel's platform tag
+          # would depend on the runner image. The core uses no availability-gated
+          # C++ library feature (no std::filesystem, no std::format, no
+          # <chrono> calendar types, no aligned new), so 10.15 is a floor the
+          # source does not constrain; numpy and scipy wheels set the effective
+          # minimum. cibuildwheel raises the arm64 target to 11.0 by itself. A
+          # platform variable replaces CIBW_ENVIRONMENT rather than extending it,
+          # so the build type is repeated.
+          CIBW_ENVIRONMENT_MACOS: CMAKE_BUILD_TYPE=Release MACOSX_DEPLOYMENT_TARGET=10.15
           # The test command is the point of the wheel build. It imports the
           # package, evaluates a likelihood and runs a simulation, so a wheel
           # that links but cannot compute fails here rather than at a user.
