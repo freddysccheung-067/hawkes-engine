@@ -14,7 +14,6 @@ from dataclasses import dataclass
 
 import numpy as np
 import numpy.typing as npt
-from scipy import stats  # type: ignore[import-untyped,unused-ignore]
 
 from hawkes_engine import _core
 from hawkes_engine._arrays import as_real_1d, as_real_2d, as_uint8_1d, flat
@@ -105,6 +104,11 @@ def ks_test(gaps: list[FloatArray]) -> TestResult:
     p-values are not calibrated, and a pass is absence of evidence against the
     model, not evidence for it.
     """
+    # Imported here, not at module level: scipy.stats is about 1.5 s of the
+    # package's import time and only these tests need it. fit.py does the same
+    # for scipy.optimize.
+    from scipy import stats  # type: ignore[import-untyped,unused-ignore]
+
     stat = np.full(len(gaps), np.nan)
     pval = np.full(len(gaps), np.nan)
     for i, g in enumerate(gaps):
@@ -122,6 +126,11 @@ def ljung_box(gaps: list[FloatArray], lags: int = 10) -> TestResult:
     parameters are fitted to the gaps, so no degrees of freedom are removed. The
     lag count is capped at ``n // 4`` for short series.
     """
+    # Imported here, not at module level: scipy.stats is about 1.5 s of the
+    # package's import time and only these tests need it. fit.py does the same
+    # for scipy.optimize.
+    from scipy import stats  # type: ignore[import-untyped,unused-ignore]
+
     stat = np.full(len(gaps), np.nan)
     pval = np.full(len(gaps), np.nan)
     for i, g in enumerate(gaps):
