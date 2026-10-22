@@ -31,9 +31,11 @@ fixed by a new patch version, never by replacing the file.
 - `release/X.Y.Z` exists, is pushed, and its version check passes.
 - `docs/release_notes_X.Y.Z.md` exists and every figure in it is pinned by
   `tests/test_docs_claims.py`.
-- Replace `<!-- RELEASE_DATE -->` in `docs/release_notes_X.Y.Z.md`, `CHANGELOG.md`
-  and `CITATION.cff` (the `date-released` field) with the date of the tag. This is
-  the only hand-written value in the release.
+- Replace `<!-- RELEASE_DATE -->` in `docs/release_notes_X.Y.Z.md` and
+  `CHANGELOG.md` with the date of the tag, and set `date-released` in
+  `CITATION.cff` to the same date. That field holds a real date rather than a
+  marker, because CFF requires a valid date there and a comment would fail
+  validation. These three are the only hand-written values in the release.
 - The paper is still a draft. If it has been submitted anywhere, stop: the release
   notes say it has not, and that sentence would become false.
 
