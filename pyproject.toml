@@ -30,6 +30,8 @@ test = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "hypothesis>=6.98.0",
+    # tests/ read pyproject.toml; tomllib exists from Python 3.11.
+    "tomli>=2.0; python_version < '3.11'",
 ]
 # Figures for the H6 paper (studies/figures/). Imported lazily by the figure
 # scripts only; the library never imports it.

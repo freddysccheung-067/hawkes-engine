@@ -23,9 +23,13 @@ from pathlib import Path
 
 import hawkes_engine
 import pytest
-import tomllib
 from hawkes_engine import _version
 from hawkes_engine._core import build_info
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10 has no tomllib; tomli is the same parser
+    import tomli as tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 
