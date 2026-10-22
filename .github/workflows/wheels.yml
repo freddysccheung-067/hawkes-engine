@@ -24,6 +24,7 @@ jobs:
     # there is no second place for it to drift.
     name: Tag matches the package version
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: github.event_name == 'push'
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -53,6 +54,7 @@ jobs:
 
   build_wheels:
     name: Wheels on ${{ matrix.os }}
+    timeout-minutes: 60
     needs: [check_tag]
     # A skipped check_tag (manual dispatch) must still build.
     if: always() && (needs.check_tag.result == 'success' || needs.check_tag.result == 'skipped')
@@ -106,6 +108,7 @@ jobs:
 
   build_sdist:
     name: Source distribution
+    timeout-minutes: 15
     needs: [check_tag]
     if: always() && (needs.check_tag.result == 'success' || needs.check_tag.result == 'skipped')
     runs-on: ubuntu-latest
@@ -133,6 +136,7 @@ jobs:
     name: Check artefacts
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/setup-python@v7
         with:
