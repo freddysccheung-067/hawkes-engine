@@ -8,6 +8,13 @@ version = "0.1.0"
 description = "Multi-dimensional Hawkes process library with trust calibration"
 readme = "README.md"
 license = { text = "MIT" }
+keywords = [
+    "Hawkes process",
+    "point process",
+    "maximum likelihood",
+    "time rescaling",
+    "standard errors",
+]
 authors = [{ name = "Freddy Shi Chun Cheung" }]
 requires-python = ">=3.10"
 dependencies = [
@@ -23,6 +30,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering",
+    "Typing :: Typed",
 ]
 
 [project.optional-dependencies]
