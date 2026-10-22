@@ -1,7 +1,7 @@
 # Releasing hawkes-engine
 
 This is the maintainer's checklist. It is written for one person and one release
-at a time. Read it to the end before starting: steps 4 onwards cannot be undone.
+at a time. Read it to the end before starting: steps 4, 6 and 9 cannot be undone.
 
 A session that prepares a release stops before step 1. Steps 1 to 9 are the owner's,
 because a PyPI account, a tag, a publish and a DOI are public actions that cannot be
