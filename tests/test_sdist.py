@@ -45,8 +45,41 @@ REQUIRED_SUFFIXES = (
     "cpp/include/hawkes/types.hpp",
 )
 
-# Trees that are the maintainer's process, not the project.
-FORBIDDEN_MARKERS = (".claude/", "CLAUDE.md", "wheelbuild.log")
+# The maintainer's process, not the project: status and working notes, the release
+# checklist, and local editor configuration. This is the policy; pyproject.toml's
+# sdist.exclude must carry exactly these, and the tarball must contain none.
+EXCLUDED_FILES = (
+    "docs/STATE.md",
+    "docs/RELEASING.md",
+    "studies/ANALYSIS_NOTES.md",
+    "studies/HARNESS_NOTES.md",
+    "CLAUDE.md",
+    "wheelbuild.log",
+)
+EXCLUDED_TREES = (".claude/",)
+
+# Generated or local state that must never be tracked into a tarball.
+FORBIDDEN_FRAGMENTS = (
+    "/studies/results/cells/",
+    "/studies/results/logs/",
+    "/benchmarks/.cache/",
+    "/wheelhouse",
+    "/dist/",
+    "/build/",
+    "/build-",
+    "/.venv/",
+    "/__pycache__/",
+    "/.pytest_cache/",
+    "/.mypy_cache/",
+    "/.ruff_cache/",
+    "/.hypothesis/",
+    "/.vscode/",
+    "/.idea/",
+    ".log",
+    ".whl",
+    ".pyd",
+    ".so",
+)
 
 
 @pytest.fixture(scope="module")
@@ -89,17 +122,30 @@ def test_sdist_carries_every_source_file(sdist_members: list[str]) -> None:
         ), f"the sdist has no {suffix}; it could not build into a wheel"
 
 
+def _relative(members: list[str]) -> list[str]:
+    """Member paths without the leading `name-version/` directory."""
+    return [name.split("/", 1)[1] for name in members if "/" in name]
+
+
 def test_sdist_carries_no_maintainer_working_files(sdist_members: list[str]) -> None:
-    found = [name for name in sdist_members if any(m in name for m in FORBIDDEN_MARKERS)]
+    relative = _relative(sdist_members)
+    found = [r for r in relative if r in EXCLUDED_FILES or r.startswith(EXCLUDED_TREES)]
     assert not found, f"the sdist ships maintainer files: {found}"
+
+
+def test_sdist_carries_no_generated_or_local_state(sdist_members: list[str]) -> None:
+    found = [n for n in sdist_members if any(fragment in n for fragment in FORBIDDEN_FRAGMENTS)]
+    assert not found, f"the sdist ships generated or local files: {found}"
 
 
 def test_sdist_excludes_what_the_configuration_claims() -> None:
     """The configuration and the behaviour must say the same thing."""
     config = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     excludes = config["tool"]["scikit-build"]["sdist"]["exclude"]
-    assert ".claude/**" in excludes
-    assert "CLAUDE.md" in excludes
+    expected = set(EXCLUDED_FILES) | {tree + "**" for tree in EXCLUDED_TREES}
+    assert (
+        set(excludes) == expected
+    ), f"sdist.exclude is {sorted(excludes)}, the policy is {sorted(expected)}"
 
 
 def test_sdist_is_small_enough_to_download() -> None:

@@ -61,12 +61,20 @@ Issues = "https://github.com/freddysccheung-067/hawkes-engine/issues"
 minimum-version = "0.10"
 cmake.version = ">=3.24"
 wheel.packages = ["python/hawkes_engine"]
-# An sdist lists every tracked file, which includes the maintainer's working
-# notes and local editor configuration. Neither is part of the project a user
-# downloads, and one of them names the tool the maintainer writes with, which is
-# not something a released package should announce. tests/test_sdist.py asserts
-# the built tarball carries neither.
-sdist.exclude = [".claude/**", "CLAUDE.md", "wheelbuild.log"]
+# An sdist lists every tracked file. A source distribution is what someone builds
+# and tests from, so it keeps the sources, the data the build installs, the tests,
+# the user documentation and the study outputs the tests read. It leaves out the
+# maintainer's process: status and working notes, the release checklist, and local
+# editor configuration. tests/test_sdist.py asserts this list against the tarball.
+sdist.exclude = [
+    ".claude/**",
+    "CLAUDE.md",
+    "wheelbuild.log",
+    "docs/STATE.md",
+    "docs/RELEASING.md",
+    "studies/ANALYSIS_NOTES.md",
+    "studies/HARNESS_NOTES.md",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "oracle"]
