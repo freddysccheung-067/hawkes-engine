@@ -58,6 +58,14 @@ def test_bootstrap_runs_under_a_main_guard(tmp_path: Path) -> None:
     sys.platform not in ("win32", "darwin"),
     reason="workers are forked elsewhere, so a missing guard is harmless there",
 )
+@pytest.mark.skipif(
+    sys.platform == "win32" and sys.version_info < (3, 11),
+    reason=(
+        "CPython 3.10 deadlocks when a process pool breaks while its queue feeder is "
+        "writing to a dead worker's pipe (terminate_broken joins that thread forever), so "
+        "the error never surfaces; 3.11 and later fail fast. Reproduced on 3.10.21."
+    ),
+)
 def test_bootstrap_without_a_guard_names_the_guard(tmp_path: Path) -> None:
     done = _run(textwrap.dedent(_BODY), tmp_path)
     assert done.returncode != 0

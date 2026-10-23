@@ -351,7 +351,9 @@ def fit(
         bootstrap that refits ``n_bootstrap`` times, or ``None`` to skip standard
         errors, in which case ``reliable`` is ``"unreliable"`` by construction.
         On Windows and macOS the bootstrap starts worker processes, so the
-        calling script needs an ``if __name__ == "__main__":`` guard.
+        calling script needs an ``if __name__ == "__main__":`` guard. Without
+        one, Python 3.11 and later fail with an error that names it; Python 3.10
+        on Windows can hang instead (a CPython defect), so use the guard there.
     ridge_report
         Accepted for compatibility. It has no effect: the reliability report
         always runs.

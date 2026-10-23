@@ -52,7 +52,9 @@ and $N = 10^5$ it took 8.5 min on one worker and 86 s on the default pool of tha
 machine's 24 logical cores. The calibration study did not measure this method, so
 nothing here says it is more honest than the Hessian one. On Windows and macOS it
 starts worker processes and the calling script needs an
-`if __name__ == "__main__":` guard. It computes no Hessian condition number, so
+`if __name__ == "__main__":` guard. Without one, Python 3.11 and later raise an
+error that names it; Python 3.10 on Windows can hang instead, because of a
+CPython defect, so use the guard there. It computes no Hessian condition number, so
 `hessian_condition` is `None` and the conditioning checks in `reliable` are
 skipped.
 
