@@ -145,6 +145,10 @@ jobs:
     # rather than the publish.
     name: Check artefacts
     needs: [build_wheels, build_sdist]
+    # A skipped check_tag (manual dispatch) makes every job downstream of it skip
+    # under the implicit success(), even those that only need the build jobs. The
+    # builds are what this job checks, so require exactly those.
+    if: always() && needs.build_wheels.result == 'success' && needs.build_sdist.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
