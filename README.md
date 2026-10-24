@@ -98,6 +98,15 @@ The study is not only prose. `trust_lookup` answers from the nearest of the 128
 measured cells and returns what that cell measured:
 
 ```python
+import numpy as np
+import hawkes_engine as he
+
+mu = np.array([0.6, 0.9])
+alpha = np.array([[0.10, 0.35], [0.20, 0.05]])
+beta = np.array([[1.30, 1.70], [1.30, 1.70]])
+times, types = he.simulate(mu, alpha, beta, T=20000.0, seed=1)
+fit = he.fit(times, types, M=2, T=20000.0, seed=1)
+
 answer = he.trust_lookup(N=len(times), rho_hat=fit.rho, beta=fit.beta.min(), T=20000.0)
 print(answer.status)                    # "measured", "unknown", or "estimator undefined in this regime"
 print(answer.coverage["beta"])          # measured coverage of nominal-95 intervals, and its MC SE
@@ -116,6 +125,14 @@ that regime, it reports a parametric bootstrap interval, refitting the model 200
 times.
 
 ```python
+import numpy as np
+import hawkes_engine as he
+
+mu = np.array([0.6, 0.9])
+alpha = np.array([[0.10, 0.35], [0.20, 0.05]])
+beta = np.array([[1.30, 1.70], [1.30, 1.70]])
+times, types = he.simulate(mu, alpha, beta, T=20000.0, seed=1)
+
 fit = he.fit(times, types, M=2, T=20000.0, seed=1, se_method="auto")
 print(fit.se_source)   # "hessian", "bootstrap" or "none"
 print(fit.se_note)     # one sentence saying why

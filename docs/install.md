@@ -10,7 +10,7 @@ Version 0.1.0 is published on [PyPI](https://pypi.org/project/hawkes-engine/) wi
 wheels for CPython 3.10 to 3.12 on Linux (x86-64), macOS (x86-64 and arm64) and
 Windows (AMD64), plus an sdist. It is a pre-alpha research release: the API may
 change between 0.x minor versions, as described in
-[ADR-009](adr/ADR-009-versioning.md).
+[ADR-009](https://github.com/freddysccheung-067/hawkes-engine/blob/main/docs/adr/ADR-009-versioning.md).
 
 Nothing is built for musllinux, 32-bit targets, ARM Windows, or Python 3.13 and
 3.14. On those, build from source.
