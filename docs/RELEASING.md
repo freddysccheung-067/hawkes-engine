@@ -153,7 +153,16 @@ From the tag, using `docs/release_notes_X.Y.Z.md` as the body, with the title
    description, creators, license and keywords, so the deposit reads correctly
    without hand-editing metadata on the Zenodo site.
 2. Zenodo mints a **version DOI** for this release and a **concept DOI** for all
-   versions. Record both.
+   versions. Record both. The concept DOI stays the same across versions; only the
+   version DOI changes.
+
+   **The integration does not always fire.** For 0.1.0 the deposit was made by hand,
+   and publishing the v0.2.0 GitHub release produced no new Zenodo version: the
+   concept record still listed one version, with `hawkes-engine-0.1.0.zip` as its
+   only file. If that happens again, mint the deposit manually at zenodo.org and
+   attach the release archive, or toggle the repository off and on in Zenodo's
+   GitHub settings and re-publish the release. Check zenodo.org before assuming a
+   DOI exists: the GitHub release existing is not evidence that it does.
 3. In a follow-up commit on `main`, add to `CITATION.cff`:
 
    ```yaml
