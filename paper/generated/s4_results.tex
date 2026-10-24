@@ -3,6 +3,7 @@
 \caption{The six pre-registered hypotheses after Holm correction. Where admissible
 readings of a standard error disagreed, the label is the least favourable one any
 of them produces.}
+\label{tab:hypotheses}
 \input{generated/table_hypotheses}
 \end{table}
 
@@ -18,9 +19,12 @@ is concentrated in the tail: a median-based companion gives \HsixQRob{} $\pm$
 
 At $N \ge 10\,000$ every cell's coverage lies between \HsixCovLargeLow{} and
 \HsixCovLargeHigh{}, so the shortfall is a small-$N$ phenomenon rather than a
-property of the estimator at all sample sizes.
+property of the estimator at all sample sizes. Figure~\ref{fig:coverage} shows
+coverage cell by cell and Figure~\ref{fig:sevsd} shows where each cell's reported
+standard error sits against the spread it describes.
 
-Two hypotheses were refuted, and both refutations are informative.
+table~\ref{tab:hypotheses} reports all six hypotheses with the statistics that
+decided them. Two of them were not confirmed, and both failures are informative.
 \HsixThreeLabel{}: coverage was predicted to fall monotonically toward
 criticality, but it rises from \HsixThreeLowRho{} at $\rho = 0.3028$ to
 \HsixThreeHighRho{} at $\rho = 0.60$. \HsixFourLabel{}: timestamp quantisation
@@ -32,12 +36,15 @@ The conditioning verdict separates coverage, but mostly mechanically:
 standard error at all, so they
 cover nothing by definition. Among those that do carry one, the separation is
 \HsixPostHoc{}. The verdict marks fits that produced an interval; it does not
-detect an interval that is wrong.
+detect an interval that is wrong. Figure~\ref{fig:verdict} gives the separation by
+verdict class, and Figure~\ref{fig:bias} shows the heavy tail in the decay
+estimate that decides whether the mean-based figure is safe to read.
 
 \begin{table}[t]
 \centering
 \caption{Coverage and the standard-error ratio for the twenty primary cells
 ($M = 2$, $c = 1$, $r = 0$), as estimate $\pm$ Monte Carlo standard error.}
+\label{tab:grid}
 \input{generated/table_grid}
 \end{table}
 

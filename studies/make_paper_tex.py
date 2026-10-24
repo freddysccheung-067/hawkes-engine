@@ -550,12 +550,12 @@ observed-information standard errors, two independent exact simulators, and
 time-rescaling diagnostics, released as an installable package with a pinned public
 surface and a test suite that pins every figure in its documentation to a committed
 output.
-\item \textbf{A pre-registered calibration study with refutations.} A design frozen
+\item \textbf{A pre-registered calibration study with two failures.} A design frozen
 before any measurement, with six dated amendments that each state what was known
 when it was written; a grid of \HsixCells{} cells at \HsixReplications{}
 replications; and a result in which the headline is a measured shortfall and two of
-the six hypotheses are not confirmed. The refutations are reported for the same
-reason as the confirmation.
+the six hypotheses are not confirmed. The two are reported for the same reason as
+the four that held, on the same page, with the numbers that decided them.
 \item \textbf{A shipped lookup that refuses to extrapolate.} A map of the measured
 quantities, installed with the package, which answers for a regime only inside the
 box it measured, says so when it has no measurement, and says the estimator is
@@ -605,6 +605,7 @@ already seen their direction.
 \caption{The six pre-registered hypotheses after Holm correction. Where admissible
 readings of a standard error disagreed, the label is the least favourable one any
 of them produces.}
+\label{tab:hypotheses}
 \input{generated/table_hypotheses}
 \end{table}
 
@@ -620,9 +621,12 @@ is concentrated in the tail: a median-based companion gives \HsixQRob{} $\pm$
 
 At $N \ge 10\,000$ every cell's coverage lies between \HsixCovLargeLow{} and
 \HsixCovLargeHigh{}, so the shortfall is a small-$N$ phenomenon rather than a
-property of the estimator at all sample sizes.
+property of the estimator at all sample sizes. Figure~\ref{fig:coverage} shows
+coverage cell by cell and Figure~\ref{fig:sevsd} shows where each cell's reported
+standard error sits against the spread it describes.
 
-Two hypotheses were refuted, and both refutations are informative.
+table~\ref{tab:hypotheses} reports all six hypotheses with the statistics that
+decided them. Two of them were not confirmed, and both failures are informative.
 \HsixThreeLabel{}: coverage was predicted to fall monotonically toward
 criticality, but it rises from \HsixThreeLowRho{} at $\rho = 0.3028$ to
 \HsixThreeHighRho{} at $\rho = 0.60$. \HsixFourLabel{}: timestamp quantisation
@@ -634,12 +638,15 @@ The conditioning verdict separates coverage, but mostly mechanically:
 standard error at all, so they
 cover nothing by definition. Among those that do carry one, the separation is
 \HsixPostHoc{}. The verdict marks fits that produced an interval; it does not
-detect an interval that is wrong.
+detect an interval that is wrong. Figure~\ref{fig:verdict} gives the separation by
+verdict class, and Figure~\ref{fig:bias} shows the heavy tail in the decay
+estimate that decides whether the mean-based figure is safe to read.
 
 \begin{table}[t]
 \centering
 \caption{Coverage and the standard-error ratio for the twenty primary cells
 ($M = 2$, $c = 1$, $r = 0$), as estimate $\pm$ Monte Carlo standard error.}
+\label{tab:grid}
 \input{generated/table_grid}
 \end{table}
 
@@ -836,13 +843,18 @@ population and adopted the rule that where admissible forms disagree, the least
 favourable label governs. Written after the analysis, before the paper.
 \end{description}
 
-The one command per stage: \texttt{python -m studies.run\_study} for the grid,
-\texttt{python -m studies.analyze} and \texttt{python -m studies.phase3} for the
-estimands, \texttt{python -m studies.build\_map} for the shipped map,
-\texttt{python -m studies.figures.make\_figures} for the figures,
-\texttt{python -m studies.run\_auto} and \texttt{python -m studies.analyze\_auto}
-for the interval study, and \texttt{python -m studies.make\_paper\_tex} for this
-document.
+One command per stage, each run from the repository root:
+
+\begin{description}
+\item[the grid] \texttt{python -m studies.run\_study}
+\item[the estimands] \texttt{python -m studies.analyze} and
+  \texttt{python -m studies.phase3}
+\item[the shipped map] \texttt{python -m studies.build\_map}
+\item[the figures] \texttt{python -m studies.figures.make\_figures}
+\item[the interval study] \texttt{python -m studies.run\_auto} and
+  \texttt{python -m studies.analyze\_auto}
+\item[this document] \texttt{python -m studies.make\_paper\_tex}
+\end{description}
 """,
 }
 

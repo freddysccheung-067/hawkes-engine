@@ -29,10 +29,15 @@ population and adopted the rule that where admissible forms disagree, the least
 favourable label governs. Written after the analysis, before the paper.
 \end{description}
 
-The one command per stage: \texttt{python -m studies.run\_study} for the grid,
-\texttt{python -m studies.analyze} and \texttt{python -m studies.phase3} for the
-estimands, \texttt{python -m studies.build\_map} for the shipped map,
-\texttt{python -m studies.figures.make\_figures} for the figures,
-\texttt{python -m studies.run\_auto} and \texttt{python -m studies.analyze\_auto}
-for the interval study, and \texttt{python -m studies.make\_paper\_tex} for this
-document.
+One command per stage, each run from the repository root:
+
+\begin{description}
+\item[the grid] \texttt{python -m studies.run\_study}
+\item[the estimands] \texttt{python -m studies.analyze} and
+  \texttt{python -m studies.phase3}
+\item[the shipped map] \texttt{python -m studies.build\_map}
+\item[the figures] \texttt{python -m studies.figures.make\_figures}
+\item[the interval study] \texttt{python -m studies.run\_auto} and
+  \texttt{python -m studies.analyze\_auto}
+\item[this document] \texttt{python -m studies.make\_paper\_tex}
+\end{description}

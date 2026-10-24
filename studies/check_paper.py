@@ -132,6 +132,20 @@ def check() -> list[str]:
                     f"{line[:60]}"
                 )
 
+    # 4b. Every \ref resolves to a \label. A dangling reference compiles cleanly
+    #     and prints "??" in the PDF, so neither the structure check nor the
+    #     typeset would catch it; the reader would.
+    labels: set[str] = set()
+    refs: list[tuple[str, str]] = []
+    for path in [MAIN, *(PAPER / "generated").glob("*.tex")]:
+        text = _strip_comments(path.read_text(encoding="utf-8"))
+        labels |= set(re.findall(r"\\label\{([^}]+)\}", text))
+        for target in re.findall(r"\\ref\{([^}]+)\}", text):
+            refs.append((target, path.name))
+    for target, where in refs:
+        if target not in labels:
+            problems.append(f"\\ref{{{target}}} in {where} has no matching \\label")
+
     # 5. Citations resolve to entries that carry a venue and a DOI or arXiv id.
     bib = (PAPER / "refs.bib").read_text(encoding="utf-8")
     keys = set(re.findall(r"@\w+\{([^,]+),", bib))
