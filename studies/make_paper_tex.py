@@ -299,6 +299,7 @@ def auto_macros() -> list[str]:
 def hypothesis_table() -> str:
     h = json.loads(H6_HYP.read_text(encoding="utf-8"))
     lines = [
+        r"{\small\setlength{\tabcolsep}{4pt}",
         r"\begin{tabular}{llrrrlr}",
         r"\toprule",
         r"Hypothesis & Status & $T$ & $\tau$ & SE & $z$ & Label \\",
@@ -312,7 +313,7 @@ def hypothesis_table() -> str:
             f"{name} & {r['status']} & {tex_num(r['T'], 4)} & {r['tau']} & "
             f"{tex_num(r['se'], 4)} & {tex_num(r['z'], 2)} & {bold} \\\\"
         )
-    lines += [r"\bottomrule", r"\end{tabular}"]
+    lines += [r"\bottomrule", r"\end{tabular}}"]
     return "\n".join(lines) + "\n"
 
 
@@ -362,6 +363,11 @@ def grid_table() -> str:
     ]
     cells.sort(key=lambda r: (int(r["N"]), float(r["rho"])))
     lines = [
+        # Seven columns of estimate +/- MC SE overflow a 6.5-inch text block at
+        # 11pt, measured on the first real typeset: 78pt too wide. Small type and
+        # tight column separation bring it inside the margin without changing what
+        # is reported.
+        r"{\small\setlength{\tabcolsep}{4pt}",
         r"\begin{tabular}{rrrrrrr}",
         r"\toprule",
         r"$N$ & $\rho$ & coverage $\mu$ & coverage $\alpha$ & coverage $\beta$ "
@@ -379,7 +385,7 @@ def grid_table() -> str:
             f"{tex_pm(float(mu['q']), float(mu['se_q_boot']))} & "
             f"{tex_pm(float(be['q']), float(be['se_q_boot']))} \\\\"
         )
-    lines += [r"\bottomrule", r"\end{tabular}"]
+    lines += [r"\bottomrule", r"\end{tabular}}"]
     return "\n".join(lines) + "\n"
 
 
