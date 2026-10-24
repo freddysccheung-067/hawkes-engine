@@ -79,7 +79,9 @@
         "none"
       ],
       "distance_mean": 0.2383326005552887,
-      "distance_se": 0.0035645122524608974
+      "distance_se": 0.0035645122524608974,
+      "distance_max": 1.3163635497906565,
+      "nearest_elsewhere": 15
     },
     {
       "cell": "M2_N2000_rho0.85_r0.0_c1.0",
@@ -155,7 +157,9 @@
         "bootstrap"
       ],
       "distance_mean": 0.18845869214121208,
-      "distance_se": 0.0021343264607008626
+      "distance_se": 0.0021343264607008626,
+      "distance_max": 0.5795211293004253,
+      "nearest_elsewhere": 24
     },
     {
       "cell": "M2_N2000_rho0.95_r0.0_c1.0",
@@ -235,7 +239,9 @@
         "none"
       ],
       "distance_mean": 0.3069741065219802,
-      "distance_se": 0.0033846432649996135
+      "distance_se": 0.0033846432649996135,
+      "distance_max": 1.1297251244955746,
+      "nearest_elsewhere": 464
     }
   ],
   "hypotheses": {

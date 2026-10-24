@@ -112,6 +112,17 @@ def analyse_cell(key: str) -> dict[str, Any]:
     mean_d, se_d = _mean_se(distances)
     out["distance_mean"] = mean_d
     out["distance_se"] = se_d
+    out["distance_max"] = (
+        float(np.nanmax(distances)) if np.isfinite(distances).any() else float("nan")
+    )
+    # How often the nearest cell was a different column of the grid. The lookup
+    # answers from the nearest cell of the whole map, so a fit whose parameters
+    # drifted can be answered from a cell with another branching ratio. That is a
+    # property of a nearest-neighbour map and it is reported, not hidden.
+    own_rho = key.split("_rho")[1].split("_")[0]
+    out["nearest_elsewhere"] = sum(
+        1 for r in valid if r["a_cell"] and r["a_cell"].split("_rho")[1].split("_")[0] != own_rho
+    )
     return out
 
 

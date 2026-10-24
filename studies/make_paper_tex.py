@@ -259,6 +259,12 @@ def auto_macros() -> list[str]:
         macro("AutoLowRhoDelta", tex_pm(low["all"]["delta"], low["all"]["delta_se"], 4)),
         macro("AutoHighRhoDelta", tex_pm(high["all"]["delta"], high["all"]["delta_se"], 4)),
         macro("AutoBootstrapShare", tex_num(100.0 * boot / max(total_rows, 1), 1)),
+        macro(
+            "AutoUnmappedHighRho",
+            str(cells["M2_N2000_rho0.95_r0.0_c1.0"]["actions"].get("hessian_unmapped", 0)),
+        ),
+        macro("AutoDriftCount", str(_drift_count())),
+        macro("AutoMaxDistance", tex_num(_max_distance(), 3)),
     ]
 
 
@@ -350,6 +356,23 @@ def grid_table() -> str:
         )
     lines += [r"\bottomrule", r"\end{tabular}"]
     return "\n".join(lines) + "\n"
+
+
+def _drift_count() -> int:
+    """Replications at the anchor whose nearest cell was in another rho column.
+
+    Read from the committed analysis, not from the raw rows: the raw rows are
+    gitignored and only the table generated from them is in the repository.
+    """
+    payload = json.loads(AUTO_HYP.read_text(encoding="utf-8"))
+    low = next(c for c in payload["cells"] if c["cell"] == "M2_N2000_rho0.3028_r0.0_c1.0")
+    return int(low.get("nearest_elsewhere", 0))
+
+
+def _max_distance() -> float:
+    payload = json.loads(AUTO_HYP.read_text(encoding="utf-8"))
+    low = next(c for c in payload["cells"] if c["cell"] == "M2_N2000_rho0.3028_r0.0_c1.0")
+    return float(low.get("distance_max", float("nan")))
 
 
 def cost_macros() -> list[str]:
@@ -676,6 +699,27 @@ the worst coverage anywhere in the study is \AutoHtwoWorst{} against a ceiling o
 \AutoHtwoCeiling{}. H-A3, that the improvement is larger at high branching ratio,
 is \AutoHthreeLabel{}: the pooled difference is \AutoLowRhoDelta{} at $\rho =
 0.3028$ and \AutoHighRhoDelta{} at $\rho = 0.95$.
+
+Two properties of the run are worth stating rather than rounding off. At $\rho =
+0.95$, \AutoUnmappedHighRho{} of the 2000 fitted branching ratios landed above
+0.95 and so fell outside the measured box; those replications kept the Hessian
+interval and are included in the coverage reported above, which lowers it rather
+than flattering the switch. And the lookup answers from the nearest cell however
+far away that cell is: in 15 of the 2000 replications at $\rho = 0.3028$ the
+nearest cell lay in a different branching-ratio column, and one of them drew an
+undefined-regime answer from a shallow-decay cell up to \AutoMaxDistance{} grid
+steps away. Both are properties of a nearest-neighbour map, not of the decision
+rule.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{auto_coverage.pdf}
+\caption{Hessian against \texttt{auto} coverage, per cell and parameter block, on
+the same simulated event streams. Each segment joins the two arms of one cell; a
+tick marks the Hessian value the marker moved from. The dashed line is nominal
+0.95.}
+\label{fig:auto}
+\end{figure}
 """,
     "s6_related": r"""
 The Hawkes process itself is \citet{hawkes1971}. The thinning simulation used here

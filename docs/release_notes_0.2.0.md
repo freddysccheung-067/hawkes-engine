@@ -86,22 +86,22 @@ pre-registered hypotheses were confirmed.
 H-A1 (the switch lands closer to nominal) is confirmed at all three cells, on the
 decay block and on the pooled block. H-A2 (it never exceeds 1.05 of nominal) is
 confirmed: the highest coverage anywhere is 0.9762 on the decay block at
-$\rho = 0.95$, against a ceiling of 0.9975. H-A3 (the gain is larger at high
+`rho = 0.95`, against a ceiling of 0.9975. H-A3 (the gain is larger at high
 branching ratio) is confirmed and exploratory, because the map's own pattern
 suggested the direction.
 
 Two things the release reports rather than rounds off. The worst Hessian cell is
-the baseline block at $\rho = 0.95$, at 0.7817, which is the failure the map
+the baseline block at `rho = 0.95`, at 0.7817, which is the failure the map
 predicted there. And at that cell 274 of 2000 replications had a fitted branching
 ratio above 0.95, so `auto` recorded them as outside the map and kept the Hessian
 interval; the 0.9488 above is measured over all 2000, so those replications pull
 it down rather than being excluded.
 
 A third detail, from the same run: in 15 of the 2000 replications at
-$\rho = 0.3028$ the nearest measured cell was in a different branching-ratio
+`rho = 0.3028` the nearest measured cell was in a different branching-ratio
 column, because the fitted parameters had drifted; the median distance to the
 nearest cell was 0.206 grid steps and the largest 1.316. In one of those a fit with
-a fitted $\rho$ near 0.45 landed nearest a shallow-decay cell the map marks
+a fitted `rho` near 0.45 landed nearest a shallow-decay cell the map marks
 undefined, and `auto` returned no interval. That is the lookup doing what
 [`trust.md`](https://github.com/freddysccheung-067/hawkes-engine/blob/main/docs/trust.md)
 says it does — it answers from the nearest cell however far that cell is — and it is

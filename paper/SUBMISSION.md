@@ -101,10 +101,29 @@ block a submission at the last minute.
 | `studies/make_paper_tex.py` | the generator; not uploaded, but named in the paper |
 | `studies/check_paper.py` | the structural checks; not uploaded |
 
-arXiv takes a single `.tar.gz` of `main.tex`, `refs.bib` and the `generated/`
-directory, plus any figures the document includes. No figures are included in the
-current draft; the four H6 figures and the auto figure live in `studies/figures/`
-and are not yet referenced from `main.tex`.
+arXiv takes a single `.tar.gz` of `main.tex`, `refs.bib`, the `generated/`
+directory and the `figures/` directory. Five figures are included:
+
+| File | Where it appears |
+|---|---|
+| `figures/coverage_heatmap.pdf` | section 4, full width |
+| `figures/se_vs_sd.pdf` | section 4 |
+| `figures/bias_vs_N.pdf` | section 4 |
+| `figures/verdict_crosstab.pdf` | section 4 |
+| `figures/auto_coverage.pdf` | section 5 |
+
+All five are vector with embedded fonts (PDF font type 42) and are copied from
+`studies/figures/` by the generator, so the archive builds without the rest of the
+repository. `studies/figures/README.md` maps each figure to the claim it supports.
+
+## What to check after the build
+
+`studies/check_paper.py` verifies the structure a compile would fail on — every
+macro defined exactly once, every `\input` present, every table's cell count
+matching its column spec, every figure resolvable through `\graphicspath`, every
+citation resolving to an entry with a year and a DOI. It cannot check that the
+typeset result looks right. Read the PDF: a table wider than the margin and a
+figure that collides with a caption both compile cleanly and both look wrong.
 
 ## Unverified references
 
