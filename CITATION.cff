@@ -39,6 +39,3 @@ identifiers:
   - type: doi
     value: "10.5281/zenodo.23620652"
     description: "Version 0.2.0, all versions of that record"
-  - type: url
-    value: "https://hal.science/hal-05838093v1"
-    description: "The paper, deposited on HAL"

@@ -308,7 +308,10 @@ uploaded by trusted publishing. `CITATION.cff` carries the Zenodo version DOI
   (`\Hsix61Label`), which TeX read as `\Hsix` followed by literal text and which
   `check_paper.py` could not see because its own pattern stopped at the letter.
   Both are fixed, and the check now rejects a non-letter macro name.
-- **The paper is on HAL** at `hal-05838093v1`, deposited 2026-10-25, which hosts and
-  serves the PDF. arXiv is still pending an endorsement for `stat.ME`. Every
+- **The paper is deposited on HAL**, identifier `hal-05838093` reserved on
+  2026-10-25, and is **in moderation**: the record is not public until a moderator
+  accepts it, and until then both the public URL and the depositor-side `docid`
+  view return nothing to anyone else. HAL needs no endorsement, which is why it
+  was chosen. arXiv is still pending an endorsement for `stat.ME`. Every
   bibliography entry has been checked; the Laub identifier resolved to
   `1507.02822` and is no longer marked `[VERIFY]`.

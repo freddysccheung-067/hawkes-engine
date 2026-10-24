@@ -115,11 +115,16 @@ typed by hand. All seven entries in `paper/refs.bib` have been checked against t
 publisher record or the arXiv listing. `paper/SUBMISSION.md` is the arXiv checklist.
 Nothing has been submitted to arXiv.
 
-The paper is deposited on HAL at
-[`hal-05838093v1`](https://hal.science/hal-05838093v1), which hosts and serves the
-PDF. HAL is CNRS-run and moderated, and it needs no endorsement, unlike a first
-arXiv submission. The arXiv listing is still pending an endorsement for `stat.ME`;
-when it appears, this paragraph will say so.
+The paper is deposited on HAL, and the deposit is **in moderation**: HAL assigns a
+`hal-` identifier at deposit but does not serve the record publicly until a
+moderator accepts it. The reserved identifier is `hal-05838093`, and the record
+becomes readable at `https://hal.science/hal-05838093` when moderation clears.
+
+Until then no public HAL link exists, and this paragraph should not name one. HAL
+is CNRS-run and needs no endorsement, unlike a first arXiv submission; that is why
+it was chosen as the route that does not depend on a stranger. The arXiv listing is
+still pending an endorsement for `stat.ME`; when either becomes public, this
+paragraph will say so.
 
 Before 0.2.0 the paper had never been typeset: no session that prepared it had a
 TeX installation, and the structure checks cannot see a failing compile. The first
