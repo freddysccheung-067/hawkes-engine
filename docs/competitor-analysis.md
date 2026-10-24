@@ -164,38 +164,35 @@ with NumPy arrays at the API level.
 
 ## Where hawkes-engine stands
 
-hawkes-engine is pre-alpha. Gate H0 and gate H1 of the nine-gate plan are
-complete: the package skeleton exists and imports, and there is a frozen
-reference implementation of the likelihood and gradient whose gradient agrees
-with complex-step differentiation to 1e-10. Gate H2, the C++ likelihood and
-gradient, is next (`docs/ROADMAP.md`).
+hawkes-engine is pre-alpha, and 0.1.0 is published on PyPI with wheels for
+CPython 3.10 to 3.12 on Linux x86-64, macOS and Windows AMD64. The compiled
+likelihood and gradient, the maximum-likelihood estimator with standard errors,
+both simulators, the diagnostics and the trust map are all in place.
 
-Nothing user-facing exists yet. There is no estimator, no simulator, no public
-fit API, no PyPI release, no published wheel and no trust map. The library
-cannot currently fit or simulate a Hawkes process, and no statement in this
-document should be read as claiming otherwise.
+What follows was written before those gates closed, and its claims about this
+library have been superseded by the measurements in
+`studies/results/analysis/` and `benchmarks/results/`. The comparison against
+other libraries below still stands as written: none of it was measured against
+them, and no speed or accuracy advantage over any library in this document has
+been demonstrated.
 
-The planned work, in the order the roadmap sets it, is the C++ likelihood at H2,
-maximum likelihood estimation with standard errors at H3, thinning and
-branching simulators at H4, the Python API and I/O at H5, the trust calibration
-study at H6, performance characterisation at H7, documentation at H8 and the
-v0.1.0 release with wheels at H9. The distinguishing feature of the project,
-the map from parameter values to expected recovery error, is produced and
-validated at H6. Until then the roadmap commits only to reporting the branching
-ratio with every fit and treating a value near one as a warning.
+The gates this document anticipated have since closed: the estimator, both
+simulators, the Python API, the trust map, the performance characterisation and
+the release all exist. The distinguishing feature named here — the map from
+parameter values to expected recovery error — was produced at H6 and ships as
+`trust_lookup`, answering from 128 measured cells.
 
-Because no code in this repository can fit or simulate anything yet, no speed
-or accuracy comparison against any library in this document has been run, and
-none is reported. The earlier claim of a four- to ten-fold speed advantage over
-hawkeslib had no measurement behind it and has been removed. A benchmark would
-need an estimator first, which H3 provides, and would be meaningful only once
-the performance characterisation at H7 defines what is being measured.
+No speed or accuracy comparison against any library in this document has been
+run, and none is reported. The earlier claim of a four- to ten-fold speed
+advantage over hawkeslib had no measurement behind it and has been removed. The
+performance characterisation at H7 timed this library against itself, on one
+machine, and reports nothing about any other implementation.
 
 The honest summary of the comparison is narrow. tick is actively maintained,
 supports multivariate Hawkes and now publishes wheels for the common platforms,
 though it is MKL-based, has no Linux AArch64 wheel and does not document its
 simulation algorithm. hawkeslib is deprecated and undocumented. statsmodels and
 PyMC do not model Hawkes processes directly. The two CRAN packages are
-functional but R-only. Whether a new Python library improves on any of this is
-a question that gates H3 through H7 have to answer with measurements, and this
-document will be rewritten then rather than anticipating the result.
+functional but R-only. Whether this library improves on any of it is still
+unmeasured, and re-writing this document to claim otherwise before a benchmark
+exists is the thing it was written to prevent.

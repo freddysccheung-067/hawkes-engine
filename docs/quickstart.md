@@ -2,8 +2,9 @@
 
 Simulate a two-type process from known parameters, fit it, read the result, check
 the fit by time rescaling, and ask what the calibration study measured for this
-regime. The code on this page runs as written. The package is not on PyPI; see
-[](install.md) first.
+regime. The code on this page runs as written after
+`python -m pip install hawkes-engine`; see [](install.md) for the other ways to
+install it.
 
 ```python
 import numpy as np
