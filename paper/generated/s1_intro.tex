@@ -11,15 +11,8 @@ precise and is not. The curvature of the likelihood at that point, which is what
 inverse-Hessian standard error reads, can be steep along a direction the sampling
 distribution does not respect.
 
-This paper measures that discrepancy instead of assuming it away. It reports a
-pre-registered simulation study of \HsixCells{} parameter regimes in which the ratio
-of reported to realised standard error is estimated from \HsixReplications{}
-replications per cell, identifies the regimes where the estimator does not exist,
-and records which of six hypotheses survived. It then does the thing that the
-measurement implies and most libraries do not: it makes the estimator consult its
-own calibration at run time and change the interval it reports.
-
-\paragraph{Contributions.} Three, and only three.
+This paper measures that discrepancy instead of assuming it away, and then acts on
+the measurement. It makes three contributions.
 
 \begin{enumerate}
 \item \textbf{A public implementation.} A compiled likelihood and gradient for the
