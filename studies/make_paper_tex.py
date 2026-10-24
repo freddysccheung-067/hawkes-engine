@@ -499,9 +499,9 @@ inverse-Hessian standard errors understate sampling spread: the ratio of mean
 reported standard error to empirical standard deviation, pooled over the twelve
 two-type cells with at least 2000 events, is \HsixQ{} $\pm$ \HsixQSe{}, and the
 four-type satellite agrees in direction (\HsixSatQ{} $\pm$ \HsixSatSe{}). Two
-hypotheses were refuted: H6.3 predicted that coverage falls monotonically toward
-criticality, and H6.4 predicted that timestamp quantisation biases the decay
-estimate upward. The estimator is undefined
+hypotheses were not confirmed: H6.3 expected coverage to fall monotonically toward
+criticality and it rose instead, and H6.4 expected timestamp quantisation to bias
+the decay estimate upward and it biased it down. The estimator is undefined
 in \HsixUndefined{} of \HsixCells{} cells, where the observation window holds too
 few decay times to identify the decay rate. The library therefore refuses to
 report an interval there, and where the map measures a shortfall it switches to a

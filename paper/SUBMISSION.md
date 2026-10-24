@@ -63,9 +63,11 @@ is part of the argument, but the paper is not primarily about computation.
 
 ## Abstract for the metadata form
 
-Plain text, no LaTeX macros, 200 words or fewer. This is the text
-`paper/generated/abstract.tex` renders; it is reproduced here because the
-submission form takes plain text and copying from a built PDF loses the math.
+Plain text, no LaTeX macros. This is the text `paper/generated/abstract.tex`
+renders, with the macros expanded and `$\pm$` written as `+/-`; it is reproduced
+here because the submission form takes plain text and copying from a built PDF
+loses the math. `tests/test_paper_abstract.py` expands the rendered abstract and
+compares it to the block below, so the two cannot drift apart.
 
 ```
 This paper measures whether a maximum-likelihood fit of a multivariate
@@ -75,18 +77,18 @@ entitled to assume, and it ships the answer as code. Over a pre-registered grid 
 errors understate sampling spread: the ratio of mean reported standard error to
 empirical standard deviation, pooled over the twelve two-type cells with at least
 2000 events, is 0.779 +/- 0.011, and the four-type satellite agrees in direction
-(0.336 +/- 0.023). Two of the six pre-registered hypotheses were not confirmed. The
-estimator is undefined in 67 of 128 cells, where the observation window holds too
-few decay times to identify the decay rate. The library therefore refuses to report
-an interval there, and where the map measures a shortfall it switches to a
+(0.336 +/- 0.023). Two hypotheses were not confirmed: H6.3 expected coverage to
+fall monotonically toward criticality and it rose instead, and H6.4 expected
+timestamp quantisation to bias the decay estimate upward and it biased it down.
+The estimator is undefined in 67 of 128 cells, where the observation window holds
+too few decay times to identify the decay rate. The library therefore refuses to
+report an interval there, and where the map measures a shortfall it switches to a
 parametric bootstrap rather than reporting the interval it knows to be too narrow;
 the switch is tested in a second pre-registered study and its result is reported
 either way.
 ```
 
-Count the words before pasting: `studies/make_paper_tex.py` records the count in
-`paper/generated/abstract.tex`'s source prose, and `tests/test_docs_claims.py`
-pins the abstract's figures to their sources.
+The arXiv form takes 1920 characters, not words. This block is well inside it.
 
 ## Licence
 
