@@ -22,3 +22,11 @@ keywords:
   - point process
   - maximum likelihood
   - time rescaling
+doi: "10.5281/zenodo.23613789"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.23613789"
+    description: "Version 0.1.0"
+  - type: doi
+    value: "10.5281/zenodo.23613788"
+    description: "All versions"
