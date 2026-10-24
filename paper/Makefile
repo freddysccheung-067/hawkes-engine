@@ -47,26 +47,13 @@ check:
 	cd "$(REPO)" && $(PYTHON) -m studies.make_paper_tex --check
 
 # arXiv takes one .tar.gz containing main.tex, refs.bib, generated/ and figures/.
-# It builds that archive from a scratch copy rather than from this directory, so a
-# file the paper needs but the archive omits fails here instead of on arXiv's
-# compiler. What is shipped is named in paper/SUBMISSION.md; if that list changes,
-# this target is what keeps the archive honest.
+# build_arxiv.sh assembles it from a scratch copy rather than from this directory,
+# so a file the paper needs but the archive omits fails here instead of on arXiv's
+# compiler, and compiles it on its own where TeX is available. The recipe is a
+# script rather than make syntax because a five-stage TeX run inside a make `if`
+# is where the first version of this target broke on CI without saying why.
 arxiv:
-	rm -rf build/arxiv && mkdir -p build/arxiv
-	cp main.tex refs.bib build/arxiv/
-	cp -r generated figures build/arxiv/
-	cd build/arxiv && tar czf ../hawkes-engine-paper.tar.gz main.tex refs.bib generated figures
-	@if command -v $(TEX) >/dev/null 2>&1; then \
-		echo "compiling the archive in isolation..."; \
-		cd build/arxiv && $(TEX) -interaction=nonstopmode -halt-on-error main.tex >/dev/null \
-			&& bibtex main >/dev/null \
-			&& $(TEX) -interaction=nonstopmode -halt-on-error main.tex >/dev/null \
-			&& $(TEX) -interaction=nonstopmode -halt-on-error main.tex >/dev/null \
-			&& echo "archive compiles on its own"; \
-	else \
-		echo "no TeX found: archive built but not test-compiled" >&2; \
-	fi
-	@echo "wrote paper/build/hawkes-engine-paper.tar.gz"
+	bash build_arxiv.sh
 
 clean:
 	rm -f main.aux main.bbl main.blg main.log main.out main.toc main.fls main.fdb_latexmk
