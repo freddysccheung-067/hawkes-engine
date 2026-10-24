@@ -104,21 +104,21 @@ jobs:
           LIMIT_PT = 0.1
           overfull = []
           for line in log.splitlines():
-              m = re.search(r"Overfull \\hbox \(([\d.]+)pt too wide\)", line)
+              m = re.search(r"Overfull \\hbox \(([\d.]+)pt too wide\)(.*)", line)
               if m and float(m.group(1)) >= LIMIT_PT:
-                  overfull.append(line.strip())
+                  overfull.append((float(m.group(1)), line.strip()))
 
           unresolved = [
               ln.strip() for ln in log.splitlines()
               if "LaTeX Warning: Citation" in ln or "LaTeX Warning: Reference" in ln
           ]
 
-          for line in overfull[:30]:
-              print("OVERFULL:", line)
-          for line in unresolved[:30]:
-              print("UNRESOLVED:", line)
-          print(f"counts: overfull>={LIMIT_PT}pt = {len(overfull)}, unresolved = {len(unresolved)}")
+          # Annotations are the only part of this run a session without log
+          # access can read, so every finding is one.
+          for width, line in overfull[:20]:
+              print(f"::error::{width:.2f}pt overfull :: {line}")
 
+          print(f"counts: overfull>={LIMIT_PT}pt = {len(overfull)}, unresolved = {len(unresolved)}")
           if overfull:
               raise SystemExit(f"{len(overfull)} overfull boxes at or above {LIMIT_PT}pt")
           if unresolved:
