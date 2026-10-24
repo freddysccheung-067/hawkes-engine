@@ -1,8 +1,9 @@
 # Pre-registration: the `auto` interval study
 
 - **Study ID:** `auto-v1`
-- **Frozen:** 2026-10-26, before any `auto-v1` measurement. The commit hash of the
+- **Frozen:** 2026-10-24, before any `auto-v1` measurement. The commit hash of the
   freeze is recorded in `studies/results/auto/provenance.json` when the study runs.
+  See Amendment 1: the date here originally read 2026-10-26, which was wrong.
 - **Supersedes:** nothing. It is a separate study from `h6-v1`, not an amendment to it.
 - **Amendment rule:** if a hypothesis, threshold, cell or replication count changes
   after the freeze commit, the change is a **dated amendment section appended to
@@ -148,3 +149,30 @@ with the cells complete at the time, and no partial cell is used.
   checked against a second measurement.
 - A null result, reported as a null result, on the Limits page and in the release
   notes.
+
+## Amendment 1 — 2026-10-24, correcting the frozen date in the header
+
+**What had been seen.** The study has run: `studies/results/auto/analysis/` holds
+its outputs and `studies/results/auto/analysis/report.txt` its result, which is
+reported in the release notes and in the paper.
+
+The header says this document was frozen on **2026-10-26**. That date is wrong. The
+commit that froze it is `7d35a53`, dated 2026-10-24T17:49:43+08:00, and the harness
+that ran the study was committed at `93cd39f` the same evening. No measurement
+existed on either date before the freeze, so the freeze itself is sound; the date
+written in it is not, and a date two days in the future on a document whose only
+value is that its dates can be believed is a defect worth naming rather than
+quietly editing.
+
+**What is corrected.** The header now reads 2026-10-24. This is the one edit to text
+above an amendment in this file, it is disclosed here, and it changes a date to the
+date its own commit records. No hypothesis, threshold, cell, replication count or
+estimand was touched.
+
+**What is added.** Section 1 said the freeze commit "is recorded in
+`studies/results/auto/provenance.json` when the study runs". Nothing wrote that
+file. `studies/run_auto.py` now writes it at the end of a run, carrying the
+pre-registration's commit, the run's commit, the cells covered and their checksums.
+That file does not exist for the run that produced the current results, because the
+harness that ran it predates this amendment; the freeze commit for those results is
+`7d35a53` as recorded above, and the per-cell `.done` markers carry their checksums.
