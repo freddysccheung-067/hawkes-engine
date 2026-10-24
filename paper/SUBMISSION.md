@@ -33,13 +33,14 @@ One command, from the repository root:
 make -C paper
 ```
 
-It regenerates every number and table, then typesets `main.pdf`. The three targets
+It regenerates every number and table, then typesets `main.pdf`. The targets
 separately:
 
 ```bash
 make -C paper numbers   # regenerate every number and table
 make -C paper pdf       # typeset from the committed .tex tree
 make -C paper check     # structural checks, no TeX needed
+make -C paper arxiv     # the tarball arXiv takes, test-compiled where TeX exists
 ```
 
 `make numbers` runs `python -m studies.make_paper_tex`, which writes
@@ -115,7 +116,14 @@ block a submission at the last minute.
 | `studies/check_paper.py` | the structural checks; not uploaded |
 
 arXiv takes a single `.tar.gz` of `main.tex`, `refs.bib`, the `generated/`
-directory and the `figures/` directory. Five figures are included:
+directory and the `figures/` directory. `make -C paper arxiv` builds it, and the
+`Paper` workflow builds and test-compiles it on every change and uploads it as the
+`arxiv-tarball` artefact, so the archive you upload is one that has already
+compiled somewhere other than your machine. Take it from the run rather than
+assembling it by hand: a file the paper needs but the archive omits is invisible in
+the repository and fatal on arXiv's compiler.
+
+Five figures are included:
 
 | File | Where it appears |
 |---|---|
