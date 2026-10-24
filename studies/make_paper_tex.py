@@ -59,6 +59,29 @@ def _git(*args: str) -> str:
         return "unknown"
 
 
+def _data_commit() -> str:
+    """The last commit to change any input this document is generated from.
+
+    Not ``HEAD``: the generated tree is committed, so embedding ``HEAD`` makes the
+    file stale the moment it lands, and the check that guards it fails forever.
+    The commit named in the paper is the one that produced the numbers, which is
+    what a reader reproduces from anyway.
+    """
+    return (
+        _git(
+            "log",
+            "-1",
+            "--format=%H",
+            "--",
+            str(ANALYSIS.relative_to(REPO)),
+            str(AUTO.relative_to(REPO)),
+            str(RUN_REPORT.relative_to(REPO)),
+            str(CAPABILITY.relative_to(REPO)),
+        )
+        or "unknown"
+    )
+
+
 def tex_num(value: float, digits: int = 3) -> str:
     """A number in the paper's house style: plain digits, no scientific noise.
 
@@ -393,7 +416,7 @@ def cost_macros() -> list[str]:
 
 def build_main(macros: list[str]) -> str:
     body = "\n".join(macros)
-    head = _git("rev-parse", "HEAD")
+    head = _data_commit()
     return MAIN_TEMPLATE.replace("%%MACROS%%", body).replace("%%HEAD%%", head)
 
 
@@ -835,7 +858,7 @@ def copy_figures() -> list[Path]:
 def write_tree() -> list[Path]:
     GENERATED.mkdir(parents=True, exist_ok=True)
     macros = h6_macros() + auto_macros() + cost_macros()
-    head = _git("rev-parse", "HEAD")
+    head = _data_commit()
     # The abstract's length is a submission requirement, so it is reported rather
     # than estimated. Macro invocations count as their expansion would read: a
     # word is a whitespace-separated token, and a macro is one token.
