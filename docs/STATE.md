@@ -301,7 +301,14 @@ uploaded by trusted publishing. `CITATION.cff` carries the Zenodo version DOI
   bibliography entries were checked against the publisher record during the build;
   the Chen & Hall DOI was corrected from `...0095` to `...0096` by that check, and
   the Laub identifier is left marked `[VERIFY]` because the sources disagreed.
-- **Blocker carried forward.** `paper/main.tex` has not been compiled to PDF on
-  this machine. No TeX distribution is installed, and the sandbox refused to
-  install one; `paper/SUBMISSION.md` records the build command and the order of
-  operations. This is the one exit criterion met in part rather than in full.
+- **Blocker resolved.** The paper now compiles. A `Paper` workflow installs TeX
+  Live, typesets the committed tree, fails on an overfull box or an unresolved
+  citation, test-compiles the arXiv archive in isolation, and uploads both. The
+  first real compile found twenty macros whose names contained digits
+  (`\Hsix61Label`), which TeX read as `\Hsix` followed by literal text and which
+  `check_paper.py` could not see because its own pattern stopped at the letter.
+  Both are fixed, and the check now rejects a non-letter macro name.
+- **The paper is on HAL** at `hal-05838093v1`, deposited 2026-10-25, which hosts and
+  serves the PDF. arXiv is still pending an endorsement for `stat.ME`. Every
+  bibliography entry has been checked; the Laub identifier resolved to
+  `1507.02822` and is no longer marked `[VERIFY]`.

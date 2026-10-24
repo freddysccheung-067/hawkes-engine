@@ -113,7 +113,13 @@ a limitation of a nearest-neighbour map rather than a fault in the switch.
 in it is emitted by `studies/make_paper_tex.py` from a committed output; nothing is
 typed by hand. All seven entries in `paper/refs.bib` have been checked against the
 publisher record or the arXiv listing. `paper/SUBMISSION.md` is the arXiv checklist.
-Nothing has been submitted.
+Nothing has been submitted to arXiv.
+
+The paper is deposited on HAL at
+[`hal-05838093v1`](https://hal.science/hal-05838093v1), which hosts and serves the
+PDF. HAL is CNRS-run and moderated, and it needs no endorsement, unlike a first
+arXiv submission. The arXiv listing is still pending an endorsement for `stat.ME`;
+when it appears, this paragraph will say so.
 
 Before 0.2.0 the paper had never been typeset: no session that prepared it had a
 TeX installation, and the structure checks cannot see a failing compile. The first
