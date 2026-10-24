@@ -32,6 +32,9 @@ cmake_install.cmake
 CMakeUserPresets.json
 _deps/
 Makefile
+# The CMake-generated Makefile is the one to ignore; the paper's own build file is
+# hand-written and is the command the paper is built with.
+!paper/Makefile
 
 # C++ object files
 *.o
