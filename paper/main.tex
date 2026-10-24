@@ -16,6 +16,14 @@
 
 \captionsetup{font=small,labelfont=bf}
 
+% A 40-character commit hash in \texttt has no break point and is wider than a
+% line, so any paragraph containing one overflows whatever the surrounding prose
+% does. \emergencystretch lets TeX stretch that line by up to 3em rather than run
+% into the margin; \sloppy would do the same by loosening every line in the
+% document, which is too much. The commits are also wrapped in \detokenize, which
+% gives TeX a break point inside them, so this is the second line of defence.
+\setlength{\emergencystretch}{3em}
+
 \newcommand{\HsixCells}{128}
 \newcommand{\HsixReplications}{2000}
 \newcommand{\HsixRows}{256{,}000}
