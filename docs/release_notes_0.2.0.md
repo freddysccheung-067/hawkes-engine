@@ -147,3 +147,12 @@ python -m pip install hawkes-engine==0.2.0
 ```
 
 Supported platforms and Python versions are unchanged from 0.1.0.
+
+## The DOI
+
+This release has no DOI of its own yet. 0.1.0 is archived at
+[`10.5281/zenodo.23613789`](https://doi.org/10.5281/zenodo.23613789), and the concept
+DOI [`10.5281/zenodo.23613788`](https://doi.org/10.5281/zenodo.23613788) resolves to
+whichever version is current, so cite that one until 0.2.0 is deposited. When a
+version DOI is minted it is added here and to `CITATION.cff` in one commit, which
+`tests/test_release_metadata.py` enforces.

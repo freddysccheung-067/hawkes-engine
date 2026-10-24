@@ -6,7 +6,7 @@
 python -m pip install hawkes-engine
 ```
 
-Version 0.1.0 is published on [PyPI](https://pypi.org/project/hawkes-engine/) with
+Version 0.2.0 is published on [PyPI](https://pypi.org/project/hawkes-engine/) with
 wheels for CPython 3.10 to 3.12 on Linux (x86-64), macOS (x86-64 and arm64) and
 Windows (AMD64), plus an sdist. It is a pre-alpha research release: the API may
 change between 0.x minor versions, as described in
@@ -25,7 +25,7 @@ same matrix. Those wheels are attached to the workflow run, not to a release:
 2. Install it into an environment whose Python matches the wheel's tag:
 
 ```bash
-python -m pip install hawkes_engine-0.1.0.dev0-cp312-cp312-win_amd64.whl
+python -m pip install hawkes_engine-0.2.0-cp312-cp312-win_amd64.whl
 ```
 
 A wheel built for `cp312` will not install into 3.10 or 3.11; that is the ABI
@@ -109,7 +109,7 @@ slower (ADR-006).
 
 ## Known limitations
 
-- 0.1.0 on PyPI covers only the platforms listed above. `pip install
+- 0.2.0 on PyPI covers only the platforms listed above. `pip install
   hawkes-engine` fails on Python 3.13 or 3.14 and on musllinux, 32-bit and ARM
   Windows; all of those build from source.
 - Python 3.13 and 3.14 are not built. The wheel matrix is cp310-cp312; adding a

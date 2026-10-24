@@ -22,11 +22,10 @@ keywords:
   - point process
   - maximum likelihood
   - time rescaling
-doi: "10.5281/zenodo.23613789"
+# Version 0.1.0 has a Zenodo DOI: 10.5281/zenodo.23613789, which its release notes
+# carry. No DOI has been minted for 0.2.0, and this file must not name one until it
+# exists; the concept DOI below resolves to whichever version is current.
 identifiers:
-  - type: doi
-    value: "10.5281/zenodo.23613789"
-    description: "Version 0.2.0"
   - type: doi
     value: "10.5281/zenodo.23613788"
     description: "All versions"

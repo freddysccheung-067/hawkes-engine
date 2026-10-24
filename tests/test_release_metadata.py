@@ -75,16 +75,25 @@ def test_the_author_name_agrees_across_the_three_files() -> None:
     assert zenodo_name == f"{cff_family}, {cff_given}", zenodo_name
 
 
+def _latest_release_notes() -> str:
+    """The notes for the version this tree ships, by the version in pyproject."""
+    version = tomllib.loads(_read("pyproject.toml"))["project"]["version"]
+    return f"docs/release_notes_{version}.md"
+
+
 def test_no_doi_is_claimed_anywhere_until_one_exists() -> None:
     """A DOI in the metadata is a citation to a record that may not exist yet.
 
-    The release notes say there is none. This test is what keeps that sentence true
-    until the follow-up commit that adds the Zenodo DOI, which must change both at
-    once.
+    Checked against the notes for the version this tree ships, not a fixed file:
+    the question only has an answer for one version at a time, and 0.1.0's notes
+    legitimately carry a DOI that 0.2.0 does not have yet. When the Zenodo DOI for
+    the current version is minted, this test requires it to be added here and to
+    ``CITATION.cff`` in one commit.
     """
     citation = _read("CITATION.cff")
     has_doi = re.search(r"^doi:", citation, re.M) is not None
-    notes_say_none = "This release has no DOI" in _read("docs/release_notes_0.1.0.md")
+    notes = _read(_latest_release_notes())
+    notes_say_none = "This release has no DOI" in notes
     assert has_doi == (not notes_say_none), (
         "CITATION.cff claims a DOI and the release notes say there is none, "
         "or the reverse; add the DOI and update the notes in one commit"

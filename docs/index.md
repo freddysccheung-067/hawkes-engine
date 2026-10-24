@@ -6,7 +6,7 @@ independent exact simulators, time-rescaling diagnostics, and a lookup of what a
 pre-registered simulation study measured about the fit's standard errors in a given
 regime.
 
-**Status: 0.1.0 on [PyPI](https://pypi.org/project/hawkes-engine/), pre-alpha.**
+**Status: 0.2.0 on [PyPI](https://pypi.org/project/hawkes-engine/), pre-alpha.**
 `python -m pip install hawkes-engine`. See [](install.md) for the platforms it is
 built for and for building from source.
 
