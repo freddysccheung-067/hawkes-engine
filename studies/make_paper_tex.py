@@ -60,26 +60,25 @@ def _git(*args: str) -> str:
 
 
 def _data_commit() -> str:
-    """The last commit to change any input this document is generated from.
+    """The commit the numbers in this document were produced from.
 
-    Not ``HEAD``: the generated tree is committed, so embedding ``HEAD`` makes the
-    file stale the moment it lands, and the check that guards it fails forever.
-    The commit named in the paper is the one that produced the numbers, which is
-    what a reader reproduces from anyway.
+    Read from the analysis output, not from git. Two reasons:
+
+    * Embedding ``HEAD`` makes the file stale the moment it is committed, and the
+      check that guards it then fails on every clean checkout.
+    * Asking git for the last commit touching the study outputs gives a different
+      answer under a shallow checkout, which is what CI does. A generator whose
+      output depends on history depth cannot be checked for staleness at all.
+
+    ``provenance.analysis_commit`` is written by the analysis run itself, so it is
+    a property of the committed data and every checkout agrees on it.
     """
-    return (
-        _git(
-            "log",
-            "-1",
-            "--format=%H",
-            "--",
-            str(ANALYSIS.relative_to(REPO)),
-            str(AUTO.relative_to(REPO)),
-            str(RUN_REPORT.relative_to(REPO)),
-            str(CAPABILITY.relative_to(REPO)),
-        )
-        or "unknown"
-    )
+    try:
+        payload = json.loads(H6_HYP.read_text(encoding="utf-8"))
+        commit = payload["provenance"]["analysis_commit"]
+    except (OSError, KeyError, ValueError):  # pragma: no cover - environment
+        return "unknown"
+    return str(commit)
 
 
 def tex_num(value: float, digits: int = 3) -> str:
@@ -779,8 +778,10 @@ whose digest begins \HsixManifestDigest. The interval study's design is
 Pair decay, one start, \texttt{se\_method="hessian"} was the measured configuration.
 The study's outputs are the JSON and CSV files under
 \texttt{studies/results/}; the shipped map is
-\texttt{data/trust/v1\_excitation\_only.csv}. This document was generated at commit
-\texttt{%%HEAD%%}.
+\texttt{data/trust/v1\_excitation\_only.csv}. The numbers above were produced at
+commit \texttt{%%HEAD%%}, and this document is current when
+\texttt{studies/make\_paper\_tex.py -{}-check} agrees with what the committed
+outputs generate.
 """,
     "a1_prereg": r"""
 The design was frozen at the git tag \texttt{H6-preregistration}, commit
