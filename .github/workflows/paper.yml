@@ -90,26 +90,40 @@ jobs:
       - name: Fail on layout defects
         run: |
           python - <<'EOF'
+          import re
           from pathlib import Path
 
-          # A table wider than the margin compiles cleanly and looks wrong, and the
-          # submission checklist tells the owner to read the PDF for exactly that.
-          # Failing here turns the most common instance into a red check.
           log = Path("paper/main.log").read_text(errors="replace")
-          overfull = [ln for ln in log.splitlines() if "Overfull \\hbox" in ln]
+
+          # An overfull box is text or a rule wider than its line. Every TeX
+          # document has some, usually a fraction of a point in an inline formula,
+          # so the threshold is not zero: it is a tenth of a point, below which a
+          # box is invisible at print size. Anything wider is a table or a figure
+          # that runs into the margin, which is the defect the submission
+          # checklist tells the owner to find by reading the PDF.
+          LIMIT_PT = 0.1
+          overfull = []
+          for line in log.splitlines():
+              m = re.search(r"Overfull \\hbox \(([\d.]+)pt too wide\)", line)
+              if m and float(m.group(1)) >= LIMIT_PT:
+                  overfull.append(line.strip())
+
           unresolved = [
-              ln for ln in log.splitlines()
+              ln.strip() for ln in log.splitlines()
               if "LaTeX Warning: Citation" in ln or "LaTeX Warning: Reference" in ln
           ]
-          for line in overfull[:20]:
-              print("OVERFULL:", line.strip())
-          for line in unresolved[:20]:
-              print("UNRESOLVED:", line.strip())
+
+          for line in overfull[:30]:
+              print("OVERFULL:", line)
+          for line in unresolved[:30]:
+              print("UNRESOLVED:", line)
+          print(f"counts: overfull>={LIMIT_PT}pt = {len(overfull)}, unresolved = {len(unresolved)}")
+
           if overfull:
-              raise SystemExit(f"{len(overfull)} overfull boxes")
+              raise SystemExit(f"{len(overfull)} overfull boxes at or above {LIMIT_PT}pt")
           if unresolved:
               raise SystemExit(f"{len(unresolved)} unresolved citations or references")
-          print("no overfull boxes, no unresolved citations")
+          print("layout clean")
           EOF
 
       - name: Upload the PDF

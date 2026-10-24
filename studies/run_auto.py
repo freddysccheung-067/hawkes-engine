@@ -481,6 +481,46 @@ def projected_seconds(reps: int, workers: int) -> float:
     return 3.0 * reps * 2.7 / max(workers, 1)
 
 
+def write_provenance(written: list[str]) -> Path:
+    """Record how to reproduce this run, in the file the pre-registration names.
+
+    Section 1 of ``docs/preregistration_auto.md`` says "the commit hash of the
+    freeze is recorded in ``studies/results/auto/provenance.json`` when the study
+    runs". Nothing wrote that file, so the claim a stranger can check the freeze
+    was not checkable from the outputs; only from the git history, which is the
+    thing the record exists to avoid depending on.
+    """
+    import subprocess
+
+    def git(*args: str) -> str:
+        try:
+            return subprocess.run(
+                ["git", *args], cwd=REPO, capture_output=True, text=True, check=True
+            ).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            return "unknown"
+
+    path = RESULTS / "provenance.json"
+    payload = {
+        "study_id": STUDY_ID,
+        "preregistration": "docs/preregistration_auto.md",
+        "preregistration_commit": git(
+            "log", "-1", "--format=%H", "--", "docs/preregistration_auto.md"
+        ),
+        "run_commit": git("rev-parse", "HEAD"),
+        "cells": written,
+        "checksums": {
+            name: json.loads((RESULTS / f"{name}.done").read_text(encoding="utf-8")).get("checksum")
+            for name in written
+            if (RESULTS / f"{name}.done").exists()
+        },
+        "recorded_at": git("log", "-1", "--format=%cI", "--", "docs/preregistration_auto.md"),
+    }
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"wrote {path}")
+    return path
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--reps", type=int, default=R)
@@ -516,6 +556,7 @@ def main(argv: list[str] | None = None) -> int:
         f"finished: {len(results)} cells ({done} run, {len(results) - done} skipped), "
         f"{total:.0f} s wall"
     )
+    write_provenance([cell.key for cell in cells])
     return 0
 
 
