@@ -415,3 +415,57 @@ def test_the_auto_study_decision_counts_quoted_in_the_release_notes():
                 f"{cell['cell']} had {actions['hessian_unmapped']} unmapped "
                 f"replications, which the notes do not report"
             )
+
+
+# ------------------------------------------------------------------- figures
+
+
+def test_every_paper_figure_is_the_generator_output():
+    """A figure in paper/figures must be byte-identical to the one that was generated.
+
+    A hand-edited figure is the same defect as a hand-typed number: the paper would
+    show something no script produced. The copies exist so the arXiv archive builds
+    alone, not so they can be touched.
+    """
+    paper_figures = ROOT / "paper" / "figures"
+    if not paper_figures.exists():
+        pytest.skip("paper/figures is not present in this checkout")
+    for path in sorted(paper_figures.glob("*.pdf")):
+        source = ROOT / "studies" / "figures" / path.name
+        if not source.exists():
+            pytest.skip(f"{path.name}: the study output is not in this checkout")
+        assert path.read_bytes() == source.read_bytes(), (
+            f"{path.name} differs from studies/figures/{path.name}; "
+            f"regenerate with python -m studies.make_paper_tex"
+        )
+
+
+def test_every_paper_figure_is_vector_with_embedded_fonts():
+    """No raster panel, and every font embedded: both are visible at print size."""
+    paper_figures = ROOT / "paper" / "figures"
+    if not paper_figures.exists():
+        pytest.skip("paper/figures is not present in this checkout")
+    for path in sorted(paper_figures.glob("*.pdf")):
+        raw = path.read_bytes()
+        assert (
+            b"/Subtype /Image" not in raw and b"/Subtype/Image" not in raw
+        ), f"{path.name} embeds a raster image; a paper figure must be vector"
+        # Every distinct face must have an embedded program. A PDF names a font
+        # twice — once for the Type0 composite and once for its descendant — so the
+        # count is over distinct BaseFont names, not over declarations. Comparing
+        # against declarations would fail a correctly embedded figure.
+        names = set(re.findall(rb"/BaseFont\s*/([A-Za-z0-9+\-]+)", raw))
+        embedded = len(re.findall(rb"/FontFile[23]?\b", raw))
+        assert names, f"{path.name} declares no font at all"
+        assert embedded >= len(names), (
+            f"{path.name} declares {len(names)} distinct faces and embeds {embedded}; "
+            f"a reader without the missing face would see a substitute"
+        )
+
+
+def test_the_figure_readme_names_every_figure_once():
+    """The figure list maps each file to a claim, and each file appears in it."""
+    readme = ROOT / "studies" / "figures" / "README.md"
+    text = readme.read_text(encoding="utf-8")
+    for path in sorted((ROOT / "studies" / "figures").glob("*.pdf")):
+        assert text.count(f"`{path.name}`") >= 1, f"{path.name} is not in the figure list"
