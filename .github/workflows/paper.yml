@@ -1,0 +1,142 @@
+name: Paper
+
+# The paper is generated, and until this workflow existed nothing compiled it: the
+# structure checks catch a missing macro, not a table wider than the margin, and
+# every session that prepared the package reported "no TeX installed". This builds
+# the PDF on every change to the paper and uploads it, so a compile error is a red
+# check rather than something found after the submission form is open.
+
+on:
+  push:
+    paths:
+      - "paper/**"
+      - "studies/make_paper_tex.py"
+      - "studies/check_paper.py"
+      - ".github/workflows/paper.yml"
+  pull_request:
+    paths:
+      - "paper/**"
+      - "studies/make_paper_tex.py"
+      - "studies/check_paper.py"
+      - ".github/workflows/paper.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Typeset the paper
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the generator's dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy
+          python -m pip install -e ".[figures]"
+
+      - name: Check the generated tree is current
+        run: python -m studies.make_paper_tex --check
+
+      - name: Check the paper's structure
+        run: python -m studies.check_paper
+
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended texlive-bibtex-extra lmodern
+
+      - name: Typeset
+        working-directory: paper
+        run: |
+          # Each pass is checked so a failure names the pass in the log, and the
+          # first TeX error is lifted out of the .log into the summary: without
+          # this the step reports "exit code 1" and the actual message sits in an
+          # artefact nobody downloads.
+          set -o pipefail
+          pass() {
+            echo "::group::$1"
+            if ! pdflatex -interaction=nonstopmode -halt-on-error main.tex; then
+              echo "::endgroup::"
+              echo "### pdflatex failed on $1" >> "$GITHUB_STEP_SUMMARY"
+              grep -n -E '^!|^l\.[0-9]+' main.log | head -40 >> "$GITHUB_STEP_SUMMARY" || true
+              echo "::error title=pdflatex failed ($1)::$(grep -m1 '^!' main.log || echo 'see log')"
+              exit 1
+            fi
+            echo "::endgroup::"
+          }
+          pass "pass 1 (defines labels)"
+          if ! bibtex main; then
+            echo "### bibtex failed" >> "$GITHUB_STEP_SUMMARY"
+            sed -n '1,60p' main.blg >> "$GITHUB_STEP_SUMMARY" || true
+            echo "::error title=bibtex failed::$(grep -m1 -i 'error\|warning' main.blg || echo 'see blg')"
+            exit 1
+          fi
+          pass "pass 2 (resolves citations)"
+          pass "pass 3 (resolves references)"
+
+      - name: Fail on layout defects
+        run: |
+          python - <<'EOF'
+          import re
+          from pathlib import Path
+
+          log = Path("paper/main.log").read_text(errors="replace")
+
+          # An overfull box is text or a rule wider than its line. Every TeX
+          # document has some, usually a fraction of a point in an inline formula,
+          # so the threshold is not zero: it is a tenth of a point, below which a
+          # box is invisible at print size. Anything wider is a table or a figure
+          # that runs into the margin, which is the defect the submission
+          # checklist tells the owner to find by reading the PDF.
+          LIMIT_PT = 0.1
+          lines = log.splitlines()
+          overfull = []
+          for i, line in enumerate(lines):
+              m = re.search(r"Overfull \\hbox \(([\d.]+)pt too wide\)(.*)", line)
+              if not m or float(m.group(1)) < LIMIT_PT:
+                  continue
+              # The box's contents are printed on the lines after the warning, in
+              # brackets. They name the offending text, which is what tells a
+              # reader which table or paragraph to fix.
+              following = " ".join(ln.strip() for ln in lines[i + 1 : i + 4]).strip()
+              overfull.append((float(m.group(1)), line.strip(), following[:200]))
+
+          unresolved = [
+              ln.strip() for ln in lines
+              if "LaTeX Warning: Citation" in ln or "LaTeX Warning: Reference" in ln
+          ]
+
+          # Annotations are the only part of this run a session without log
+          # access can read, so every finding is one.
+          for width, line, context in overfull[:20]:
+              print(f"::error::{width:.2f}pt overfull :: {line}")
+              if context:
+                  print(f"::error::   contents: {context}")
+
+          print(f"counts: overfull>={LIMIT_PT}pt = {len(overfull)}, unresolved = {len(unresolved)}")
+          if overfull:
+              raise SystemExit(f"{len(overfull)} overfull boxes at or above {LIMIT_PT}pt")
+          if unresolved:
+              raise SystemExit(f"{len(unresolved)} unresolved citations or references")
+          print("layout clean")
+          EOF
+
+      - name: Upload the PDF
+        uses: actions/upload-artifact@v7
+        with:
+          name: paper-pdf
+          path: paper/main.pdf
+          if-no-files-found: error

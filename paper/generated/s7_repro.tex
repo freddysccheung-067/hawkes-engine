@@ -1,0 +1,20 @@
+Every figure in this paper is emitted by \texttt{studies/make\_paper\_tex.py} from a
+committed output; no number was typed. One command per stage reproduces the study,
+the analysis, the map, the figures and this document.
+
+The grid was frozen at the tag \texttt{H6-preregistration}, commit
+\texttt{\detokenize{\HsixTagCommit}}, before any cell ran. The analysis is
+attributed to commit \texttt{\detokenize{\HsixAnalysisCommit}}; the per-cell data
+hashes are in the study manifest,
+whose digest begins \HsixManifestDigest. The interval study's design is
+\texttt{docs/preregistration\_auto.md}, frozen before its harness existed.
+
+Pair decay, one start, \texttt{se\_method="hessian"} was the measured configuration.
+The study's outputs are the JSON and CSV files under
+\texttt{studies/results/}; the shipped map is
+\texttt{data/trust/v1\_excitation\_only.csv}. The numbers above were produced at
+commit
+\texttt{\detokenize{ce96fe9813924462ee2af99450ebc3f92bb14f29}},
+and this document is current when
+\texttt{studies/make\_paper\_tex.py -{}-check} agrees with what the committed
+outputs generate.

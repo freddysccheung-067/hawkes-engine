@@ -1,14 +1,24 @@
 # Installing hawkes-engine
 
-**There are no PyPI releases yet.** The project is pre-alpha and the first
-release is gate H9 of nine. Everything below is either building from source or
-installing a wheel built locally by CI; neither is a stable distribution.
+## From PyPI
+
+```bash
+python -m pip install hawkes-engine
+```
+
+Version 0.1.0 is published on [PyPI](https://pypi.org/project/hawkes-engine/) with
+wheels for CPython 3.10 to 3.12 on Linux (x86-64), macOS (x86-64 and arm64) and
+Windows (AMD64), plus an sdist. It is a pre-alpha research release: the API may
+change between 0.x minor versions, as described in
+[ADR-009](https://github.com/freddysccheung-067/hawkes-engine/blob/main/docs/adr/ADR-009-versioning.md).
+
+Nothing is built for musllinux, 32-bit targets, ARM Windows, or Python 3.13 and
+3.14. On those, build from source.
 
 ## From a wheel built by CI
 
-The `Build Wheels` workflow produces wheels for CPython 3.10-3.12 on Linux
-(x86-64), macOS (x86-64 and arm64) and Windows (AMD64). They are attached to the
-workflow run, not to a release:
+For a commit that has not been released, the `Build Wheels` workflow produces the
+same matrix. Those wheels are attached to the workflow run, not to a release:
 
 1. Open the run on the [Actions page](https://github.com/freddysccheung-067/hawkes-engine/actions/workflows/wheels.yml)
    and download the `wheels-<os>` artefact for your platform.
@@ -99,7 +109,9 @@ slower (ADR-006).
 
 ## Known limitations
 
-- No PyPI wheels. `pip install hawkes-engine` will fail.
+- 0.1.0 on PyPI covers only the platforms listed above. `pip install
+  hawkes-engine` fails on Python 3.13 or 3.14 and on musllinux, 32-bit and ARM
+  Windows; all of those build from source.
 - Python 3.13 and 3.14 are not built. The wheel matrix is cp310-cp312; adding a
   version is a change to `CIBW_BUILD` and a test run, not a rebuild.
 - musllinux is not built. The core has no libc-sensitive dependency, so those

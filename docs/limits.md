@@ -107,7 +107,48 @@ Evidence: [capability table](https://github.com/freddysccheung-067/hawkes-engine
   decay and exponential kernels. `shared_decay=True` is a different model with
   $M$ decay rates, and its fits are outside the measured map. Only the speed of the
   shared-decay likelihood call was measured, not of a fit.
-- The bootstrap standard errors were not part of the calibration study.
+- The bootstrap standard errors were not part of the calibration study. The
+  separate study in section 8 measured them at three cells, not across the grid.
 - `trust_lookup` answers from the nearest of 128 cells, each run at one parameter
   set, and gives that answer however far the cell is.
 - All events must be observed. Censoring and missing data are not modelled.
+
+## 8. What `auto` does not fix
+
+`se_method="auto"` (0.2.0) asks the map which interval to report. It changes the
+width of an interval and nothing else, and there are five things it does not do.
+
+**It does not reduce bias.** The point estimate is the same maximum-likelihood
+estimate either way. The map measured bias as well as coverage, and `auto` does not
+act on it: an interval centred on a biased estimate is an interval around the wrong
+number, however honestly its width is measured.
+
+**It does not make the undefined region estimable.** Section 3 says the estimator
+is undefined where $\beta_{\min}T$ is small. `auto` returns `se_source="none"` with
+a note naming the failing axis. It does not find an interval there, and it does not
+substitute one from a neighbouring cell.
+
+**It does not extrapolate, and it does not widen by a fudge factor.** Outside the
+measured box it keeps the Hessian interval and labels it uncalibrated. Inside it, it
+either uses the Hessian as computed or replaces it with the bootstrap's; it never
+scales a Hessian interval by a constant.
+
+**It does not cover `shared_decay=True`.** That model has $M$ decay rates rather
+than $M^2$ and no cell of the map describes it, so `auto` records the decision as
+unmapped and uses the Hessian.
+
+**It does not fix large $M$ at small $N$.** The map's four-type satellite is eight
+cells; at $M \ge 6$ with about $10^4$ events the fits remain slow and the verdict
+remains `marginal` or `unreliable` (section 6), and `auto` has nothing measured to
+offer there.
+
+One thing worth knowing before relying on it: at the threshold `auto` uses — twice
+the Monte Carlo standard error of the measured $q$ — every cell of the map fires,
+so `auto` chooses the bootstrap wherever the map has measured and the Hessian only
+where the map is silent or where the projected cost exceeds `auto_max_seconds`. The
+switch is therefore usually a wait of seconds to a couple of minutes, and never a
+wait of an hour, because the projection is checked first. The policy, the threshold
+and its justification are in [](se_policy.md); the study that tested whether the
+switch helps is `docs/preregistration_auto.md` in the repository, which is kept
+out of this site for the same reason `docs/preregistration.md` is: it is a referee
+document, read at its frozen version.

@@ -21,6 +21,8 @@ Two things this module deliberately does *not* claim:
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import numpy.typing as npt
 
@@ -36,6 +38,7 @@ from hawkes_engine.hessian import (
     spectral_radius_gradient,
 )
 from hawkes_engine.model import FitResult
+from hawkes_engine.se_policy import AutoDecision
 
 __all__ = ["fit"]
 
@@ -311,6 +314,8 @@ def fit(
     ridge_report: bool = True,
     zero_diagonal: bool = False,
     n_bootstrap: int = 200,
+    auto_max_seconds: float | None = 120.0,
+    bootstrap_workers: int | None = None,
 ) -> FitResult:
     """Fit the model by maximum likelihood; return the estimates and what is known about them.
 
@@ -346,14 +351,19 @@ def fit(
         draws from the OS entropy pool, so a fit without a seed is not
         reproducible; with one it is bit-reproducible.
     se_method
-        ``"hessian"`` for the observed information (the default, and the only
-        method the calibration study measured), ``"bootstrap"`` for a parametric
-        bootstrap that refits ``n_bootstrap`` times, or ``None`` to skip standard
-        errors, in which case ``reliable`` is ``"unreliable"`` by construction.
+        ``"auto"`` to let the calibration map choose (see
+        :mod:`hawkes_engine.se_policy` and the ``se_source`` and ``se_note``
+        fields of the result); ``"hessian"`` for the observed information (the
+        default, and the only method the calibration study measured);
+        ``"bootstrap"`` for a parametric bootstrap that refits ``n_bootstrap``
+        times; or ``None`` to skip standard errors, in which case ``reliable`` is
+        ``"unreliable"`` by construction.
         On Windows and macOS the bootstrap starts worker processes, so the
         calling script needs an ``if __name__ == "__main__":`` guard. Without
         one, Python 3.11 and later fail with an error that names it; Python 3.10
         on Windows can hang instead (a CPython defect), so use the guard there.
+        ``"auto"`` may choose the bootstrap, so a script that asks for ``"auto"``
+        needs the same guard.
     ridge_report
         Accepted for compatibility. It has no effect: the reliability report
         always runs.
@@ -361,7 +371,19 @@ def fit(
         Constrain ``alpha_ii = 0``. Masked out of the free vector, not projected
         after the fact: a projected coordinate is still a coordinate.
     n_bootstrap
-        Replications for ``se_method="bootstrap"``.
+        Replications for ``se_method="bootstrap"``, and for the bootstrap that
+        ``"auto"`` may choose.
+    auto_max_seconds
+        The ceiling on the projected cost of a bootstrap that ``"auto"`` would
+        choose. When the projection exceeds it, ``"auto"`` keeps the Hessian
+        interval, says so in ``se_note`` and warns. ``None`` removes the ceiling,
+        which is a decision to let a fit call run for as long as the bootstrap
+        takes. Only read when ``se_method="auto"``.
+    bootstrap_workers
+        Process count for the bootstrap pool. ``None`` uses every logical core,
+        which is right for a single fit and wrong when many fits run at once: a
+        study that parallelises over fits and leaves this at ``None`` starts one
+        pool per fit and spends its time in process start-up. Set it to 1 there.
 
     Returns
     -------
@@ -370,6 +392,8 @@ def fit(
         ``reliable`` verdict. ``reliable`` describes how well conditioned this
         fit is; it says nothing about bias or coverage, which are properties of
         the estimator and are reported by :func:`hawkes_engine.trust_lookup`.
+        ``se_source`` and ``se_note`` say which method produced ``se`` and why;
+        with ``se_method="auto"`` the ``auto`` field carries the whole decision.
 
     Raises
     ------
@@ -387,8 +411,21 @@ def fit(
     """
     from scipy.optimize import minimize  # type: ignore[import-untyped]
 
-    if se_method not in ("hessian", "bootstrap", None):
-        raise ValueError(f"se_method must be 'hessian', 'bootstrap' or None, got {se_method!r}")
+    if se_method not in ("auto", "hessian", "bootstrap", None):
+        raise ValueError(
+            f"se_method must be 'auto', 'hessian', 'bootstrap' or None, got {se_method!r}"
+        )
+    # The bootstrap declines to report an interval when fewer than ten of its
+    # replications produced a usable refit (``_boot.parametric_bootstrap``), so a
+    # count below ten can never yield one. Refusing here is clearer than a fit that
+    # runs for minutes and returns nothing, and it matters most for "auto", which
+    # can choose the bootstrap without the caller naming it.
+    if se_method in ("auto", "bootstrap") and n_bootstrap < 10:
+        raise ValueError(
+            f"n_bootstrap must be at least 10, got {n_bootstrap!r}; the bootstrap "
+            f"reports no interval below that, because fewer than ten usable "
+            f"replications is not an estimate"
+        )
     if init != "moment":
         raise ValueError(f"init must be 'moment' in v0.1, got {init!r}")
     if n_starts < 1:
@@ -471,7 +508,30 @@ def fit(
             + "; the estimate is a boundary value, not a stationary point"
         )
 
-    if se_method == "hessian":
+    auto_decision = None
+    effective = se_method
+    se_source = "none" if se_method is None else "hessian"
+    se_note = ""
+    if se_method == "auto":
+        effective, auto_decision, se_source, se_note = _resolve_auto(
+            N=int(t_arr.size),
+            rho=rho,
+            beta_hat=beta_hat,
+            T=T_value,
+            shared=shared_decay,
+            layout=layout,
+            n_bootstrap=n_bootstrap,
+            auto_max_seconds=auto_max_seconds,
+        )
+        if auto_decision.action == "hessian_after_limit":
+            warnings.warn(
+                auto_decision.note,
+                RuntimeWarning,
+                stacklevel=2,
+            )
+        notes.append(se_note)
+
+    if effective == "hessian":
         # Every free coordinate is strictly positive, so the difference probes
         # must stay in the open half-line.
         hess_nat = observed_information(
@@ -484,7 +544,7 @@ def fit(
         if cov_log is not None:
             se = natural_standard_errors(cov_log, x_natural, layout)
             se = _mask_fixed(se, layout)
-    elif se_method == "bootstrap":
+    elif effective == "bootstrap":
         from hawkes_engine._boot import parametric_bootstrap
 
         boot = parametric_bootstrap(
@@ -499,11 +559,22 @@ def fit(
             layout,
             n_bootstrap=n_bootstrap,
             seed=seed,
+            workers=bootstrap_workers,
             zero_diagonal=zero_diagonal,
         )
         se = boot.se
         cov_log = boot.cov_log
         notes.extend(boot.notes)
+        # The bootstrap may decline to report standard errors when too few
+        # replications produced a usable refit. Then the source is that refusal,
+        # not the method that was attempted.
+        if se is None:
+            se_source = "none"
+            se_note = (
+                "the bootstrap was chosen but too few replications produced a "
+                "usable refit; no interval is reported"
+            )
+            notes.append(se_note)
 
     rho_ci = None
     if cov_log is not None:
@@ -515,6 +586,36 @@ def fit(
                 "the branching matrix has a repeated dominant eigenvalue, so d(rho) "
                 "does not exist and no interval is reported for rho"
             )
+
+    # A method that attempted an interval and produced none has not produced one.
+    # Saying "hessian" there would name a method whose output is absent. The
+    # decision record is corrected with it, so the record and the result cannot
+    # disagree about which method produced the interval.
+    if se_method is not None and se is None and se_source != "none":
+        se_source = "none"
+        if not se_note:
+            se_note = (
+                "a Hessian interval was requested but the observed information "
+                "could not be inverted to the required tolerance; no interval is reported"
+            )
+        if auto_decision is not None:
+            from dataclasses import replace as _replace
+
+            # The decision's note described a method, and the method produced
+            # nothing. Replacing the note rather than appending to it keeps the
+            # sentence true: "the interval is uncalibrated" is false when there is
+            # no interval.
+            auto_decision = _replace(
+                auto_decision,
+                action="none",
+                se_source="none",
+                note=(
+                    f"{auto_decision.note.split(';')[0]}; the Hessian interval it "
+                    f"chose could not be computed on this fit, so no interval is reported"
+                ),
+            )
+            se_note = auto_decision.note
+        notes.append(se_note)
 
     from hawkes_engine.trust import report as _trust_report
 
@@ -550,8 +651,103 @@ def fit(
         bound_hit=bound_hit,
         bound_coordinates=bound_names,
         theta=theta,
+        se_source=se_source,
+        se_note=se_note,
+        auto=auto_decision,
     )
     return _apply_trust(result, _trust_report)
+
+
+def _resolve_auto(
+    *,
+    N: int,
+    rho: float,
+    beta_hat: FloatArray,
+    T: float,
+    shared: bool,
+    layout: Layout,
+    n_bootstrap: int,
+    auto_max_seconds: float | None,
+) -> tuple[str | None, AutoDecision, str, str]:
+    """Turn ``se_method="auto"`` into a concrete method, with the record of why.
+
+    Returns ``(effective_method, decision, se_source, se_note)``. ``effective``
+    is what the caller dispatches on; it is ``"hessian"``, ``"bootstrap"`` or
+    ``None``. The decision is the :class:`~hawkes_engine.se_policy.AutoDecision`
+    stored on the result.
+
+    ``shared_decay=True`` is a different model: ``M`` decay rates rather than
+    ``M**2``, so a cell measured for pair decay does not describe it. Rather than
+    ask the map a question it cannot answer, the decision is recorded as unmapped.
+    The same applies if ``beta`` is empty, which cannot happen in a fitted model.
+    """
+    from hawkes_engine.se_policy import decide
+
+    free = {
+        "mu": layout.free_mu,
+        "alpha": layout.free_alpha,
+        "beta": layout.free_beta,
+    }
+    beta_min = float(np.min(beta_hat)) if np.size(beta_hat) else float("nan")
+
+    if shared:
+        decision = AutoDecision(
+            action="hessian_unmapped",
+            se_source="hessian",
+            note=(
+                "shared_decay is a different model with M decay rates and is outside "
+                "the calibration map; the interval is uncalibrated"
+            ),
+            status="unknown",
+            cell=None,
+            distance=None,
+            q={},
+            se_q={},
+            threshold=2.0,
+            firing_blocks=(),
+            projected_seconds=None,
+            max_seconds=None,
+        )
+        return "hessian", decision, "hessian", decision.note
+
+    if not np.isfinite(beta_min) or beta_min <= 0.0:  # pragma: no cover - fitted models
+        decision = AutoDecision(
+            action="hessian_unmapped",
+            se_source="hessian",
+            note=(
+                "the fitted decay rate is not usable for a map lookup; "
+                "the interval is uncalibrated"
+            ),
+            status="unknown",
+            cell=None,
+            distance=None,
+            q={},
+            se_q={},
+            threshold=2.0,
+            firing_blocks=(),
+            projected_seconds=None,
+            max_seconds=None,
+        )
+        return "hessian", decision, "hessian", decision.note
+
+    decision = decide(
+        N=N,
+        rho_hat=rho,
+        beta_min=beta_min,
+        T=T,
+        resolution=0.0,
+        M=int(layout.M),
+        free=free,
+        n_bootstrap=n_bootstrap,
+        auto_max_seconds=auto_max_seconds,
+    )
+    if decision.action == "none":
+        # No interval at all. The Hessian is not run: on this data it is the
+        # thing the map says does not exist often enough to be worth a number.
+        return None, decision, "none", decision.note
+    if decision.action == "bootstrap":
+        return "bootstrap", decision, "bootstrap", decision.note
+    return "hessian", decision, "hessian", decision.note
 
 
 class _Fixed:

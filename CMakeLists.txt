@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(hawkes_engine LANGUAGES CXX VERSION 0.1.0)
+project(hawkes_engine LANGUAGES CXX VERSION 0.2.0)
 
 # C++20 is required by ADR-001. No compiler-specific optimisation flags are added
 # here; ADR-006 governs those and they must stay portable.

@@ -128,22 +128,36 @@ def parametric_bootstrap(
         for i in range(n_bootstrap)
     ]
     draws = []
-    try:
-        with ProcessPoolExecutor(max_workers=workers) as pool:
-            for out in pool.map(_one, jobs):
-                if out is not None:
-                    draws.append(out)
-    except BrokenProcessPool as exc:
-        # Where workers are spawned (Windows, macOS) a script with no
-        # `if __name__ == "__main__":` guard re-runs itself in every worker, and
-        # the pool dies with this error and no hint of why. It is not the only
-        # cause (a worker killed for memory gives the same error), so say so.
-        raise RuntimeError(
-            'the bootstrap worker pool died. If this script has no `if __name__ == "__main__":` '
-            "guard, add one: on Windows and macOS each worker re-imports the main module. "
-            "Otherwise a worker was killed, for example for lack of memory; "
-            "try fewer replications (n_bootstrap) or se_method='hessian'."
-        ) from exc
+    if workers == 1:
+        # A single worker does not want a pool. `ProcessPoolExecutor(1)` would
+        # still spawn one process per replication and pay an interpreter import
+        # every time, which on Windows is most of the cost: measured at about
+        # 0.4 s per replication of pure start-up, against 0.05 s of work. Running
+        # in this process is the same computation with none of that, and the
+        # caller who asked for one worker has already decided not to use the
+        # machine's cores.
+        for job in jobs:
+            out = _one(job)
+            if out is not None:
+                draws.append(out)
+    else:
+        try:
+            with ProcessPoolExecutor(max_workers=workers) as pool:
+                for out in pool.map(_one, jobs):
+                    if out is not None:
+                        draws.append(out)
+        except BrokenProcessPool as exc:
+            # Where workers are spawned (Windows, macOS) a script with no
+            # `if __name__ == "__main__":` guard re-runs itself in every worker, and
+            # the pool dies with this error and no hint of why. It is not the only
+            # cause (a worker killed for memory gives the same error), so say so.
+            raise RuntimeError(
+                "the bootstrap worker pool died. If this script has no "
+                '`if __name__ == "__main__":` guard, add one: on Windows and macOS '
+                "each worker re-imports the main module. "
+                "Otherwise a worker was killed, for example for lack of memory; "
+                "try fewer replications (n_bootstrap) or se_method='hessian'."
+            ) from exc
 
     notes: list[str] = []
     if len(draws) < max(10, n_bootstrap // 2):

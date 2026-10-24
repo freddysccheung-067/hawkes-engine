@@ -24,7 +24,12 @@ import numpy as np
 
 from hawkes_engine._typing import FloatArray, JsonObject
 
-SCHEMA_VERSION = 1
+# Schema 2 adds ``se_source``, ``se_note`` and ``auto``. A reader accepts schema 1
+# and fills the three with their "not recorded" values, because a result written by
+# 0.1.0 is still a true statement about a fit; it simply cannot say which method
+# produced its standard errors.
+SCHEMA_VERSION = 2
+_READABLE_SCHEMAS = (1, 2)
 
 
 @dataclass(frozen=True)
@@ -88,6 +93,18 @@ class FitResult:
         did is a boundary value, not a stationary point.
     theta
         The log-space optimum over the free parameters.
+    se_source
+        ``"hessian"``, ``"bootstrap"`` or ``"none"``: which method produced ``se``.
+        ``"none"`` means no interval was computed or the calibration map says the
+        estimator is undefined in this regime. Read it before reading ``se``.
+    se_note
+        One sentence saying why ``se_source`` has the value it has. Empty only for
+        a result read from a 0.1.0 document, which did not record one.
+    auto
+        The full :class:`~hawkes_engine.se_policy.AutoDecision` record when
+        ``se_method="auto"``, else ``None``. It names the map cell, the distance,
+        the ``q`` it read, the threshold and the projected cost, so the choice can
+        be audited from the result alone.
     """
 
     mu: FloatArray
@@ -111,6 +128,9 @@ class FitResult:
     bound_hit: bool = False
     bound_coordinates: tuple[str, ...] = ()
     theta: FloatArray | None = None
+    se_source: str = "hessian"
+    se_note: str = ""
+    auto: Any = None
 
     def __repr__(self) -> str:
         m = self.data.get("M", self.mu.size)
@@ -145,18 +165,26 @@ class FitResult:
             "bound_hit": self.bound_hit,
             "bound_coordinates": list(self.bound_coordinates),
             "theta": None if self.theta is None else self.theta.tolist(),
+            "se_source": self.se_source,
+            "se_note": self.se_note,
+            "auto": None if self.auto is None else self.auto.to_dict(),
         }
 
     @classmethod
     def from_dict(cls, payload: JsonObject) -> FitResult:
         """Rebuild from :meth:`to_dict`. Rejects a schema it does not know."""
         schema = payload.get("schema")
-        if schema != SCHEMA_VERSION:
+        if schema not in _READABLE_SCHEMAS:
             raise ValueError(
                 f"FitResult schema {schema!r} is not supported by this version, "
                 f"which reads schema {SCHEMA_VERSION}"
             )
         se = payload["se"]
+        auto = payload.get("auto")
+        if auto is not None:
+            from hawkes_engine.se_policy import AutoDecision
+
+            auto = AutoDecision.from_dict(dict(auto))
         return cls(
             mu=np.asarray(payload["mu"], dtype=np.float64),
             alpha=np.asarray(payload["alpha"], dtype=np.float64),
@@ -187,6 +215,9 @@ class FitResult:
             theta=None
             if payload.get("theta") is None
             else np.asarray(payload["theta"], dtype=np.float64),
+            se_source=str(payload.get("se_source", "hessian")),
+            se_note=str(payload.get("se_note", "")),
+            auto=auto,
         )
 
 

@@ -1,0 +1,43 @@
+The design was frozen at the git tag \texttt{H6-preregistration}, commit
+\texttt{\detokenize{\HsixTagCommit}}, before any H6 measurement. Six amendments
+were appended
+after the freeze; each is a dated section in \texttt{docs/preregistration.md} that
+states what changed and what had been seen when it was written. Nothing above an
+amendment was edited, and no amendment deletes text.
+
+\begin{description}
+\item[Amendment 1 (2026-10-20).] Corrected section 10's seed claim: one SplitMix64
+step, not two, and the formatting rules that make the seed message round-trip.
+Written after the freeze and before any measurement.
+\item[Amendment 2 (2026-10-20).] Corrected the anchor's relation to the earlier
+recovery study: equal to within $8\times10^{-5}$ relative, not exactly equal.
+Written after the freeze and before any measurement.
+\item[Amendment 3 (2026-10-20).] Fixed the seed reading, the burn-in rule and the
+resolved-cell rule for the shallow-decay half of the grid. Written after a
+twenty-replication pilot in eight cells and before any full-grid cell ran; no
+hypothesis was evaluated on the pilot.
+\item[Amendment 4 (2026-10-20).] Added robust companions, which decide nothing, and
+restricted the headline's pooling to the two-type cells. Written after the full grid
+had run and a counts-only pass over the raw rows had been read; that pass showed the
+heavy tail in the decay estimate, and the amendment says so.
+\item[Amendment 5 (2026-10-20).] Fixed the Holm family of four, the $z$ and $p$ for
+each rule, the bootstrap standard error of $q$, and the population of the
+quantisation hypothesis. Written after the counts-only pass and before any estimand
+was computed.
+\item[Amendment 6 (2026-10-21).] Resolved the quantisation hypothesis's cell
+population and adopted the rule that where admissible forms disagree, the least
+favourable label governs. Written after the analysis, before the paper.
+\end{description}
+
+One command per stage, each run from the repository root:
+
+\begin{description}
+\item[the grid] \texttt{python -m studies.run\_study}
+\item[the estimands] \texttt{python -m studies.analyze} and
+  \texttt{python -m studies.phase3}
+\item[the shipped map] \texttt{python -m studies.build\_map}
+\item[the figures] \texttt{python -m studies.figures.make\_figures}
+\item[the interval study] \texttt{python -m studies.run\_auto} and
+  \texttt{python -m studies.analyze\_auto}
+\item[this document] \texttt{python -m studies.make\_paper\_tex}
+\end{description}

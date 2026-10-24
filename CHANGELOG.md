@@ -3,63 +3,52 @@
 All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The project is pre-alpha.
 
+## [0.2.0] - 2026-10-24
+
+The release in which the calibration study drives the estimator. Full notes, with
+the study result and the paper status: [`docs/release_notes_0.2.0.md`](docs/release_notes_0.2.0.md).
+
+### Changed
+
+- **`fit(..., se_method="auto")` is new, and it can choose a different method than
+  the default.** The fit looks its own regime up in the shipped calibration map and
+  acts on what was measured there: where an estimated block's two-standard-error
+  interval around the measured `q` excludes 1, it reports a parametric-bootstrap
+  interval instead of the Hessian one; where the map does not cover the regime it
+  keeps the Hessian interval and says it is uncalibrated; where the map reports the
+  estimator undefined it reports no interval at all. `"hessian"` remains the
+  default; `"auto"` is opt-in.
+- **A fit can now take longer than it used to.** With `se_method="auto"`, a
+  bootstrap may run. The projected cost is checked against `auto_max_seconds`
+  (default 120) before it does, and a projection above the limit keeps the Hessian
+  interval, records why, and warns rather than spending the time.
+- `FitResult` gains `se_source`, `se_note` and `auto`. `se_source` is `"hessian"`,
+  `"bootstrap"` or `"none"`; the serialisation schema is now 2, and schema-1
+  documents still load (with `se_source` reading as `"hessian"` and no record).
+- `fit` accepts `bootstrap_workers`, so a study that parallelises over fits can run
+  each bootstrap serially instead of starting a pool per fit.
+- `fit` raises on `n_bootstrap` below 10 for `"bootstrap"` and `"auto"`, because the
+  bootstrap never reports an interval below that count.
+
+### Added
+
+- `docs/se_policy.md`: the decision rule, written before the feature, with the
+  threshold justified from the map's own Monte Carlo error and the cost limit
+  justified from the capability table.
+- `docs/preregistration_auto.md`: the pre-registered study of the switch, with its
+  result in `studies/results/auto/`.
+- `paper/main.tex`, generated with every number emitted from a committed output by
+  `studies/make_paper_tex.py`; `paper/refs.bib`; `paper/SUBMISSION.md`.
+- A figure for the interval study, `studies/figures/auto_coverage.pdf`.
+
+### Unchanged
+
+- The likelihood, the gradient, the observed-information standard errors, the
+  bootstrap itself and both simulators. This release adds a decision above the
+  estimator, not new mathematics inside it.
+
 ## [0.1.0] - 2026-10-24
 
 The first release. It is a pre-alpha research release, and the notes lead with what
 the study found rather than with what was added:
 [`docs/release_notes_0.1.0.md`](docs/release_notes_0.1.0.md).
-
-### Measured
-
-- The reported standard errors understate sampling spread. Pooled over the 12
-  two-type cells with at least 2000 events, the ratio of mean reported standard
-  error to empirical standard deviation is 0.779 +/- 0.011; the decay block is 0.61.
-- Two pre-registered hypotheses, H6.3 and H6.4, were not confirmed. H6.6 was
-  confirmed but is 96.4 percent mechanical.
-- The estimator is undefined where the observation window holds a fraction of one
-  decay time: 67 of the 128 cells.
-
-### Added
-
-- The calibration map from the H6 study: `hawkes_engine.trust_lookup` and
-  `MapAnswer`, shipped inside the wheel so an installed package can answer without
-  the repository.
-- A user guide: quickstart, concepts, fitting, trust, limits, performance and an API
-  reference, built with `sphinx-build -W`.
-- `examples/`: five seeded scripts, run in CI.
-- `tests/test_docs_claims.py`, which pins quoted figures to the committed outputs
-  they come from, and `tests/test_docs_code.py`, which runs the code blocks.
-- `tests/test_version.py`, which holds every copy of the version string equal.
-- `CITATION.cff`, `CONTRIBUTING.md`, `SECURITY.md`, `docs/RELEASING.md`.
-- Wheels for CPython 3.10 to 3.12 on Linux x86-64, macOS (x86-64 and arm64) and
-  Windows AMD64, plus an sdist, built by CI and published by trusted publishing.
-
-### Changed
-
-- Public docstrings state parameters, return values and the constraint that
-  matters, and no longer refer to calibration as future work.
-- The README and the documentation front page lead with what was measured and what
-  was not established.
-- The version is read from `hawkes_engine._version`; `docs/conf.py` no longer
-  repeats it, and the compiled core reports the version it was built as.
-
-## [Unreleased]
-
-### Added
-
-- User guide: quickstart, concepts, fitting, the trust map, limits, performance and
-  an API reference, built with `sphinx-build -W`.
-- `examples/`: five seeded scripts, run in CI by `tests/test_examples.py`.
-- `tests/test_docs_claims.py`, which pins figures quoted in the README and pages to
-  the committed outputs they come from, and `tests/test_docs_code.py`, which runs the
-  code blocks in them.
-- `CITATION.cff`, `CONTRIBUTING.md`, `SECURITY.md`.
-- Calibration map from the H6 study, `hawkes_engine.trust_lookup` and `MapAnswer`.
-- Capability table: wall clock, memory and bootstrap cost on one machine.
-
-### Changed
-
-- Public docstrings now state parameters, return values and the constraint that
-  matters, and no longer refer to calibration as future work.
-- The README and the documentation front page lead with what was measured and what
-  was not established.

@@ -74,6 +74,14 @@ def _main_cells(rows: list[dict[str, str]]) -> list[dict[str, str]]:
 
 
 def coverage_heatmap(plt: Any, colors: Any) -> Path:
+    """Coverage over (N, rho) per block as a vector heat map.
+
+    Drawn with filled rectangles rather than ``imshow``: ``imshow`` rasterises, and
+    a raster panel in a paper figure is the one thing a reader notices when they
+    zoom. Every cell is one patch, so the file stays vector end to end.
+    """
+    from matplotlib.patches import Rectangle
+
     blocks = {(r["cell"], r["block"]): r for r in _read("blocks.csv")}
     cells = {r["cell"]: r for r in _main_cells(_read("cells.csv"))}
     cmap = colors.ListedColormap(SEQ[::-1])
@@ -81,17 +89,22 @@ def coverage_heatmap(plt: Any, colors: Any) -> Path:
     fig, axes = plt.subplots(1, 3, figsize=(8.4, 3.0), sharey=True)
     for ax, b in zip(axes, BLOCKS, strict=True):
         ax.grid(False)
-        grid = [[math.nan] * len(NS) for _ in RHOS]
         for key, m in cells.items():
             i = RHOS.index(float(m["rho"]))
             j = NS.index(int(m["N"]))
-            grid[i][j] = _f(blocks[(key, b)]["cov_all"])
-            cov = grid[i][j]
+            cov = _f(blocks[(key, b)]["cov_all"])
             se = _f(blocks[(key, b)]["se_cov_all"])
             no_se = _f(m["no_se_rate"])
-            ink = "white" if cov < 0.85 else INK
-            ax.text(j, i + 0.13, f"{cov:.3f}", ha="center", va="center", color=ink, fontsize=6)
-            ax.text(j, i - 0.2, f"±{se:.3f}", ha="center", va="center", color=ink, fontsize=4.5)
+            rgba = cmap(norm(cov)) if math.isfinite(cov) else (1.0, 1.0, 1.0, 0.0)
+            ax.add_patch(
+                Rectangle(
+                    (j - 0.5, i - 0.5), 1.0, 1.0, facecolor=rgba, edgecolor="white", linewidth=0.5
+                )
+            )
+            ink = "white" if math.isfinite(cov) and cov < 0.85 else INK
+            if math.isfinite(cov):
+                ax.text(j, i + 0.13, f"{cov:.3f}", ha="center", va="center", color=ink, fontsize=6)
+                ax.text(j, i - 0.2, f"±{se:.3f}", ha="center", va="center", color=ink, fontsize=4.5)
             if no_se >= 0.005:
                 ax.text(
                     j,
@@ -102,13 +115,15 @@ def coverage_heatmap(plt: Any, colors: Any) -> Path:
                     color=ink,
                     fontsize=4.5,
                 )
-        im = ax.imshow(grid, cmap=cmap, norm=norm, origin="lower", aspect="auto")
+        ax.set_xlim(-0.5, len(NS) - 0.5)
+        ax.set_ylim(-0.5, len(RHOS) - 0.5)
         ax.set_xticks(range(len(NS)), [f"{n:,}" for n in NS], fontsize=6.5)
         ax.set_yticks(range(len(RHOS)), [str(r) for r in RHOS])
         ax.set_title(f"{b}", color=INK, fontsize=9)
         ax.set_xlabel("N (target events)")
     axes[0].set_ylabel("rho")
-    cbar = fig.colorbar(im, ax=axes, fraction=0.025, pad=0.02)
+    mappable = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+    cbar = fig.colorbar(mappable, ax=axes, fraction=0.025, pad=0.02)
     cbar.set_label("coverage at nominal 0.95")
     fig.suptitle(
         "Interval coverage +/- MC SE, c = 1, r = 0, M = 2. A missing SE is a miss; "
@@ -260,6 +275,68 @@ def verdict_crosstab(plt: Any, colors: Any) -> Path:
     return _save(fig, plt, "verdict_crosstab.pdf")
 
 
+def auto_coverage(plt: Any, colors: Any) -> Path:
+    """Hessian against auto coverage, per cell and block, with the nominal line.
+
+    Reads ``studies/results/auto/analysis/cells.csv``. Each cell is a pair of
+    points joined by a segment, so the direction and size of the move is visible
+    without reading numbers off an axis. The block is the marker, the arm is the
+    colour, and both are printed, because a reader who prints the page in grey
+    still has to be able to tell Hessian from auto.
+    """
+    path = HERE.parent / "results" / "auto" / "analysis" / "cells.csv"
+    if not path.exists():
+        print(f"skipping auto_coverage: {path} does not exist")
+        return path
+    with path.open(newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    order = (
+        "M2_N2000_rho0.3028_r0.0_c1.0",
+        "M2_N2000_rho0.85_r0.0_c1.0",
+        "M2_N2000_rho0.95_r0.0_c1.0",
+    )
+    cells = [c for c in order if any(r["cell"] == c for r in rows)]
+    blocks = ("mu", "alpha", "beta", "all")
+    fig, ax = plt.subplots(figsize=(6.0, 3.0))
+    for k, block in enumerate(blocks):
+        xs, ys, es = [], [], []
+        for i, key in enumerate(cells):
+            row = next(r for r in rows if r["cell"] == key and r["block"] == block)
+            xs.append(i + (k - 1.5) * 0.16)
+            ys.append(_f(row["cov_auto"]))
+            es.append(2 * _f(row["cov_auto_se"]))
+        ax.errorbar(
+            xs,
+            ys,
+            yerr=es,
+            fmt=MARKERS[k],
+            color=SERIES[k],
+            markersize=4,
+            elinewidth=0.8,
+            capsize=0,
+            label=f"{block}, auto",
+        )
+        for x, y, key in zip(xs, ys, cells, strict=True):
+            row = next(r for r in rows if r["cell"] == key and r["block"] == block)
+            h = _f(row["cov_hessian"])
+            ax.plot([x, x], [h, y], color=SERIES[k], linewidth=0.8, alpha=0.55, zorder=1)
+            ax.plot(x, h, marker="|", color=SERIES[k], markersize=5, linestyle="none", zorder=2)
+    ax.axhline(0.95, color=INK_2, linewidth=0.9, linestyle="--", label="nominal 0.95")
+    rho_labels = [c.split("rho")[1].split("_")[0] for c in cells]
+    ax.set_xticks(range(len(cells)), [f"rho = {r}" for r in rho_labels])
+    ax.set_ylabel("coverage of nominal-95% intervals")
+    ax.set_xlabel("cell (M = 2, N = 2000, c = 1, r = 0)")
+    ax.set_ylim(0.4, 1.02)
+    ax.set_title(
+        "Hessian (bar) against auto (marker), 2 MC SE. A tick on the segment is the "
+        "Hessian value it moved from.",
+        fontsize=8.5,
+        color=INK,
+    )
+    ax.legend(fontsize=6.5, ncol=2, loc="lower left")
+    return _save(fig, plt, "auto_coverage.pdf")
+
+
 def _save(fig: Any, plt: Any, name: str) -> Path:
     path = HERE / name
     fig.savefig(path, metadata={"CreationDate": None, "ModDate": None})
@@ -276,7 +353,7 @@ def main() -> None:
     from matplotlib import pyplot as plt
 
     _style(plt)
-    for make in (coverage_heatmap, se_vs_sd, bias_vs_n, verdict_crosstab):
+    for make in (coverage_heatmap, se_vs_sd, bias_vs_n, verdict_crosstab, auto_coverage):
         make(plt, colors)
 
 

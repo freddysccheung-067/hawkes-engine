@@ -1,0 +1,69 @@
+A measurement that says the interval is too narrow is only useful if something
+uses it. The package ships the map, and the fit consults it.
+
+After the optimizer returns, the fit looks its own regime up: the event count, the
+fitted branching ratio, the smallest fitted decay rate and the observation window
+place it in the measured grid, and the nearest cell returns the measured $q$ and
+its Monte Carlo standard error for each parameter block. The decision then follows
+one rule. If a block's two-standard-error interval around the measured $q$ excludes
+one, the direction of the miscalibration is resolved at the precision the study
+supports, and the fit replaces the Hessian interval with a parametric bootstrap. If
+the map does not cover the regime, the Hessian interval is used and labelled
+uncalibrated, because no measurement supports anything better. If the map reports
+the estimator undefined, no interval is reported at all.
+
+The switch has a cost, and the cost is bounded. The bootstrap refits the model 200
+times, which at the largest measured configuration costs \AutoPoolCost{}~s on the
+default process pool and \AutoSerialCostMin{}~min on one worker. A fit therefore
+projects the cost before spending it, and refuses to exceed \AutoLimit{}~s: above
+that ceiling it keeps the Hessian interval, says what was indicated and what it
+would have cost, and warns. The projection is a power law fitted to the four
+measured serial configurations of the capability table, multiplied by the measured
+efficiency of the process pool, and it reproduces every measured row to within
+three percent.
+
+Whether the switch helps is a separate measurement, pre-registered before it ran:
+\AutoCells{} cells at $N = 2000$, \AutoReplications{} replications each, both arms
+fitted to the same simulated event stream so the comparison is paired.
+\texttt{auto} chose the bootstrap in \AutoBootstrapShare{} percent of replications;
+the rest were outside the measured box and kept the Hessian interval.
+
+\begin{table}[t]
+\centering
+\caption{Coverage of nominal-95\% intervals under the Hessian interval and under
+\texttt{auto}, with the paired difference $\delta = |\text{cov}_{\text{auto}} -
+0.95| - |\text{cov}_{\text{hessian}} - 0.95|$. Negative $\delta$ means
+\texttt{auto} is closer to nominal.}
+\input{generated/table_auto}
+\end{table}
+
+H-A1, that \texttt{auto} lands closer to nominal coverage than the Hessian does, is
+\AutoHoneLabel{}. At $\rho = 0.3028$ the pooled coverage moves from \AutoLowRhoCovH{}
+to \AutoLowRhoCovA{}, at $\rho = 0.85$ from \AutoMidRhoCovH{} to \AutoMidRhoCovA{},
+and at $\rho = 0.95$ from \AutoHighRhoCovH{} to \AutoHighRhoCovA{}. H-A2, that the
+switch never overshoots nominal by more than five percent, is \AutoHtwoLabel{};
+the worst coverage anywhere in the study is \AutoHtwoWorst{} against a ceiling of
+\AutoHtwoCeiling{}. H-A3, that the improvement is larger at high branching ratio,
+is \AutoHthreeLabel{}: the pooled difference is \AutoLowRhoDelta{} at $\rho =
+0.3028$ and \AutoHighRhoDelta{} at $\rho = 0.95$.
+
+Two properties of the run are worth stating rather than rounding off. At $\rho =
+0.95$, \AutoUnmappedHighRho{} of the 2000 fitted branching ratios landed above
+0.95 and so fell outside the measured box; those replications kept the Hessian
+interval and are included in the coverage reported above, which lowers it rather
+than flattering the switch. And the lookup answers from the nearest cell however
+far away that cell is: in 15 of the 2000 replications at $\rho = 0.3028$ the
+nearest cell lay in a different branching-ratio column, and one of them drew an
+undefined-regime answer from a shallow-decay cell up to \AutoMaxDistance{} grid
+steps away. Both are properties of a nearest-neighbour map, not of the decision
+rule.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{auto_coverage.pdf}
+\caption{Hessian against \texttt{auto} coverage, per cell and parameter block, on
+the same simulated event streams. Each segment joins the two arms of one cell; a
+tick marks the Hessian value the marker moved from. The dashed line is nominal
+0.95.}
+\label{fig:auto}
+\end{figure}

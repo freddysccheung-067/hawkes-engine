@@ -1,0 +1,34 @@
+A fit that converges to a number and reports a standard error is making two claims
+at once: that the estimate is near the truth, and that the reported width describes
+the spread of estimates the procedure would produce. The first is what a
+practitioner usually checks. The second is the one that decides whether a
+confidence interval means anything, and it is not visible from a single fit.
+
+For Hawkes processes the distinction has teeth. When the branching ratio approaches
+one, the excitation and decay parameters trade off against each other along a ridge
+in the likelihood, and a maximum-likelihood fit can converge to a point that looks
+precise and is not. The curvature of the likelihood at that point, which is what an
+inverse-Hessian standard error reads, can be steep along a direction the sampling
+distribution does not respect.
+
+This paper measures that discrepancy instead of assuming it away, and then acts on
+the measurement. It makes three contributions.
+
+\begin{enumerate}
+\item \textbf{A public implementation.} A compiled likelihood and gradient for the
+multivariate exponential-kernel Hawkes process, a maximum-likelihood fit with
+observed-information standard errors, two independent exact simulators, and
+time-rescaling diagnostics, released as an installable package with a pinned public
+surface and a test suite that pins every figure in its documentation to a committed
+output.
+\item \textbf{A pre-registered calibration study with two failures.} A design frozen
+before any measurement, with six dated amendments that each state what was known
+when it was written; a grid of \HsixCells{} cells at \HsixReplications{}
+replications; and a result in which the headline is a measured shortfall and two of
+the six hypotheses are not confirmed. The two are reported for the same reason as
+the four that held, on the same page, with the numbers that decided them.
+\item \textbf{A shipped lookup that refuses to extrapolate.} A map of the measured
+quantities, installed with the package, which answers for a regime only inside the
+box it measured, says so when it has no measurement, and says the estimator is
+undefined when the cell it found is one where it does not exist.
+\end{enumerate}

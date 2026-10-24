@@ -24,6 +24,7 @@ EXPECTED = {
     "03_trust_lookup.py": "status: estimator undefined in this regime",
     "04_se_understate.py": "study, same cell, 2000 replicates: q[mu] = 0.957",
     "05_shared_decay.py": "agree to 1e-10 relative: True",
+    "06_auto_interval.py": "reason: a bootstrap was indicated by mu (narrow)",
 }
 
 
