@@ -26,15 +26,25 @@ The order matters because two steps are hard to undo once a version is live.
 
 ## Building
 
+One command, from the repository root:
+
 ```bash
-cd paper
-python -m studies.make_paper_tex        # regenerate every number and table
-pdflatex main && bibtex main && pdflatex main && pdflatex main
+make -C paper
 ```
 
-`make_paper_tex` writes `paper/generated/*.tex` and `paper/main.tex`. Both are
-committed, so a reader without Python can still build from the `.tex` files as they
-stand; re-running the generator is what proves they are current.
+It regenerates every number and table, then typesets `main.pdf`. The three targets
+separately:
+
+```bash
+make -C paper numbers   # regenerate every number and table
+make -C paper pdf       # typeset from the committed .tex tree
+make -C paper check     # structural checks, no TeX needed
+```
+
+`make numbers` runs `python -m studies.make_paper_tex`, which writes
+`paper/generated/*.tex` and `paper/main.tex`. Both are committed, so a reader
+without Python can still build from the `.tex` files as they stand; re-running the
+generator is what proves they are current.
 `python -m studies.make_paper_tex --check` fails if the committed tree is stale.
 
 The build needs `booktabs`, `natbib`, `hyperref`, `lmodern`, `amsmath` and
