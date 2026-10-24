@@ -788,7 +788,9 @@ Pair decay, one start, \texttt{se\_method="hessian"} was the measured configurat
 The study's outputs are the JSON and CSV files under
 \texttt{studies/results/}; the shipped map is
 \texttt{data/trust/v1\_excitation\_only.csv}. The numbers above were produced at
-commit \texttt{%%HEAD%%}, and this document is current when
+commit
+\texttt{\detokenize{%%HEAD%%}},
+and this document is current when
 \texttt{studies/make\_paper\_tex.py -{}-check} agrees with what the committed
 outputs generate.
 """,
