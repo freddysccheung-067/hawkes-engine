@@ -144,6 +144,9 @@ can check that it was.
 ## The paper
 
 `paper/draft.md` is a draft. It has not been submitted or published, and the
-citation metadata does not claim otherwise. This release has no DOI; a DOI will be
-registered for the archived release and added to `CITATION.cff` in a follow-up
-commit, at which point this section will name it.
+citation metadata does not claim otherwise.
+
+The archived release is at DOI [`10.5281/zenodo.23613789`](https://doi.org/10.5281/zenodo.23613789),
+which pins version 0.1.0. All versions share the concept DOI
+[`10.5281/zenodo.23613788`](https://doi.org/10.5281/zenodo.23613788), and cite that
+one when the exact version does not matter.
