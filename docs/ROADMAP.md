@@ -14,7 +14,8 @@ when that test passes, not when the code is written.
 | H6 | Trust calibration study | Bias and coverage mapped across the parameter space | Done |
 | H7 | Performance | Throughput and memory characterised against the targets | Done |
 | H8 | Documentation and examples | Docs build warning-free, examples run in CI | Done |
-| H9 | v0.1.0 release | Wheels on PyPI for all supported platforms | Next |
+| H9 | v0.1.0 release | Wheels on PyPI for all supported platforms | Done |
+| H10 | Calibration-driven interval (`se_method="auto"`) and the submission paper | The switch is measured against the Hessian interval by a pre-registered study; every paper number is generated | Done |
 
 ## What "trust calibration" means
 

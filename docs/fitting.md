@@ -61,6 +61,21 @@ skipped.
 `se_method=None` computes no standard errors, and `reliable` is then
 `"unreliable"` by construction.
 
+`se_method="auto"` lets the calibration map choose between the two. After the fit it
+looks the regime up and acts on what was measured there: where an estimated block's
+two-standard-error interval around the measured `q` excludes 1, it runs the
+bootstrap and reports its interval; where the map has no measurement for the regime
+it keeps the Hessian interval and says the interval is uncalibrated; where the map
+reports the estimator undefined it returns no interval at all. The choice is
+recorded: `fit.se_source` is `"hessian"`, `"bootstrap"` or `"none"`, `fit.se_note` is
+one sentence saying why, and `fit.auto` carries the whole decision — the cell, the
+distance to it, the `q` it read per block, the threshold, the projected cost and the
+action. `auto_max_seconds` (default 120) caps the projected cost of a bootstrap `auto`
+would choose; above it the Hessian interval is kept, the note says what was
+indicated, and a `RuntimeWarning` is raised. The full policy, including why the
+threshold is two Monte Carlo standard errors and why the limit is 120 s, is
+[](se_policy.md).
+
 For the Hessian method, the measured ratio of mean reported standard error to
 empirical standard deviation is on [](limits.md).
 

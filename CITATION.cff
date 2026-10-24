@@ -7,7 +7,7 @@ abstract: >-
   independent exact simulators, time-rescaling diagnostics, and a lookup of what a
   pre-registered simulation study measured about the fit's standard errors.
 type: software
-version: 0.1.0
+version: 0.2.0
 authors:
   - family-names: Cheung
     given-names: Freddy Shi Chun
@@ -26,7 +26,7 @@ doi: "10.5281/zenodo.23613789"
 identifiers:
   - type: doi
     value: "10.5281/zenodo.23613789"
-    description: "Version 0.1.0"
+    description: "Version 0.2.0"
   - type: doi
     value: "10.5281/zenodo.23613788"
     description: "All versions"

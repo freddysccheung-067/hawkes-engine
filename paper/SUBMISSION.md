@@ -1,0 +1,123 @@
+# Submitting the paper
+
+This is the checklist for putting `paper/main.tex` on arXiv. **Nothing has been
+submitted.** The session that prepared this package has no arXiv credentials and
+does not submit; the steps below are the owner's.
+
+## Order of operations
+
+The order matters because two steps are hard to undo once a version is live.
+
+1. **Resolve the unverified references** (below). An arXiv submission can be
+   replaced by a new version, but a wrong DOI in a bibliography is the kind of
+   error a reader finds first and a correction cannot fully erase.
+2. **Build the PDF** from a machine with a TeX distribution installed. The
+   preparing session could not: no TeX is installed on it and installing one was
+   blocked. See "Building" below.
+3. **Read the PDF.** The structure checks in `studies/check_paper.py` catch a
+   missing macro and an unbalanced brace, not a table that overflows the margin.
+4. **Choose the primary category** (below) and check the cross-lists.
+5. **Fill the metadata form** with the abstract in the plain-text block below.
+6. **Submit.** The first submission to a category may need an endorsement; see
+   below.
+7. **After it is live**, update `docs/release_notes_0.2.0.md`, which currently says
+   the paper has not been submitted. That sentence becoming false is the defect
+   this step exists to prevent.
+
+## Building
+
+```bash
+cd paper
+python -m studies.make_paper_tex        # regenerate every number and table
+pdflatex main && bibtex main && pdflatex main && pdflatex main
+```
+
+`make_paper_tex` writes `paper/generated/*.tex` and `paper/main.tex`. Both are
+committed, so a reader without Python can still build from the `.tex` files as they
+stand; re-running the generator is what proves they are current.
+`python -m studies.make_paper_tex --check` fails if the committed tree is stale.
+
+The build needs `booktabs`, `natbib`, `hyperref`, `lmodern`, `amsmath` and
+`geometry`, all of which a standard TeX Live or MiKTeX installation carries.
+
+## Primary category
+
+**stat.ME (Methodology)**, with a cross-list to **stat.CO (Computation)**.
+
+The paper's contribution is a measurement of an estimator's calibration and a change
+to what the estimator reports; that is methodology, and stat.ME is where a reader
+looking for "how well does this maximum-likelihood fit behave" will look. stat.CO is
+the right cross-list because the artefact is a library and the cost of the bootstrap
+is part of the argument, but the paper is not primarily about computation.
+
+## Abstract for the metadata form
+
+Plain text, no LaTeX macros, 200 words or fewer. This is the text
+`paper/generated/abstract.tex` renders; it is reproduced here because the
+submission form takes plain text and copying from a built PDF loses the math.
+
+```
+This paper measures whether a maximum-likelihood fit of a multivariate
+exponential-kernel Hawkes process reports intervals that behave as a user is
+entitled to assume, and it ships the answer as code. Over a pre-registered grid of
+128 cells and 2000 simulated replications per cell, the inverse-Hessian standard
+errors understate sampling spread: the ratio of mean reported standard error to
+empirical standard deviation, pooled over the twelve two-type cells with at least
+2000 events, is 0.779 +/- 0.011, and the four-type satellite agrees in direction
+(0.336 +/- 0.023). Two of the six pre-registered hypotheses were not confirmed. The
+estimator is undefined in 67 of 128 cells, where the observation window holds too
+few decay times to identify the decay rate. The library therefore refuses to report
+an interval there, and where the map measures a shortfall it switches to a
+parametric bootstrap rather than reporting the interval it knows to be too narrow;
+the switch is tested in a second pre-registered study and its result is reported
+either way.
+```
+
+Count the words before pasting: `studies/make_paper_tex.py` records the count in
+`paper/generated/abstract.tex`'s source prose, and `tests/test_docs_claims.py`
+pins the abstract's figures to their sources.
+
+## Licence
+
+**MIT**, matching the software. arXiv asks for a licence for the paper separately
+from the code; MIT is the least restrictive choice that is compatible with the
+repository's own, and it lets a reader reuse the figures.
+
+## Endorsement
+
+arXiv requires an endorsement for a first submission to a category by an author who
+has not previously submitted there. The owner needs an endorser for **stat.ME**
+before the submission can be completed, or should choose a category where they are
+already endorsed. This is stated plainly here because it is the step most likely to
+block a submission at the last minute.
+
+## File list
+
+| File | What it is |
+|---|---|
+| `paper/main.tex` | the document: preamble, section order, `\input`s |
+| `paper/generated/*.tex` | section bodies, tables and macro definitions, all generated |
+| `paper/refs.bib` | the bibliography |
+| `studies/make_paper_tex.py` | the generator; not uploaded, but named in the paper |
+| `studies/check_paper.py` | the structural checks; not uploaded |
+
+arXiv takes a single `.tar.gz` of `main.tex`, `refs.bib` and the `generated/`
+directory, plus any figures the document includes. No figures are included in the
+current draft; the four H6 figures and the auto figure live in `studies/figures/`
+and are not yet referenced from `main.tex`.
+
+## Unverified references
+
+Six of the seven entries in `paper/refs.bib` were checked against the publisher
+record or the arXiv listing. One is not fully resolved and is marked `[VERIFY]` in
+the file:
+
+- **`laub2015`** — Laub, Taimre and Pollett, "Hawkes processes". The working paper
+  exists, but the sources consulted disagreed on its arXiv identifier
+  (`1507.02822` against `1907.02822`). Confirm which identifier is current, or
+  replace the entry with a published version if one exists, before submission.
+
+A check made during preparation also corrected the Chen & Hall entry, whose DOI had
+been recorded as ending `0095` where the publisher record gives `0096`. That is the
+reason the check is worth doing rather than assuming: a DOI off by one digit in the
+last place resolves to nothing or, worse, to a different paper.

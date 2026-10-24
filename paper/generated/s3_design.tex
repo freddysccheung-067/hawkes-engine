@@ -1,0 +1,15 @@
+The study's grid spans the number of events $N \in \{200, 1000, 2000, 10\,000,
+50\,000\}$, the branching ratio $\rho \in \{0.3028, 0.60, 0.85, 0.95\}$, the
+timestamp resolution $r = \beta\delta \in \{0, 0.01, 0.1\}$, and a decay scale
+$c \in \{1, 10^{-3}\}$ that multiplies every decay rate: 120 cells at $M = 2$ and
+an eight-cell four-type satellite. Each cell runs \HsixReplications{} replications
+under a seed contract that makes a replication a pure function of its cell and its
+index.
+
+The estimands were fixed before the data existed: mean and relative bias, empirical
+standard deviation across replications, mean reported standard error, coverage of
+nominal-95\% intervals with a missing interval counted as a miss, and the ratio
+$q = \text{mean SE} / \text{SD}$, which is below one exactly when the interval is
+too narrow. Every estimate carries a Monte Carlo standard error. Four hypotheses
+form a Holm family; two are labelled exploratory because an earlier study had
+already seen their direction.

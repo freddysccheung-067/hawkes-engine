@@ -1,0 +1,18 @@
+An $M$-dimensional Hawkes process with baseline $\mu$, excitation matrix $\alpha$
+and pair-specific exponential decay $\beta$ has conditional intensity
+\begin{equation}
+\lambda_i(t) = \mu_i + \sum_{j=1}^{M}\sum_{t_k^j < t} \alpha_{ij}\,
+e^{-\beta_{ij}(t - t_k^j)},
+\end{equation}
+with rows indexing targets and columns sources. The branching matrix is
+$\Gamma = \alpha / \beta$, and its spectral radius $\rho(\Gamma)$ governs whether
+the process is stationary; a value at or above one is the near-critical regime in
+which the finite-sample distribution of the estimates is strongly skewed.
+
+The estimator is maximum likelihood, with the optimizer working in log space so
+that positivity is structural. Standard errors are the square roots of the diagonal
+of the inverse observed information, computed by differencing the analytic gradient.
+When that matrix cannot be inverted to tolerance the library reports no interval
+rather than a number it does not believe. Every fit also carries a three-level
+conditioning verdict built from the condition number, bound hits, the branching
+ratio, the implied alpha--beta correlation, and events per parameter.

@@ -10,9 +10,14 @@ regime.
 
 ## Status
 
-**Pre-alpha. Not on PyPI.** Gates H0 to H8 of nine are complete; H9 is the first
-release. The wheel matrix is CPython 3.10 to 3.12 on Linux x86-64, macOS (x86-64 and
-arm64) and Windows AMD64, built by CI and not yet published.
+**Pre-alpha. Not on PyPI.** 0.2.0 adds `se_method="auto"`: the fit consults a
+pre-registered calibration study and, where the study measured that the
+inverse-Hessian interval is too narrow in that regime, reports a bootstrap interval
+instead, saying which it used and why. Where the study has no measurement it keeps
+the Hessian interval and labels it uncalibrated; where it says the estimator is
+undefined it reports no interval. The wheel matrix is CPython 3.10 to 3.12 on Linux
+x86-64, macOS (x86-64 and arm64) and Windows AMD64, built by CI and not yet
+published.
 
 ## A fit in a few lines
 
@@ -27,12 +32,22 @@ beta = np.array([[1.30, 1.70], [1.30, 1.70]])
 times, types = he.simulate(mu, alpha, beta, T=20000.0, seed=1)
 fit = he.fit(times, types, M=2, T=20000.0, seed=1)
 print(fit)
+print(fit.se_source)  # "hessian": which method produced fit.se
 print(fit.alpha.round(3).tolist(), fit.se["alpha"].round(3).tolist())
 print(he.trust_lookup(N=len(times), rho_hat=fit.rho, beta=fit.beta.min(), T=20000.0).status)
 ```
 
 Rows are targets and columns are sources: `alpha[i, j]` is the excitation a type-`j`
 event applies to type `i`.
+
+The default method is `"hessian"`, which costs nothing extra and is the method the
+calibration study measured. `he.fit(..., se_method="auto")` lets that measurement
+choose instead: it looks the fitted regime up, and where the reported interval was
+measured to be too narrow it switches to a parametric bootstrap, which refits the
+model 200 times. That is slower, so `auto` projects the cost first and refuses to
+exceed `auto_max_seconds` (default 120), keeping the Hessian interval with a note
+and a warning if it would. `fit.se_source` is `"hessian"`, `"bootstrap"` or
+`"none"`, and `fit.se_note` is one sentence saying why.
 
 ## What was measured
 

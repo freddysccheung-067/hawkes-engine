@@ -1,0 +1,17 @@
+This paper measures whether a maximum-likelihood fit of a multivariate
+exponential-kernel Hawkes process reports intervals that behave as a user is
+entitled to assume, and it ships the answer as code. Over a pre-registered grid of
+\HsixCells{} cells and \HsixReplications{} simulated replications per cell, the
+inverse-Hessian standard errors understate sampling spread: the ratio of mean
+reported standard error to empirical standard deviation, pooled over the twelve
+two-type cells with at least 2000 events, is \HsixQ{} $\pm$ \HsixQSe{}, and the
+four-type satellite agrees in direction (\HsixSatQ{} $\pm$ \HsixSatSe{}). Two
+hypotheses were refuted: H6.3 predicted that coverage falls monotonically toward
+criticality, and H6.4 predicted that timestamp quantisation biases the decay
+estimate upward. The estimator is undefined
+in \HsixUndefined{} of \HsixCells{} cells, where the observation window holds too
+few decay times to identify the decay rate. The library therefore refuses to
+report an interval there, and where the map measures a shortfall it switches to a
+parametric bootstrap rather than reporting the interval it knows to be too narrow;
+the switch is tested in a second pre-registered study and its result is reported
+either way.

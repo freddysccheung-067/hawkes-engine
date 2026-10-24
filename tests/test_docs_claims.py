@@ -44,6 +44,8 @@ LIMITS = "docs/limits.md"
 PERF = "docs/performance.md"
 PAPER = "paper/draft.md"
 NOTES = "docs/release_notes_0.1.0.md"
+NOTES_2 = "docs/release_notes_0.2.0.md"
+POLICY = "docs/se_policy.md"
 
 PUBLISHED = [
     README,
@@ -59,6 +61,8 @@ PUBLISHED = [
     "docs/ROADMAP.md",
     "docs/verification-rule.md",
     NOTES,
+    NOTES_2,
+    POLICY,
 ]
 
 

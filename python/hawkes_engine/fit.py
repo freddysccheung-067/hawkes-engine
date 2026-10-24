@@ -315,6 +315,7 @@ def fit(
     zero_diagonal: bool = False,
     n_bootstrap: int = 200,
     auto_max_seconds: float | None = 120.0,
+    bootstrap_workers: int | None = None,
 ) -> FitResult:
     """Fit the model by maximum likelihood; return the estimates and what is known about them.
 
@@ -378,6 +379,11 @@ def fit(
         interval, says so in ``se_note`` and warns. ``None`` removes the ceiling,
         which is a decision to let a fit call run for as long as the bootstrap
         takes. Only read when ``se_method="auto"``.
+    bootstrap_workers
+        Process count for the bootstrap pool. ``None`` uses every logical core,
+        which is right for a single fit and wrong when many fits run at once: a
+        study that parallelises over fits and leaves this at ``None`` starts one
+        pool per fit and spends its time in process start-up. Set it to 1 there.
 
     Returns
     -------
@@ -553,6 +559,7 @@ def fit(
             layout,
             n_bootstrap=n_bootstrap,
             seed=seed,
+            workers=bootstrap_workers,
             zero_diagonal=zero_diagonal,
         )
         se = boot.se
@@ -581,7 +588,9 @@ def fit(
             )
 
     # A method that attempted an interval and produced none has not produced one.
-    # Saying "hessian" there would name a method whose output is absent.
+    # Saying "hessian" there would name a method whose output is absent. The
+    # decision record is corrected with it, so the record and the result cannot
+    # disagree about which method produced the interval.
     if se_method is not None and se is None and se_source != "none":
         se_source = "none"
         if not se_note:
@@ -589,7 +598,24 @@ def fit(
                 "a Hessian interval was requested but the observed information "
                 "could not be inverted to the required tolerance; no interval is reported"
             )
-            notes.append(se_note)
+        if auto_decision is not None:
+            from dataclasses import replace as _replace
+
+            # The decision's note described a method, and the method produced
+            # nothing. Replacing the note rather than appending to it keeps the
+            # sentence true: "the interval is uncalibrated" is false when there is
+            # no interval.
+            auto_decision = _replace(
+                auto_decision,
+                action="none",
+                se_source="none",
+                note=(
+                    f"{auto_decision.note.split(';')[0]}; the Hessian interval it "
+                    f"chose could not be computed on this fit, so no interval is reported"
+                ),
+            )
+            se_note = auto_decision.note
+        notes.append(se_note)
 
     from hawkes_engine.trust import report as _trust_report
 

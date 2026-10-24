@@ -64,6 +64,7 @@ concepts
 fitting
 trust
 limits
+se_policy
 performance
 reference
 ```
@@ -76,6 +77,7 @@ install
 ROADMAP
 verification-rule
 release_notes_0.1.0
+release_notes_0.2.0
 ```
 
 ## License

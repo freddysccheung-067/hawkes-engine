@@ -286,6 +286,50 @@ def test_explicit_methods_still_report_their_source(fitted_data):
     assert none.se is None
 
 
+def test_the_record_never_names_a_method_that_produced_nothing(fitted_data):
+    """se_source, the record's action and se must agree about what exists.
+
+    The case that exposed this: a fit whose regime is outside the map, so ``auto``
+    chose the Hessian, and whose observed information could not be inverted, so
+    there was no interval. The record said ``hessian`` and the result said
+    ``none``, and the note said the interval was uncalibrated when no interval
+    existed.
+    """
+    times, types = fitted_data
+    tiny = simulate(PAIR_MU, PAIR_ALPHA, PAIR_BETA, 2.0, method="thinning", seed=5)
+    result = fit(tiny[0], tiny[1], M=2, T=2.0, seed=1, se_method="auto", bootstrap_workers=1)
+    if result.se is not None:
+        pytest.skip("this seed produced an invertible Hessian; the case needs a failed one")
+    assert result.se_source == "none"
+    assert result.auto.action == "none"
+    assert result.auto.se_source == "none"
+    assert "uncalibrated" not in result.se_note
+    assert "no interval is reported" in result.se_note
+
+
+@pytest.mark.parametrize("method", ["auto", "hessian", "bootstrap", None])
+def test_se_source_and_se_never_contradict(fitted_data, method):
+    """Whatever the method, a reported source of 'none' means no se, and vice versa."""
+    times, types = fitted_data
+    result = fit(
+        times,
+        types,
+        M=2,
+        T=2000.0,
+        seed=1,
+        se_method=method,
+        n_bootstrap=20,
+        bootstrap_workers=1,
+    )
+    if result.se_source == "none":
+        assert result.se is None, f"{method!r} claims none but returned an interval"
+    if result.se is not None:
+        assert result.se_source in (
+            "hessian",
+            "bootstrap",
+        ), f"{method!r} returned an interval but claims {result.se_source!r}"
+
+
 def test_a_bootstrap_count_below_ten_is_refused(fitted_data):
     """Below ten the bootstrap always declines; that is a configuration error, not a result."""
     times, types = fitted_data

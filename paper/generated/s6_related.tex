@@ -1,0 +1,25 @@
+The Hawkes process itself is \citet{hawkes1971}. The thinning simulation used here
+is \citet{ogata1981}, which is still the standard way to draw exact samples for an
+inhomogeneous point process with a bounded intensity; the package implements it
+against a second, independent branching simulator and the two are compared at the
+distributional level. The review that supplies the vocabulary of this paper -- the
+branching matrix, its spectral radius, the near-critical regime -- is
+\citet{bacry2015}.
+
+What this study does that those works do not is measure the estimator against its
+own claimed uncertainty over a pre-registered grid, and then act on the
+measurement. \citet{filimonov2012} estimate a Hawkes branching ratio on financial
+data and use the ratio itself as a reflexivity diagnostic, without a sampling
+distribution for the maximum-likelihood fit; \citet{bacry2013} model microstructure
+noise with mutually exciting processes and report fitted parameters rather than the
+coverage of their intervals. The methodological literature that does address
+inference is largely asymptotic: \citet{laub2015} sets out the likelihood and its
+properties for the standard parameterisations, and \citet{chen2013} develops
+semiparametric inference under a nonstationary specification. This paper does not
+dispute any of those asymptotic results. It reports what happened at finite sample
+sizes in a box it measured, which is a different question, and it reports where the
+asymptotics did not hold.
+
+No speed or accuracy comparison with another library is made here. The capability
+table the package ships times this implementation on one machine and states no
+claim about any other.
