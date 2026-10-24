@@ -1,0 +1,6 @@
+cell,action,count,rows,failures,distance_mean,distance_se
+M2_N2000_rho0.3028_r0.0_c1.0,bootstrap,1999,2000,0,0.2383,0.0036
+M2_N2000_rho0.3028_r0.0_c1.0,none,1,2000,0,0.2383,0.0036
+M2_N2000_rho0.85_r0.0_c1.0,bootstrap,2000,2000,0,0.1885,0.0021
+M2_N2000_rho0.95_r0.0_c1.0,bootstrap,1726,2000,0,0.3070,0.0034
+M2_N2000_rho0.95_r0.0_c1.0,hessian_unmapped,274,2000,0,0.3070,0.0034

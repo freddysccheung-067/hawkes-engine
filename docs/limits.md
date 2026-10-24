@@ -149,4 +149,6 @@ where the map is silent or where the projected cost exceeds `auto_max_seconds`. 
 switch is therefore usually a wait of seconds to a couple of minutes, and never a
 wait of an hour, because the projection is checked first. The policy, the threshold
 and its justification are in [](se_policy.md); the study that tested whether the
-switch helps is [](preregistration_auto.md).
+switch helps is `docs/preregistration_auto.md` in the repository, which is kept
+out of this site for the same reason `docs/preregistration.md` is: it is a referee
+document, read at its frozen version.

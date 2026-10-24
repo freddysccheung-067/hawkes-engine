@@ -1,0 +1,352 @@
+{
+  "study_id": "auto-v1",
+  "preregistration": "docs/preregistration_auto.md",
+  "cells": [
+    {
+      "cell": "M2_N2000_rho0.3028_r0.0_c1.0",
+      "rows": 2000,
+      "failures": 0,
+      "blocks": {
+        "mu": {
+          "n": 2000,
+          "cov_hessian": 0.9365,
+          "cov_hessian_se": 0.004212213951497073,
+          "cov_auto": 0.9655,
+          "cov_auto_se": 0.0029213253962945512,
+          "delta": -0.024549999999999992,
+          "delta_se": 0.0027883752021803064,
+          "delta_z": -8.804410532988415,
+          "coverage_difference": 0.029,
+          "coverage_difference_se": 0.003234150563120472,
+          "over": 0.01550000000000007,
+          "mean_se_hessian": 0.03285396932024634,
+          "mean_se_auto": 0.03635098485373917
+        },
+        "alpha": {
+          "n": 2000,
+          "cov_hessian": 0.92975,
+          "cov_hessian_se": 0.003474155095388432,
+          "cov_auto": 0.96275,
+          "cov_auto_se": 0.002149657941308876,
+          "delta": -0.02454999999999999,
+          "delta_se": 0.0022704572751142136,
+          "delta_z": -10.812799813097131,
+          "coverage_difference": 0.033,
+          "coverage_difference_se": 0.0027596300076078036,
+          "over": 0.012750000000000039,
+          "mean_se_hessian": 0.0653746724759826,
+          "mean_se_auto": 0.0841812981958376
+        },
+        "beta": {
+          "n": 2000,
+          "cov_hessian": 0.90375,
+          "cov_hessian_se": 0.003745828929246982,
+          "cov_auto": 0.95675,
+          "cov_auto_se": 0.002285515377386496,
+          "delta": -0.03764999999999999,
+          "delta_se": 0.002569930158683355,
+          "delta_z": -14.650203575683593,
+          "coverage_difference": 0.053,
+          "coverage_difference_se": 0.003168283290601513,
+          "over": 0.006750000000000034,
+          "mean_se_hessian": 2.9009686197762306,
+          "mean_se_auto": 2.945012262782122
+        },
+        "all": {
+          "n": 2000,
+          "cov_hessian": 0.9207000000000001,
+          "cov_hessian_se": 0.003034033236277978,
+          "cov_auto": 0.9609000000000001,
+          "cov_auto_se": 0.0016604136492884447,
+          "delta": -0.02289999999999998,
+          "delta_se": 0.002256178222145813,
+          "delta_z": -10.149907385516812,
+          "coverage_difference": 0.04019999999999999,
+          "coverage_difference_se": 0.0024990203182998806,
+          "over": 0.010900000000000132
+        }
+      },
+      "actions": {
+        "bootstrap": 1999,
+        "none": 1
+      },
+      "sources_hessian": [
+        "hessian",
+        "none"
+      ],
+      "sources_auto": [
+        "bootstrap",
+        "none"
+      ],
+      "distance_mean": 0.2383326005552887,
+      "distance_se": 0.0035645122524608974
+    },
+    {
+      "cell": "M2_N2000_rho0.85_r0.0_c1.0",
+      "rows": 2000,
+      "failures": 0,
+      "blocks": {
+        "mu": {
+          "n": 2000,
+          "cov_hessian": 0.9355,
+          "cov_hessian_se": 0.003911844355688447,
+          "cov_auto": 0.95175,
+          "cov_auto_se": 0.0033770061941633613,
+          "delta": -0.013299999999999998,
+          "delta_se": 0.001941246820888525,
+          "delta_z": -6.851266854316071,
+          "coverage_difference": 0.01625,
+          "coverage_difference_se": 0.002383969463982834,
+          "over": 0.0017500000000000293,
+          "mean_se_hessian": 0.10279779504439766,
+          "mean_se_auto": 0.1538188612428574
+        },
+        "alpha": {
+          "n": 2000,
+          "cov_hessian": 0.943625,
+          "cov_hessian_se": 0.0025845492130770905,
+          "cov_auto": 0.964375,
+          "cov_auto_se": 0.0020559470193984293,
+          "delta": -0.013699999999999993,
+          "delta_se": 0.001265683996102105,
+          "delta_z": -10.824186797171757,
+          "coverage_difference": 0.02075,
+          "coverage_difference_se": 0.0018971078670253743,
+          "over": 0.014375000000000027,
+          "mean_se_hessian": 0.1111011887847114,
+          "mean_se_auto": 0.12582447679443923
+        },
+        "beta": {
+          "n": 2000,
+          "cov_hessian": 0.933125,
+          "cov_hessian_se": 0.0027332631690482416,
+          "cov_auto": 0.966625,
+          "cov_auto_se": 0.001990140702942572,
+          "delta": -0.02159999999999999,
+          "delta_se": 0.0014642547664291566,
+          "delta_z": -14.751531287601951,
+          "coverage_difference": 0.0335,
+          "coverage_difference_se": 0.0021731282159876257,
+          "over": 0.016625,
+          "mean_se_hessian": 0.5041007728125487,
+          "mean_se_auto": 0.5587182920485884
+        },
+        "all": {
+          "n": 2000,
+          "cov_hessian": 0.9378000000000001,
+          "cov_hessian_se": 0.0019704114445034857,
+          "cov_auto": 0.96275,
+          "cov_auto_se": 0.0014865475646042795,
+          "delta": -0.012399999999999986,
+          "delta_se": 0.0009531916319101693,
+          "delta_z": -13.008926625961596,
+          "coverage_difference": 0.024949999999999996,
+          "coverage_difference_se": 0.0014220618411095803,
+          "over": 0.012750000000000039
+        }
+      },
+      "actions": {
+        "bootstrap": 2000
+      },
+      "sources_hessian": [
+        "hessian"
+      ],
+      "sources_auto": [
+        "bootstrap"
+      ],
+      "distance_mean": 0.18845869214121208,
+      "distance_se": 0.0021343264607008626
+    },
+    {
+      "cell": "M2_N2000_rho0.95_r0.0_c1.0",
+      "rows": 2000,
+      "failures": 0,
+      "blocks": {
+        "mu": {
+          "n": 2000,
+          "cov_hessian": 0.78175,
+          "cov_hessian_se": 0.007134172478884936,
+          "cov_auto": 0.85725,
+          "cov_auto_se": 0.00589627864003224,
+          "delta": -0.06474999999999999,
+          "delta_se": 0.005158926827646085,
+          "delta_z": -12.551059971041326,
+          "coverage_difference": 0.0755,
+          "coverage_difference_se": 0.005972244875624844,
+          "over": -0.09275,
+          "mean_se_hessian": 0.3232532695652908,
+          "mean_se_auto": 0.7200570298294126
+        },
+        "alpha": {
+          "n": 2000,
+          "cov_hessian": 0.922625,
+          "cov_hessian_se": 0.004061918177061002,
+          "cov_auto": 0.96725,
+          "cov_auto_se": 0.0026513644820749193,
+          "delta": -0.03262499999999999,
+          "delta_se": 0.0026444614339479057,
+          "delta_z": -12.337105612954339,
+          "coverage_difference": 0.044625,
+          "coverage_difference_se": 0.003220072067448146,
+          "over": 0.0172500000000001,
+          "mean_se_hessian": 0.22645459887692188,
+          "mean_se_auto": 0.38795078443940173
+        },
+        "beta": {
+          "n": 2000,
+          "cov_hessian": 0.920625,
+          "cov_hessian_se": 0.004038698457438369,
+          "cov_auto": 0.97625,
+          "cov_auto_se": 0.0024690112916670084,
+          "delta": -0.03897499999999999,
+          "delta_se": 0.002710123995970805,
+          "delta_z": -14.381260805020322,
+          "coverage_difference": 0.055625,
+          "coverage_difference_se": 0.003350248762537708,
+          "over": 0.026249999999999996,
+          "mean_se_hessian": 4.641039654307364,
+          "mean_se_auto": 7.066250153683468
+        },
+        "all": {
+          "n": 2000,
+          "cov_hessian": 0.89365,
+          "cov_hessian_se": 0.003715405882327692,
+          "cov_auto": 0.94885,
+          "cov_auto_se": 0.0024984915409082325,
+          "delta": -0.03259999999999998,
+          "delta_se": 0.0025370925129386992,
+          "delta_z": -12.849354067203327,
+          "coverage_difference": 0.0552,
+          "coverage_difference_se": 0.0028531649575756334,
+          "over": -0.0011499999999999844
+        }
+      },
+      "actions": {
+        "bootstrap": 1726,
+        "hessian_unmapped": 274
+      },
+      "sources_hessian": [
+        "hessian",
+        "none"
+      ],
+      "sources_auto": [
+        "bootstrap",
+        "hessian",
+        "none"
+      ],
+      "distance_mean": 0.3069741065219802,
+      "distance_se": 0.0033846432649996135
+    }
+  ],
+  "hypotheses": {
+    "H-A1": {
+      "label": "confirmed",
+      "beta_block_below_neg_2se_every_cell": true,
+      "pooled_block_negative_every_cell": true,
+      "per_cell": {
+        "M2_N2000_rho0.3028_r0.0_c1.0": {
+          "delta_beta": -0.03764999999999999,
+          "delta_beta_se": 0.002569930158683355,
+          "z": -14.650203575683593,
+          "delta_all": -0.02289999999999998,
+          "delta_all_se": 0.002256178222145813
+        },
+        "M2_N2000_rho0.85_r0.0_c1.0": {
+          "delta_beta": -0.02159999999999999,
+          "delta_beta_se": 0.0014642547664291566,
+          "z": -14.751531287601951,
+          "delta_all": -0.012399999999999986,
+          "delta_all_se": 0.0009531916319101693
+        },
+        "M2_N2000_rho0.95_r0.0_c1.0": {
+          "delta_beta": -0.03897499999999999,
+          "delta_beta_se": 0.002710123995970805,
+          "z": -14.381260805020322,
+          "delta_all": -0.03259999999999998,
+          "delta_all_se": 0.0025370925129386992
+        }
+      }
+    },
+    "H-A2": {
+      "label": "confirmed",
+      "ceiling": 0.9974999999999999,
+      "worst_cov_auto": 0.97625,
+      "by_cell": {
+        "M2_N2000_rho0.3028_r0.0_c1.0": {
+          "mu": {
+            "cov_auto": 0.9655,
+            "ceiling": 0.9974999999999999,
+            "ok": true
+          },
+          "alpha": {
+            "cov_auto": 0.96275,
+            "ceiling": 0.9974999999999999,
+            "ok": true
+          },
+          "beta": {
+            "cov_auto": 0.95675,
+            "ceiling": 0.9974999999999999,
+            "ok": true
+          },
+          "all": {
+            "cov_auto": 0.9609000000000001,
+            "ceiling": 0.9974999999999999,
+            "ok": true
+          }
+        },
+        "M2_N2000_rho0.85_r0.0_c1.0": {
+          "mu": {
+            "cov_auto": 0.95175,
+            "ceiling": 0.9974999999999999,
+            "ok": true
+          },
+          "alpha": {
+            "cov_auto": 0.964375,
+            "ceiling": 0.9974999999999999,
+            "ok": true
+          },
+          "beta": {
+            "cov_auto": 0.966625,
+            "ceiling": 0.9974999999999999,
+            "ok": true
+          },
+          "all": {
+            "cov_auto": 0.96275,
+            "ceiling": 0.9974999999999999,
+            "ok": true
+          }
+        },
+        "M2_N2000_rho0.95_r0.0_c1.0": {
+          "mu": {
+            "cov_auto": 0.85725,
+            "ceiling": 0.9974999999999999,
+            "ok": true
+          },
+          "alpha": {
+            "cov_auto": 0.96725,
+            "ceiling": 0.9974999999999999,
+            "ok": true
+          },
+          "beta": {
+            "cov_auto": 0.97625,
+            "ceiling": 0.9974999999999999,
+            "ok": true
+          },
+          "all": {
+            "cov_auto": 0.94885,
+            "ceiling": 0.9974999999999999,
+            "ok": true
+          }
+        }
+      }
+    },
+    "H-A3": {
+      "label": "confirmed (exploratory)",
+      "gain_at_low_rho": 0.02289999999999998,
+      "gain_at_high_rho": 0.03259999999999998,
+      "difference": 0.009700000000000004,
+      "difference_se": 0.003395169891079774,
+      "note": "exploratory: the map's own pattern suggested the direction"
+    }
+  }
+}

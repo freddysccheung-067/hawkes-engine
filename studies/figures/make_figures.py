@@ -74,6 +74,14 @@ def _main_cells(rows: list[dict[str, str]]) -> list[dict[str, str]]:
 
 
 def coverage_heatmap(plt: Any, colors: Any) -> Path:
+    """Coverage over (N, rho) per block as a vector heat map.
+
+    Drawn with filled rectangles rather than ``imshow``: ``imshow`` rasterises, and
+    a raster panel in a paper figure is the one thing a reader notices when they
+    zoom. Every cell is one patch, so the file stays vector end to end.
+    """
+    from matplotlib.patches import Rectangle
+
     blocks = {(r["cell"], r["block"]): r for r in _read("blocks.csv")}
     cells = {r["cell"]: r for r in _main_cells(_read("cells.csv"))}
     cmap = colors.ListedColormap(SEQ[::-1])
@@ -81,17 +89,22 @@ def coverage_heatmap(plt: Any, colors: Any) -> Path:
     fig, axes = plt.subplots(1, 3, figsize=(8.4, 3.0), sharey=True)
     for ax, b in zip(axes, BLOCKS, strict=True):
         ax.grid(False)
-        grid = [[math.nan] * len(NS) for _ in RHOS]
         for key, m in cells.items():
             i = RHOS.index(float(m["rho"]))
             j = NS.index(int(m["N"]))
-            grid[i][j] = _f(blocks[(key, b)]["cov_all"])
-            cov = grid[i][j]
+            cov = _f(blocks[(key, b)]["cov_all"])
             se = _f(blocks[(key, b)]["se_cov_all"])
             no_se = _f(m["no_se_rate"])
-            ink = "white" if cov < 0.85 else INK
-            ax.text(j, i + 0.13, f"{cov:.3f}", ha="center", va="center", color=ink, fontsize=6)
-            ax.text(j, i - 0.2, f"±{se:.3f}", ha="center", va="center", color=ink, fontsize=4.5)
+            rgba = cmap(norm(cov)) if math.isfinite(cov) else (1.0, 1.0, 1.0, 0.0)
+            ax.add_patch(
+                Rectangle(
+                    (j - 0.5, i - 0.5), 1.0, 1.0, facecolor=rgba, edgecolor="white", linewidth=0.5
+                )
+            )
+            ink = "white" if math.isfinite(cov) and cov < 0.85 else INK
+            if math.isfinite(cov):
+                ax.text(j, i + 0.13, f"{cov:.3f}", ha="center", va="center", color=ink, fontsize=6)
+                ax.text(j, i - 0.2, f"±{se:.3f}", ha="center", va="center", color=ink, fontsize=4.5)
             if no_se >= 0.005:
                 ax.text(
                     j,
@@ -102,13 +115,15 @@ def coverage_heatmap(plt: Any, colors: Any) -> Path:
                     color=ink,
                     fontsize=4.5,
                 )
-        im = ax.imshow(grid, cmap=cmap, norm=norm, origin="lower", aspect="auto")
+        ax.set_xlim(-0.5, len(NS) - 0.5)
+        ax.set_ylim(-0.5, len(RHOS) - 0.5)
         ax.set_xticks(range(len(NS)), [f"{n:,}" for n in NS], fontsize=6.5)
         ax.set_yticks(range(len(RHOS)), [str(r) for r in RHOS])
         ax.set_title(f"{b}", color=INK, fontsize=9)
         ax.set_xlabel("N (target events)")
     axes[0].set_ylabel("rho")
-    cbar = fig.colorbar(im, ax=axes, fraction=0.025, pad=0.02)
+    mappable = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+    cbar = fig.colorbar(mappable, ax=axes, fraction=0.025, pad=0.02)
     cbar.set_label("coverage at nominal 0.95")
     fig.suptitle(
         "Interval coverage +/- MC SE, c = 1, r = 0, M = 2. A missing SE is a miss; "

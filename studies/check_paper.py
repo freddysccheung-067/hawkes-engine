@@ -136,14 +136,23 @@ def check() -> list[str]:
         if "doi" not in fields and "arXiv" not in fields and "note" not in fields:
             problems.append(f"refs.bib entry {name} has no DOI or arXiv identifier")
 
-    # 6. Figures named in the text exist.
+    # 6. Figures named in the text exist, resolved through \graphicspath the way
+    #    LaTeX resolves them: the document directory first, then each declared
+    #    search path in order.
+    graphicspath: list[Path] = [PAPER]
+    for group in re.findall(r"\\graphicspath\{((?:\{[^}]*\})+)\}", main_text):
+        for entry in re.findall(r"\{([^}]*)\}", group):
+            graphicspath.append(PAPER / entry)
     text_all = main_text + "".join(
         _strip_comments(p.read_text(encoding="utf-8")) for p in (PAPER / "generated").glob("*.tex")
     )
     for name in re.findall(r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}", text_all):
-        path = PAPER / name
-        if not path.exists():
-            problems.append(f"figure {name} is included but does not exist")
+        searched = [base / name for base in graphicspath]
+        if not any(path.exists() for path in searched):
+            problems.append(
+                f"figure {name} is included but exists at none of "
+                + ", ".join(str(p.relative_to(PAPER)) for p in searched)
+            )
 
     return problems
 

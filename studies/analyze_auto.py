@@ -106,8 +106,8 @@ def analyse_cell(key: str) -> dict[str, Any]:
     for r in valid:
         actions[r["a_action"]] = actions.get(r["a_action"], 0) + 1
     out["actions"] = actions
-    out["sources_hessian"] = {r["h_source"] for r in valid}
-    out["sources_auto"] = {r["a_source"] for r in valid}
+    out["sources_hessian"] = sorted({r["h_source"] for r in valid})
+    out["sources_auto"] = sorted({r["a_source"] for r in valid})
     distances = np.array([_f(r["a_distance"]) for r in valid], dtype=float)
     mean_d, se_d = _mean_se(distances)
     out["distance_mean"] = mean_d

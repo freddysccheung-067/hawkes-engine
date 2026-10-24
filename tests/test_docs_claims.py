@@ -324,3 +324,94 @@ def test_the_toctree_lists_exactly_the_published_pages():
         listed |= {ln.strip() for ln in block.splitlines() if ln.strip() and ln[0] != ":"}
     pages = {Path(p).stem for p in PUBLISHED if p.startswith("docs/") and p != INDEX}
     assert listed == pages
+
+
+# ------------------------------------------------------------- the auto study
+
+
+AUTO_ANALYSIS = "studies/results/auto/analysis"
+
+
+def test_the_auto_study_outputs_exist_and_agree_with_their_report():
+    """The auto study's analysis is committed, and its labels are in the paper.
+
+    Skips when the study has not been run in this checkout, which is the normal
+    case for someone installing the sdist: ``studies/results/auto/*.csv`` are
+    gitignored, and only ``analysis/`` is committed. A missing analysis is a
+    checkout that never ran the study, not a failing claim.
+    """
+    path = ROOT / AUTO_ANALYSIS / "hypotheses.json"
+    if not path.exists():
+        pytest.skip("auto-v1 analysis is not present in this checkout")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["study_id"] == "auto-v1"
+    assert data["preregistration"] == "docs/preregistration_auto.md"
+    for name in ("H-A1", "H-A2", "H-A3"):
+        assert data["hypotheses"][name]["label"] in (
+            "confirmed",
+            "not confirmed",
+            "confirmed (exploratory)",
+        )
+    # Every cell in the study is one of the three the pre-registration fixes.
+    keys = {c["cell"] for c in data["cells"]}
+    assert keys == {
+        "M2_N2000_rho0.3028_r0.0_c1.0",
+        "M2_N2000_rho0.85_r0.0_c1.0",
+        "M2_N2000_rho0.95_r0.0_c1.0",
+    }
+
+
+def test_the_auto_labels_in_the_paper_match_the_study():
+    """The paper's verdict macros quote the analysis, not a paraphrase of it."""
+    path = ROOT / AUTO_ANALYSIS / "hypotheses.json"
+    main_tex = ROOT / "paper" / "main.tex"
+    if not path.exists() or not main_tex.exists():
+        pytest.skip("auto-v1 analysis is not present in this checkout")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    text = main_tex.read_text(encoding="utf-8")
+    for name, macro in (("H-A1", "AutoHoneLabel"), ("H-A2", "AutoHtwoLabel")):
+        label = data["hypotheses"][name]["label"]
+        found = re.search(rf"\\newcommand\{{\\{macro}\}}\{{(.*?)\}}\n", text)
+        assert found, f"{macro} is not defined in main.tex"
+        assert label in found.group(1), f"{name} is {label!r} but main.tex says {found.group(1)!r}"
+
+
+def test_the_auto_study_numbers_quoted_in_the_release_notes():
+    """Every coverage figure in the 0.2.0 notes is the study's own number."""
+    path = ROOT / AUTO_ANALYSIS / "hypotheses.json"
+    notes = ROOT / NOTES_2
+    if not path.exists():
+        pytest.skip("auto-v1 analysis is not present in this checkout")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    text = notes.read_text(encoding="utf-8")
+    for cell in data["cells"]:
+        pooled = cell["blocks"]["all"]
+        for value, digits in (
+            (pooled["cov_hessian"], 4),
+            (pooled["cov_auto"], 4),
+            (pooled["delta"], 4),
+            (pooled["delta_se"], 4),
+        ):
+            quoted = f"{abs(value):.{digits}f}" if value >= 0 else f"{value:.{digits}f}"
+            assert quoted in text, (
+                f"{cell['cell']} gives {quoted!r} for a pooled statistic, "
+                f"which the release notes do not quote"
+            )
+    # The overshoot ceiling and the worst measured coverage.
+    assert f"{data['hypotheses']['H-A2']['ceiling']:.4f}" in text
+    assert "0.9762" in text
+
+
+def test_the_auto_study_decision_counts_quoted_in_the_release_notes():
+    path = ROOT / AUTO_ANALYSIS / "hypotheses.json"
+    if not path.exists():
+        pytest.skip("auto-v1 analysis is not present in this checkout")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    text = (ROOT / NOTES_2).read_text(encoding="utf-8")
+    for cell in data["cells"]:
+        actions = cell["actions"]
+        if "hessian_unmapped" in actions:
+            assert f"{actions['hessian_unmapped']} of 2000" in text, (
+                f"{cell['cell']} had {actions['hessian_unmapped']} unmapped "
+                f"replications, which the notes do not report"
+            )

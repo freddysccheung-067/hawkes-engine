@@ -81,3 +81,16 @@ favourable one any of them gave.
 
 The paper draft is generated from the same analysis:
 [paper/draft.md](https://github.com/freddysccheung-067/hawkes-engine/blob/main/paper/draft.md).
+The submission version, with every number generated from the same outputs, is
+`paper/main.tex`.
+
+## Using the map from a fit
+
+`fit(..., se_method="auto")` reads this map for you. After the fit it looks the
+regime up and decides: where an estimated block's two-standard-error interval
+around the measured `q` excludes 1 it switches to the bootstrap, where the map has
+no measurement it keeps the Hessian interval and says it is uncalibrated, and where
+the map reports the estimator undefined it reports no interval. The result records
+which happened in `se_source`, `se_note` and `auto`. The policy is [](se_policy.md);
+the study that measured whether the switch helps is `docs/preregistration_auto.md`
+in the repository.

@@ -1,0 +1,30 @@
+auto-v1: does the auto interval land closer to nominal than the Hessian's?
+
+M2_N2000_rho0.3028_r0.0_c1.0  (2000 rows, 0 failures)
+  block         cov hessian           cov auto              delta   mean SE h   mean SE a
+  mu        0.9365 +/- 0.0042    0.9655 +/- 0.0029   -0.0245 +/- 0.0028      0.0329      0.0364
+  alpha     0.9297 +/- 0.0035    0.9627 +/- 0.0021   -0.0245 +/- 0.0023      0.0654      0.0842
+  beta      0.9038 +/- 0.0037    0.9567 +/- 0.0023   -0.0376 +/- 0.0026      2.9010      2.9450
+  all       0.9207 +/- 0.0030    0.9609 +/- 0.0017   -0.0229 +/- 0.0023         nan         nan
+  map actions: bootstrap: 1999, none: 1
+
+M2_N2000_rho0.85_r0.0_c1.0  (2000 rows, 0 failures)
+  block         cov hessian           cov auto              delta   mean SE h   mean SE a
+  mu        0.9355 +/- 0.0039    0.9517 +/- 0.0034   -0.0133 +/- 0.0019      0.1028      0.1538
+  alpha     0.9436 +/- 0.0026    0.9644 +/- 0.0021   -0.0137 +/- 0.0013      0.1111      0.1258
+  beta      0.9331 +/- 0.0027    0.9666 +/- 0.0020   -0.0216 +/- 0.0015      0.5041      0.5587
+  all       0.9378 +/- 0.0020    0.9627 +/- 0.0015   -0.0124 +/- 0.0010         nan         nan
+  map actions: bootstrap: 2000
+
+M2_N2000_rho0.95_r0.0_c1.0  (2000 rows, 0 failures)
+  block         cov hessian           cov auto              delta   mean SE h   mean SE a
+  mu        0.7817 +/- 0.0071    0.8572 +/- 0.0059   -0.0647 +/- 0.0052      0.3233      0.7201
+  alpha     0.9226 +/- 0.0041    0.9673 +/- 0.0027   -0.0326 +/- 0.0026      0.2265      0.3880
+  beta      0.9206 +/- 0.0040    0.9762 +/- 0.0025   -0.0390 +/- 0.0027      4.6410      7.0663
+  all       0.8937 +/- 0.0037    0.9488 +/- 0.0025   -0.0326 +/- 0.0025         nan         nan
+  map actions: bootstrap: 1726, hessian_unmapped: 274
+
+Hypotheses
+  H-A1: confirmed
+  H-A2: confirmed
+  H-A3: confirmed (exploratory)
