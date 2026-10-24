@@ -27,5 +27,5 @@
     }
   ],
   "communities": [],
-  "notes": "The archive corresponds to the release tag v0.1.0. The preregistration is at the annotated tag H6-preregistration."
+  "notes": "0.1.0 was deposited manually; the first automatic deposit for a later release may need to be queued in the Zenodo web UI. The preregistration is at the annotated tag H6-preregistration."
 }
