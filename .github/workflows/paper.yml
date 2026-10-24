@@ -140,3 +140,17 @@ jobs:
           name: paper-pdf
           path: paper/main.pdf
           if-no-files-found: error
+
+      # arXiv takes a tarball, not a repository. A file the paper needs but the
+      # archive omits is invisible here and fatal on arXiv's compiler, so the
+      # archive is built and compiled on its own. This is also the only place it
+      # gets compiled: the machine the paper is written on has no TeX.
+      - name: Build and test the arXiv archive
+        run: make -C paper arxiv
+
+      - name: Upload the arXiv archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: arxiv-tarball
+          path: paper/build/hawkes-engine-paper.tar.gz
+          if-no-files-found: error
