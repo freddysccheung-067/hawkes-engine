@@ -8,8 +8,9 @@ does not submit; the steps below are the owner's.
 
 The order matters because two steps are hard to undo once a version is live.
 
-1. **Resolve the unverified references** (below). An arXiv submission can be
-   replaced by a new version, but a wrong DOI in a bibliography is the kind of
+1. **Resolve the unverified references** (below). Done: all seven entries are now
+   checked, including the one this list used to block on. An arXiv submission can
+   be replaced by a new version, but a wrong DOI in a bibliography is the kind of
    error a reader finds first and a correction cannot fully erase.
 2. **Build the PDF** from a machine with a TeX distribution installed. The
    preparing session could not: no TeX is installed on it and installing one was
@@ -137,14 +138,14 @@ figure that collides with a caption both compile cleanly and both look wrong.
 
 ## Unverified references
 
-Six of the seven entries in `paper/refs.bib` were checked against the publisher
-record or the arXiv listing. One is not fully resolved and is marked `[VERIFY]` in
-the file:
+All seven entries in `paper/refs.bib` have now been checked against the publisher
+record or the arXiv listing.
 
-- **`laub2015`** — Laub, Taimre and Pollett, "Hawkes processes". The working paper
-  exists, but the sources consulted disagreed on its arXiv identifier
-  (`1507.02822` against `1907.02822`). Confirm which identifier is current, or
-  replace the entry with a published version if one exists, before submission.
+The last open one was `laub2015`. Both candidate identifiers were opened: the
+working paper is arXiv:1507.02822, "Hawkes Processes" by Laub, Taimre and Pollett
+(math.PR, 10 July 2015), and 1907.02822 is "Deep Personalized Re-targeting", an
+unrelated 2019 paper in cs.IR. The entry carried the correct identifier throughout;
+it is now marked checked rather than `[VERIFY]`.
 
 A check made during preparation also corrected the Chen & Hall entry, whose DOI had
 been recorded as ending `0095` where the publisher record gives `0096`. That is the
