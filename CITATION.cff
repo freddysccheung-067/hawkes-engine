@@ -22,10 +22,20 @@ keywords:
   - point process
   - maximum likelihood
   - time rescaling
-# Version 0.1.0 has a Zenodo DOI: 10.5281/zenodo.23613789, which its release notes
-# carry. No DOI has been minted for 0.2.0, and this file must not name one until it
-# exists; the concept DOI below resolves to whichever version is current.
+# There are two Zenodo records, and they are not versions of one another.
+#
+#   10.5281/zenodo.23613789  v0.1.0, deposited by hand (files: hawkes-engine-0.1.0.zip)
+#   10.5281/zenodo.23620653  v0.2.0, deposited by the GitHub integration
+#
+# Each began its own series, so each has its own concept DOI, and neither concept
+# DOI points at this version from the other. 0.2.0's own concept is 23620652. The
+# entries below name this version and the record that contains it; 0.1.0's DOI is
+# in 0.1.0's release notes, where it is the right answer.
+doi: "10.5281/zenodo.23620653"
 identifiers:
   - type: doi
-    value: "10.5281/zenodo.23613788"
-    description: "All versions"
+    value: "10.5281/zenodo.23620653"
+    description: "Version 0.2.0"
+  - type: doi
+    value: "10.5281/zenodo.23620652"
+    description: "Version 0.2.0, all versions of that record"

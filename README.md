@@ -4,7 +4,7 @@
 [![Tests](https://github.com/freddysccheung-067/hawkes-engine/actions/workflows/test.yml/badge.svg)](https://github.com/freddysccheung-067/hawkes-engine/actions/workflows/test.yml)
 [![Python](https://img.shields.io/pypi/pyversions/hawkes-engine.svg)](https://pypi.org/project/hawkes-engine/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23613789.svg)](https://doi.org/10.5281/zenodo.23613789)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23620653.svg)](https://doi.org/10.5281/zenodo.23620653)
 
 Multivariate Hawkes processes with exponential kernels, for Python. A compiled
 likelihood and gradient, a maximum-likelihood fit that returns standard errors, two
@@ -189,11 +189,11 @@ and [CHANGELOG.md](CHANGELOG.md).
 
 ## Status
 
-0.2.0, released 2026-10-24 and on PyPI. 0.1.0 is archived at DOI
-[10.5281/zenodo.23613789](https://doi.org/10.5281/zenodo.23613789); no DOI has been
-minted for 0.2.0 yet, so cite the concept DOI
-[10.5281/zenodo.23613788](https://doi.org/10.5281/zenodo.23613788) for this version.
-Pre-alpha: the API may change between 0.x minor versions, as described in
+0.2.0, released 2026-10-24, on PyPI and archived at DOI
+[10.5281/zenodo.23620653](https://doi.org/10.5281/zenodo.23620653). 0.1.0 is a
+separate Zenodo record at
+[10.5281/zenodo.23613789](https://doi.org/10.5281/zenodo.23613789). Pre-alpha: the
+API may change between 0.x minor versions, as described in
 [ADR-009](docs/adr/ADR-009-versioning.md).
 
 ## License

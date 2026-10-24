@@ -150,9 +150,16 @@ Supported platforms and Python versions are unchanged from 0.1.0.
 
 ## The DOI
 
-This release has no DOI of its own yet. 0.1.0 is archived at
-[`10.5281/zenodo.23613789`](https://doi.org/10.5281/zenodo.23613789), and the concept
-DOI [`10.5281/zenodo.23613788`](https://doi.org/10.5281/zenodo.23613788) resolves to
-whichever version is current, so cite that one until 0.2.0 is deposited. When a
-version DOI is minted it is added here and to `CITATION.cff` in one commit, which
-`tests/test_release_metadata.py` enforces.
+This release is archived at DOI
+[`10.5281/zenodo.23620653`](https://doi.org/10.5281/zenodo.23620653).
+
+Note that this begins a **second** Zenodo record. 0.1.0 was deposited by hand as
+`10.5281/zenodo.23613789`, with concept DOI `10.5281/zenodo.23613788`; 0.2.0 was
+deposited by the GitHub integration as `10.5281/zenodo.23620653`, with concept DOI
+`10.5281/zenodo.23620652`. The two are separate series, so neither concept DOI
+resolves to the other's versions. Cite the version DOI above for this release, and
+the record's own concept DOI if you need "all versions of 0.2.0".
+
+That split is a defect in how the archive is published rather than a choice, and
+later releases should be deposited into the 23620652 series so that one concept DOI
+covers everything from 0.2.0 onward. See `docs/RELEASING.md`.
