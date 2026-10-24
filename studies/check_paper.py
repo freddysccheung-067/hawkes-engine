@@ -79,6 +79,20 @@ def check() -> list[str]:
         if count > 1:
             problems.append(f"macro \\{name} is defined {count} times")
 
+    # 2b. A control word is letters only. TeX ends the name at the first
+    #     non-letter, so \Hsix61Label is \Hsix followed by the text "61Label",
+    #     which arrives in the preamble and fails the compile with "Missing
+    #     \begin{document}". The pattern in step 2 cannot see such a name, which
+    #     is how twenty of them survived until the first real typeset.
+    for raw in re.findall(r"\\newcommand\{\\([^}]*)\}", main_text):
+        if not raw.isalpha():
+            split = re.match(r"[A-Za-z]*", raw).group(0)
+            rest = raw[len(split) :]
+            problems.append(
+                f"macro \\{raw} is not letters only; TeX reads it as \\{split} "
+                f"followed by the literal text {rest!r}"
+            )
+
     # 3. Every macro used in any section is defined. A macro starting with a
     #    known LaTeX command we did not define is not checked: the list below is
     #    everything generated, and anything else must be a standard command.
@@ -88,7 +102,7 @@ def check() -> list[str]:
         ok, why = _balanced(text)
         if not ok:
             problems.append(f"{path.name}: {why}")
-        for name in re.findall(r"\\((?:Hsix|Auto)[A-Za-z]+|HEAD)\b", text):
+        for name in re.findall(r"\\((?:Hsix|HSix|Auto)[A-Za-z]+|HEAD)\b", text):
             used.setdefault(name, path.name)
     for name, where in sorted(used.items()):
         if name == "HEAD":

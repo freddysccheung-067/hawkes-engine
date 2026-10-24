@@ -136,6 +136,12 @@ def thousands(value: int) -> str:
 
 
 def macro(name: str, value: str) -> str:
+    if not name.isalpha():
+        raise ValueError(
+            f"macro name {name!r} is not letters only. A TeX control word ends at the "
+            "first non-letter, so a name like 'Hsix61Label' is read as \\Hsix followed "
+            "by the text '61Label', which lands in the preamble and fails the compile."
+        )
     return rf"\newcommand{{\{name}}}{{{value}}}"
 
 
@@ -185,13 +191,10 @@ def h6_macros() -> list[str]:
         macro("HsixGap", tex_num(h6["T"])),
         macro("HsixGapSe", tex_num(h6["se"])),
     ]
-    for name in ("H6.1", "H6.2", "H6.3", "H6.4", "H6.6"):
-        label = h[name]["label"]
-        tag = name.replace(".", "").replace("H", "Hsix")
-        out.append(macro(tag + "Label", r"\emph{" + label + "}"))
-        out.append(macro(tag + "T", tex_num(h[name]["T"], 4)))
-        out.append(macro(tag + "Se", tex_num(h[name]["se"], 4)))
-        out.append(macro(tag + "Z", tex_num(h[name]["z"], 2)))
+    # H6.1 to H6.6 are emitted only by the hypothesis table, which inlines each
+    # cell, and the prose refers to them by name. Nothing read the per-hypothesis
+    # macros this loop used to define, and their digit-containing names
+    # (\Hsix61T) were what broke the first real typeset.
     # The prose names H6.3's and H6.4's labels by word, not by number.
     out.append(macro("HsixThreeLabel", r"\emph{" + h["H6.3"]["label"] + "}"))
     out.append(macro("HsixFourLabel", r"\emph{" + h["H6.4"]["label"] + "}"))
