@@ -73,8 +73,9 @@ were labelled `reliable` (H6 section below).
 
 - The verdict is a conditioning report, not a trust guarantee. The H6 map reports
   measured coverage for a regime; it does not change the verdict.
-- No PyPI wheels. The first release is H9. Until then, install from source or
-  from a CI wheel downloaded manually from the Actions tab.
+- 0.1.0 is published on PyPI with the full wheel matrix. PyPI publication is
+  triggered by a trusted-publishing workflow; see `RELEASING.md` for the steps a
+  later release has to follow.
 
 ### Known limitations
 
