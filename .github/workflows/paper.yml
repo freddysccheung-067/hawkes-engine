@@ -1,0 +1,106 @@
+name: Paper
+
+# The paper is generated, and until this workflow existed nothing compiled it: the
+# structure checks catch a missing macro, not a table wider than the margin, and
+# every session that prepared the package reported "no TeX installed". This builds
+# the PDF on every change to the paper and uploads it, so a compile error is a red
+# check rather than something found after the submission form is open.
+
+on:
+  push:
+    paths:
+      - "paper/**"
+      - "studies/make_paper_tex.py"
+      - "studies/check_paper.py"
+      - ".github/workflows/paper.yml"
+  pull_request:
+    paths:
+      - "paper/**"
+      - "studies/make_paper_tex.py"
+      - "studies/check_paper.py"
+      - ".github/workflows/paper.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Typeset the paper
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the generator's dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy
+          python -m pip install -e ".[figures]"
+
+      - name: Check the generated tree is current
+        run: python -m studies.make_paper_tex --check
+
+      - name: Check the paper's structure
+        run: python -m studies.check_paper
+
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended texlive-bibtex-extra lmodern
+
+      - name: Typeset
+        working-directory: paper
+        run: |
+          pdflatex -interaction=nonstopmode -halt-on-error main.tex
+          bibtex main
+          pdflatex -interaction=nonstopmode -halt-on-error main.tex
+          pdflatex -interaction=nonstopmode -halt-on-error main.tex
+
+      - name: Report what a compile cannot catch
+        run: |
+          python - <<'EOF'
+          from pathlib import Path
+
+          pdf = Path("paper/main.pdf")
+          if not pdf.exists():
+              raise SystemExit("no PDF was produced")
+
+          log = Path("paper/main.log").read_text(errors="replace")
+          overfull = [ln for ln in log.splitlines() if "Overfull \\hbox" in ln]
+          unresolved = [
+              ln for ln in log.splitlines()
+              if "LaTeX Warning: Citation" in ln or "LaTeX Warning: Reference" in ln
+          ]
+
+          print(f"PDF: {pdf.stat().st_size} bytes")
+          for line in overfull[:20]:
+              print("OVERFULL:", line.strip())
+          for line in unresolved[:20]:
+              print("UNRESOLVED:", line.strip())
+
+          # A table wider than the margin compiles cleanly and looks wrong, and the
+          # submission checklist says to read the PDF for exactly that. Failing here
+          # turns the most common instance into a red check instead.
+          if overfull:
+              raise SystemExit(f"{len(overfull)} overfull boxes")
+          if unresolved:
+              raise SystemExit(f"{len(unresolved)} unresolved citations or references")
+          print("no overfull boxes, no unresolved citations")
+          EOF
+
+      - name: Upload the PDF
+        uses: actions/upload-artifact@v7
+        with:
+          name: paper-pdf
+          path: paper/main.pdf
+          if-no-files-found: error
