@@ -1,6 +1,6 @@
 # hawkes-engine 0.1.0
 
-Released <!-- RELEASE_DATE -->. This is the first release. It is a pre-alpha
+Released 2026-10-24. This is the first release. It is a pre-alpha
 research release: the library works, the study behind it is finished, and what the
 study found is less flattering than what a first release usually advertises. That
 finding is the first section, because it is the reason to read the rest.

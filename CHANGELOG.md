@@ -3,7 +3,7 @@
 All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The project is pre-alpha.
 
-## [0.1.0] - <!-- RELEASE_DATE -->
+## [0.1.0] - 2026-10-24
 
 The first release. It is a pre-alpha research release, and the notes lead with what
 the study found rather than with what was added:
