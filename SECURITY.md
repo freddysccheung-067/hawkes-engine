@@ -1,7 +1,8 @@
 # Security policy
 
-hawkes-engine is pre-alpha and has no released version. Only the `main` branch is
-maintained.
+hawkes-engine is pre-alpha. The last release is 0.1.0 and only the `main` branch is
+maintained; a fix for a security defect ships in a patch release rather than being
+backported to an earlier version.
 
 ## Reporting a vulnerability
 

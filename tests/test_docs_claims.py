@@ -43,6 +43,7 @@ TRUST = "docs/trust.md"
 LIMITS = "docs/limits.md"
 PERF = "docs/performance.md"
 PAPER = "paper/draft.md"
+NOTES = "docs/release_notes_0.1.0.md"
 
 PUBLISHED = [
     README,
@@ -57,6 +58,7 @@ PUBLISHED = [
     "docs/install.md",
     "docs/ROADMAP.md",
     "docs/verification-rule.md",
+    NOTES,
 ]
 
 
@@ -73,30 +75,39 @@ class Claim:
 
 CLAIMS = [
     # H6.5, the headline: pooled q and its bootstrap SE, per block, satellite.
-    Claim("0.779", (README, INDEX, QUICK, LIMITS, PAPER), HYP, "json", "H6.5/T"),
-    Claim("0.011", (README, INDEX, QUICK, LIMITS, PAPER), HYP, "json", "H6.5/se"),
-    Claim("0.61", (README, INDEX, QUICK, LIMITS), HYP, "json", "H6.5/per_block/beta/q"),
+    Claim("0.779", (README, INDEX, QUICK, LIMITS, PAPER, NOTES), HYP, "json", "H6.5/T"),
+    Claim("0.011", (README, INDEX, QUICK, LIMITS, PAPER, NOTES), HYP, "json", "H6.5/se"),
+    Claim("0.61", (README, INDEX, QUICK, LIMITS, NOTES), HYP, "json", "H6.5/per_block/beta/q"),
     Claim("0.611", (PAPER,), HYP, "json", "H6.5/per_block/beta/q"),
-    Claim("0.936", (LIMITS,), HYP, "json", "H6.5/per_block/mu/q"),
-    Claim("0.869", (LIMITS,), HYP, "json", "H6.5/per_block/alpha/q"),
-    Claim("0.336", (LIMITS, PAPER), HYP, "json", "H6.5/satellite/q"),
-    Claim("0.023", (LIMITS, PAPER), HYP, "json", "H6.5/satellite/se_boot"),
-    Claim("0.983", (LIMITS,), HYP, "json", "H6.5/qrob_pooled"),
-    Claim("0.003", (LIMITS,), HYP, "json", "H6.5/qrob_se_boot"),
-    # H6.3 and H6.6 statistics quoted on the limits page.
-    Claim("0.0167", (LIMITS,), HYP, "json", "H6.3/T"),
-    Claim("0.0059", (LIMITS,), HYP, "json", "H6.3/se"),
+    Claim("0.936", (LIMITS, NOTES), HYP, "json", "H6.5/per_block/mu/q"),
+    Claim("0.869", (LIMITS, NOTES), HYP, "json", "H6.5/per_block/alpha/q"),
+    Claim("0.336", (LIMITS, PAPER, NOTES), HYP, "json", "H6.5/satellite/q"),
+    Claim("0.023", (LIMITS, PAPER, NOTES), HYP, "json", "H6.5/satellite/se_boot"),
+    Claim("0.983", (LIMITS, NOTES), HYP, "json", "H6.5/qrob_pooled"),
+    Claim("0.003", (LIMITS, NOTES), HYP, "json", "H6.5/qrob_se_boot"),
+    # H6.3 and H6.6 statistics quoted on the limits page and in the release notes.
+    Claim("0.0167", (LIMITS, NOTES), HYP, "json", "H6.3/T"),
+    Claim("0.0059", (LIMITS, NOTES), HYP, "json", "H6.3/se"),
     Claim("0.775", (LIMITS, PAPER), HYP, "json", "H6.6/T"),
     # Study size.
-    Claim("128", (README, INDEX, TRUST, PAPER), f"{ANALYSIS}/cells.csv", "count", "", column=""),
-    Claim("2000", (README, INDEX, PAPER), RUN, "regex", r"128 cells, (\d+) replications each"),
     Claim(
-        "67", (LIMITS, PAPER), f"{ANALYSIS}/cells.csv", "count", "1", column="estimator_undefined"
+        "128", (README, INDEX, TRUST, PAPER, NOTES), f"{ANALYSIS}/cells.csv", "count", "", column=""
+    ),
+    Claim(
+        "2000", (README, INDEX, PAPER, NOTES), RUN, "regex", r"128 cells, (\d+) replications each"
+    ),
+    Claim(
+        "67",
+        (LIMITS, PAPER, NOTES),
+        f"{ANALYSIS}/cells.csv",
+        "count",
+        "1",
+        column="estimator_undefined",
     ),
     # H6.6 is mostly mechanical.
     Claim(
         "96.4",
-        (README, INDEX, TRUST, LIMITS, PAPER),
+        (README, INDEX, TRUST, LIMITS, PAPER, NOTES),
         PHASE3,
         "regex",
         r"without an SE \((0\.\d+)\)",
@@ -104,16 +115,16 @@ CLAIMS = [
     ),
     Claim(
         "0.0726",
-        (LIMITS, PAPER),
+        (LIMITS, PAPER, NOTES),
         PHASE3,
         "regex",
         r"\+(0\.\d{4}) \+/- 0\.0394 \(independent cells\)",
     ),
     # The heavy tail in beta_hat at small N, and the verdict that missed it.
-    Claim("5454", (LIMITS,), RUN, "regex", r"In total (\d+) such fits"),
-    Claim("3211", (LIMITS, FIT), RUN, "regex", r"of which (\d+) carry the verdict"),
-    Claim("1.305", (LIMITS,), PHASE3, "regex", r"beta\[0,1\]: median ([\d.]+), mean"),
-    Claim("43914", (LIMITS,), PHASE3, "regex", r"max (\d+) \(truth 1\.2\)"),
+    Claim("5454", (LIMITS, NOTES), RUN, "regex", r"In total (\d+) such fits"),
+    Claim("3211", (LIMITS, FIT, NOTES), RUN, "regex", r"of which (\d+) carry the verdict"),
+    Claim("1.305", (LIMITS, NOTES), PHASE3, "regex", r"beta\[0,1\]: median ([\d.]+), mean"),
+    Claim("43914", (LIMITS, NOTES), PHASE3, "regex", r"max (\d+) \(truth 1\.2\)"),
     # Wall clock: the slowest measured fit.
     Claim(
         "828.62",

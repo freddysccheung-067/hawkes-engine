@@ -4,10 +4,17 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "hawkes-engine"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Multi-dimensional Hawkes process library with trust calibration"
 readme = "README.md"
 license = { text = "MIT" }
+keywords = [
+    "Hawkes process",
+    "point process",
+    "maximum likelihood",
+    "time rescaling",
+    "standard errors",
+]
 authors = [{ name = "Freddy Shi Chun Cheung" }]
 requires-python = ">=3.10"
 dependencies = [
@@ -23,6 +30,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering",
+    "Typing :: Typed",
 ]
 
 [project.optional-dependencies]
@@ -30,6 +38,10 @@ test = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "hypothesis>=6.98.0",
+    # tests/test_sdist.py builds a source distribution; without this it skips.
+    "build>=1.0.0",
+    # tests/ read pyproject.toml; tomllib exists from Python 3.11.
+    "tomli>=2.0; python_version < '3.11'",
 ]
 # Figures for the H6 paper (studies/figures/). Imported lazily by the figure
 # scripts only; the library never imports it.
@@ -59,6 +71,20 @@ Issues = "https://github.com/freddysccheung-067/hawkes-engine/issues"
 minimum-version = "0.10"
 cmake.version = ">=3.24"
 wheel.packages = ["python/hawkes_engine"]
+# An sdist lists every tracked file. A source distribution is what someone builds
+# and tests from, so it keeps the sources, the data the build installs, the tests,
+# the user documentation and the study outputs the tests read. It leaves out the
+# maintainer's process: status and working notes, the release checklist, and local
+# editor configuration. tests/test_sdist.py asserts this list against the tarball.
+sdist.exclude = [
+    ".claude/**",
+    "CLAUDE.md",
+    "*.log",
+    "docs/STATE.md",
+    "docs/RELEASING.md",
+    "studies/ANALYSIS_NOTES.md",
+    "studies/HARNESS_NOTES.md",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "oracle"]

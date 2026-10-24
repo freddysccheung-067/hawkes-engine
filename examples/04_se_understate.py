@@ -50,3 +50,9 @@ print(
     "study, same cell, 2000 replicates: "
     + ", ".join(f"q[{b}] = {float(row[b + '_q']):.3f}" for b in ("mu", "alpha", "beta"))
 )
+print(
+    "The study's q[beta] is far below the one above because beta_hat has a heavy tail at\n"
+    "this cell (median 1.305, maximum 43914): a few enormous estimates inflate the empirical\n"
+    "SD that q divides by. That is a property of the tail, not a contradiction; see\n"
+    "docs/limits.md, section 5."
+)

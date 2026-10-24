@@ -13,6 +13,7 @@ the compiled module, the layout and bootstrap internals, the log-space
 objective, the self-test -- is private and may change without notice.
 """
 
+from hawkes_engine._version import __version__
 from hawkes_engine.diagnostics import ks_test, qq_data, time_rescale
 from hawkes_engine.fit import fit
 from hawkes_engine.loglik import LoglikResult, loglik
@@ -23,7 +24,6 @@ from hawkes_engine.trust import report
 from hawkes_engine.trust_map import MapAnswer
 from hawkes_engine.trust_map import lookup as trust_lookup
 
-__version__ = "0.1.0.dev0"
 __license__ = "MIT"
 
 __all__ = [

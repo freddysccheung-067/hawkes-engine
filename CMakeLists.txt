@@ -86,6 +86,11 @@ find_package(pybind11 CONFIG REQUIRED)
 
 pybind11_add_module(_core MODULE cpp/src/_core.cpp cpp/src/bindings.cpp cpp/src/bindings_sim.cpp)
 target_link_libraries(_core PRIVATE hawkes_core)
+# The version the core was compiled as, readable from Python as
+# _core.build_info()["version"]. tests/test_version.py holds it equal to
+# hawkes_engine.__version__ and to the metadata, so a bump cannot miss one.
+target_compile_definitions(_core PRIVATE
+    HAWKES_ENGINE_VERSION="${PROJECT_VERSION}")
 target_include_directories(_core PRIVATE cpp/include)
 # The shared input contract for every binding lives in cpp/src, beside its users.
 target_include_directories(_core PRIVATE cpp/src)

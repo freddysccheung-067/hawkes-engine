@@ -9,12 +9,18 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "python"))
 sys.path.insert(0, str(Path(__file__).parent))
 
 import _gen  # noqa: E402
+from hawkes_engine._version import __version__ as _version  # noqa: E402
 
 # Fragments copied from committed measurements (docs/_gen.py). Rebuilt on every
 # build, gitignored, and pulled into pages with the MyST include directive.
 _gen.generate(Path(__file__).parent / "_generated")
 
 project = "hawkes-engine"
+# Read from the package rather than written here, so the documentation cannot
+# claim a version the wheel does not have. tests/test_version.py checks the same
+# string against pyproject.toml, CMakeLists.txt, CITATION.cff and the core.
+release = _version
+version = ".".join(release.split(".")[:2])
 author = "Freddy Shi Chun Cheung"
 copyright = "2026, Freddy Shi Chun Cheung"
 
@@ -52,6 +58,8 @@ exclude_patterns = [
     "competitor-analysis.md",
     "STATE.md",
     "preregistration.md",
+    # The maintainer's release checklist: repository-only, like STATE.md.
+    "RELEASING.md",
     "_generated",
     "_gen.py",
 ]

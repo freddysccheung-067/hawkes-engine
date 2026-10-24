@@ -1,6 +1,7 @@
 """Smoke tests for the package and its compiled core."""
 
 import hawkes_engine
+from hawkes_engine import _version
 from hawkes_engine._core import build_info
 
 
@@ -9,8 +10,12 @@ def test_package_imports() -> None:
 
 
 def test_version_is_a_string() -> None:
+    # The exact string is not repeated here: tests/test_version.py pins its shape
+    # and holds it equal to pyproject.toml, CITATION.cff, docs/conf.py and the
+    # compiled core. A literal in this file would be a fifth copy to forget.
     assert isinstance(hawkes_engine.__version__, str)
-    assert hawkes_engine.__version__ == "0.1.0.dev0"
+    assert hawkes_engine.__version__ == _version.__version__
+    assert hawkes_engine.__version__.count(".") == 2
 
 
 def test_license_is_mit() -> None:

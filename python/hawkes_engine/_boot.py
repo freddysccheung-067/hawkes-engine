@@ -25,6 +25,7 @@ a bootstrap that costs an hour is a bootstrap nobody runs.
 from __future__ import annotations
 
 from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
 
 import numpy as np
@@ -127,10 +128,22 @@ def parametric_bootstrap(
         for i in range(n_bootstrap)
     ]
     draws = []
-    with ProcessPoolExecutor(max_workers=workers) as pool:
-        for out in pool.map(_one, jobs):
-            if out is not None:
-                draws.append(out)
+    try:
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            for out in pool.map(_one, jobs):
+                if out is not None:
+                    draws.append(out)
+    except BrokenProcessPool as exc:
+        # Where workers are spawned (Windows, macOS) a script with no
+        # `if __name__ == "__main__":` guard re-runs itself in every worker, and
+        # the pool dies with this error and no hint of why. It is not the only
+        # cause (a worker killed for memory gives the same error), so say so.
+        raise RuntimeError(
+            'the bootstrap worker pool died. If this script has no `if __name__ == "__main__":` '
+            "guard, add one: on Windows and macOS each worker re-imports the main module. "
+            "Otherwise a worker was killed, for example for lack of memory; "
+            "try fewer replications (n_bootstrap) or se_method='hessian'."
+        ) from exc
 
     notes: list[str] = []
     if len(draws) < max(10, n_bootstrap // 2):
