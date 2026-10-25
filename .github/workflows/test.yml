@@ -58,7 +58,12 @@ jobs:
           # each assertion line as an annotation.
           # The examples and the documentation tests have their own step below,
           # so a failure there is named as such and they run once, not twice.
+          # --cov is what CI adds over a local run: the floor in
+          # [tool.coverage.report] fails the build when a change drops coverage
+          # below the measured value, so a new branch of code has to bring a
+          # test with it.
           if ! pytest -q -m "not slow" \
+              --cov --cov-report=term-missing \
               --ignore=tests/test_examples.py \
               --ignore=tests/test_docs_claims.py \
               --ignore=tests/test_docs_code.py > pytest.log 2>&1; then
