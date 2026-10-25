@@ -1570,7 +1570,7 @@ The grid was frozen at the tag \texttt{H6-preregistration}, commit
 attributed to commit \texttt{\detokenize{\HsixAnalysisCommit}}; the per-cell data
 hashes are in the study manifest,
 whose digest begins \HsixManifestDigest. The interval study's design is
-\texttt{docs/preregistration\_auto.md}, frozen before its harness existed.
+\texttt{docs/preregistration\_auto.md}, frozen before the code that runs it existed.
 
 Pair decay, one start, \texttt{se\_method="hessian"} was the measured configuration.
 The study's outputs are the JSON and CSV files under

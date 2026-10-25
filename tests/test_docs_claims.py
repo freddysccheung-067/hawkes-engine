@@ -327,6 +327,78 @@ def test_the_toctree_lists_exactly_the_published_pages():
     assert listed == pages
 
 
+# ------------------------------------------------- the paper's prose, not its numbers
+#
+# Every number in the paper is pinned to a committed output elsewhere in this file.
+# None of that checks the prose, and the prose is what a reader meets first. These
+# are the patterns that creep into generated text and that survive a spell-check:
+# stock vocabulary, dashes used for rhythm, and one construction used so often it
+# becomes a tic. The counts are set where the current text sits, not at zero, so the
+# tests catch a regression without forbidding a word that has a legitimate use.
+
+PAPER_TEX = [
+    Path("paper/main.tex"),
+    *sorted(Path("paper/generated").glob("*.tex")),
+]
+
+# Words that say nothing and mark the register as promotional or generated. The
+# repository's own hygiene test bans these on published pages; the paper is submitted
+# under the author's name, so it is held to the same list plus the stock ones.
+PAPER_BANNED = re.compile(
+    r"\b(delve|tapestry|intricate|interplay|intricacies|foster|garner|showcase|"
+    r"meticulous|crucial|pivotal|multifaceted|ever-changing|seamless|"
+    r"landscape|realm|leverage|harness|unlock|elevate|embark)\b",
+    re.I,
+)
+# Openers that delay the sentence rather than starting it.
+PAPER_FILLER = re.compile(
+    r"\b(it is worth noting|it should be noted|it is important to note|"
+    r"notably|interestingly|importantly|in conclusion|in summary|ultimately)\b",
+    re.I,
+)
+# A construction that is fine once and conspicuous at four times per thousand words.
+RATHER_THAN = re.compile(r"rather than", re.I)
+RATHER_RATE_MAX = 2.6  # per thousand words; the file sat at 3.2 before the rewrite
+
+
+def _paper_words() -> int:
+    return sum(len(re.findall(r"[A-Za-z]+", p.read_text(encoding="utf-8"))) for p in PAPER_TEX)
+
+
+@pytest.mark.parametrize("path", PAPER_TEX, ids=lambda p: p.name)
+def test_the_paper_uses_no_stock_or_promotional_vocabulary(path):
+    text = path.read_text(encoding="utf-8")
+    for pattern, what in ((PAPER_BANNED, "stock vocabulary"), (PAPER_FILLER, "a filler opener")):
+        match = pattern.search(text)
+        assert match is None, f"{path} uses {what}: {match.group(0)!r}"
+
+
+@pytest.mark.parametrize("path", PAPER_TEX, ids=lambda p: p.name)
+def test_the_paper_has_no_em_dash_or_emoji(path):
+    # An em dash in LaTeX source is almost always a typing habit rather than a
+    # typographic choice: the paper does not use "---" anywhere. En dashes are
+    # written as "--" and are left alone.
+    text = path.read_text(encoding="utf-8")
+    assert "—" not in text, f"{path} contains an em dash"
+    assert not EMOJI.search(text), f"{path} contains an emoji"
+
+
+def test_the_paper_does_not_lean_on_one_construction():
+    """'rather than' is the paper's favourite move and it was doing too much work.
+
+    It was at 3.2 per thousand words before the prose rewrite, in a paper of under
+    ten thousand, which reads as a tic rather than an argument. The ceiling is set
+    just above where the rewritten text sits so a later section that reaches for it
+    again fails here rather than in a reader's patience.
+    """
+    total = sum(len(RATHER_THAN.findall(p.read_text(encoding="utf-8"))) for p in PAPER_TEX)
+    rate = 1000.0 * total / _paper_words()
+    assert rate <= RATHER_RATE_MAX, (
+        f"'rather than' appears {total} times, {rate:.1f} per thousand words, "
+        f"above the {RATHER_RATE_MAX} ceiling"
+    )
+
+
 # ------------------------------------------------------------- the auto study
 
 
