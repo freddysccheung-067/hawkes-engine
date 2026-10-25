@@ -1,0 +1,44 @@
+sw-v1 sandwich estimator study — estimands
+
+rho = mean(se_sandwich) / sampling spread; q = mean(se_hessian) / same.
+Amendment 3 decides from the robust pair; the mean pair is shown beside it.
+
+cell                                       blk     q_rob  rho_rob   q_mean  rho_mean      g   keep
+--------------------------------------------------------------------------------------------------
+M2_N2000_rho0.3028_r0.0_c1.0               mu      0.223    0.223    0.317     0.306  0.965   0.94
+M2_N2000_rho0.3028_r0.0_c1.0               alpha   0.703    0.695    0.330     0.271  0.957   0.94
+M2_N2000_rho0.3028_r0.0_c1.0               beta    0.835    0.860    0.007     0.001  0.951   0.94
+M2_N2000_rho0.6_r0.0_c1.0                  mu      0.324    0.320    0.431     0.420  0.977   1.00
+M2_N2000_rho0.6_r0.0_c1.0                  alpha   0.494    0.488    0.562     0.539  0.979   1.00
+M2_N2000_rho0.6_r0.0_c1.0                  beta    0.798    0.827    0.067     0.057  0.985   1.00
+M2_N2000_rho0.85_r0.0_c1.0                 mu      0.626    0.598    0.681     0.643  1.019   0.99
+M2_N2000_rho0.85_r0.0_c1.0                 alpha   0.488    0.486    0.583     0.547  1.035   0.99
+M2_N2000_rho0.85_r0.0_c1.0                 beta    0.847    0.848    0.069     0.043  1.053   0.99
+M2_N2000_rho0.95_r0.0_c1.0                 mu      0.737    0.522    0.531     0.337  0.950   0.92
+M2_N2000_rho0.95_r0.0_c1.0                 alpha   0.664    0.575    0.256     0.173  1.041   0.92
+M2_N2000_rho0.95_r0.0_c1.0                 beta    0.888    0.815    0.022     0.001  1.023   0.92
+M2_N10000_rho0.95_r0.0_c1.0                mu      0.663    0.616    0.698     0.634  0.958   1.00
+M2_N10000_rho0.95_r0.0_c1.0                alpha   0.340    0.328    0.415     0.394  1.006   1.00
+M2_N10000_rho0.95_r0.0_c1.0                beta    0.760    0.753    0.818     0.759  1.009   1.00
+M2_N50000_rho0.85_r0.0_c0.001              mu        nan      nan    0.214     0.109  0.850   0.00
+M2_N50000_rho0.85_r0.0_c0.001              alpha     nan      nan    0.000     0.000  1.140   0.00
+M2_N50000_rho0.85_r0.0_c0.001              beta      nan      nan    0.000     0.000  1.119   0.00
+M2_N50000_rho0.95_r0.0_c0.001              mu        nan      nan    0.113     0.021  0.652   0.00
+M2_N50000_rho0.95_r0.0_c0.001              alpha     nan      nan    0.101     0.000  2.490   0.00
+M2_N50000_rho0.95_r0.0_c0.001              beta      nan      nan    0.013     0.000  2.819   0.00
+
+H-S1 (|rho_beta - 1| <= 0.10 and better than q, every primary cell):
+  M2_N2000_rho0.3028_r0.0_c1.0               rho_rob=0.860 q_rob=0.835 misses better
+  M2_N2000_rho0.6_r0.0_c1.0                  rho_rob=0.827 q_rob=0.798 misses better
+  M2_N2000_rho0.85_r0.0_c1.0                 rho_rob=0.848 q_rob=0.847 misses better
+  M2_N2000_rho0.95_r0.0_c1.0                 rho_rob=0.815 q_rob=0.888 misses not better
+  M2_N10000_rho0.95_r0.0_c1.0                rho_rob=0.753 q_rob=0.760 misses not better
+  label: not confirmed
+
+H-S2 (rho_beta <= 1.10 at every primary cell):
+  label: confirmed
+
+H-S3 (g_beta > 1 at every primary cell) [exploratory]:
+  label: not confirmed (exploratory)
+
+H-S4 (the sandwich does not improve in the quantisation cells): not confirmed

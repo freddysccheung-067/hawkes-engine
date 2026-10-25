@@ -398,3 +398,63 @@ in Python, both reading only the public API.
 
 **No hypothesis, cell, replication count, tolerance or stopping rule changed.**
 This amendment removes work; it does not add a claim.
+
+## Amendment 3 — 2026-10-25, the beta tail and which statistic the hypotheses read
+
+**What was seen, before the study's own run.** A 300-replication pilot of the
+anchor cell (`M2_N2000_rho0.3028_r0.0_c1.0`, not one of the seven, run only to
+validate the harness) produced this distribution of `beta_hat`, against a truth of
+`(1.0, 1.2, 1.1, 1.3)`:
+
+| coordinate | 5th pct | median | 95th pct | 99th pct | mean | sd |
+|---|---|---|---|---|---|---|
+| `beta_00` | 0.622 | 1.055 | 1.847 | 3.136 | 1.138 | 0.478 |
+| `beta_01` | 0.302 | 1.249 | 13.038 | 252.308 | **25.773** | **304.458** |
+| `beta_10` | 0.576 | 1.083 | 2.225 | 3.654 | 1.194 | 0.589 |
+| `beta_11` | 0.760 | 1.357 | 2.281 | 2.899 | 1.442 | 0.503 |
+
+33 of 1200 entries exceed 5, and one replication fitted `beta_01 = 252` against a
+truth of 1.2. The median is close to the truth in every coordinate; the mean is
+not. This is the heavy tail `h6-v1` recorded (`5454` fits with an implausible
+`beta`, `3211` of them labelled `reliable`), and it is the same phenomenon this
+study is about.
+
+**Why this forces a decision before the numbers are in.** E3.3's spread and E4.2's
+ratio both divide by, or take a standard deviation of, this distribution. A `sd`
+of 304 makes `rho = mean(se) / sd` approximately zero for any honest standard
+error, and the hypothesis `|rho - 1| <= 0.10` can then never be met — not because
+the sandwich is wrong but because the denominator is not a measure of sampling
+spread. `h6-v1`'s own `q = 0.779` was computed exactly this way, so this is not a
+new defect in this study; it is a defect this study was on course to inherit.
+
+**What is decided.** Both hypotheses are read from the statistic that is defined
+on the plausible-parameter set, and the mean-based ratio is reported beside it:
+
+- The **set `P`** is the replications whose fitted `beta` is within `[0.1, 10]`
+  times its own truth, coordinate by coordinate, and whose `converged` is true.
+  Both conditions are stated before any run. The interval is wide on purpose: it
+  is a bound on "did the optimiser return a parameter that is in the neighbourhood
+  of the truth", not a trimming rule tuned to make a number look right, and the
+  pilot shows it removes 33 of 1200 entries rather than a chosen fraction.
+- **`rho` and `q` for H-S1 and H-S2 are the median-based companions**: the median
+  of the reported standard errors over the **median absolute deviation** of the
+  estimates, both over `P`. This is the estimator `h6-v1`'s robustness check used
+  (`ThQrobBeta`), so the two studies stay comparable.
+- **The mean-based `rho` and `q` over all replications are reported too, always,
+  next to the robust ones**, and a reader can see how much of either number is the
+  tail. Neither is allowed to disappear.
+- **The `g` diagnostic is unchanged.** It is a ratio of information entries at the
+  truth, a smooth function of the number of events, and it does not involve the
+  estimated `beta` at all; the pilot gives 0.93 to 0.97 for it against 0.88 to 0.99
+  in the 200-replication validation.
+
+**What is not changed.** The cells, `R`, the directions of H-S1 to H-S4, the 0.10
+tolerance, the Holm family and the stopping rule. This amendment fixes which
+statistic answers a hypothesis that was always about sampling spread; it does not
+move a threshold.
+
+**What this means for the paper.** If the robust ratio is near 1 while the
+mean-based one is near 0, the paper's `q = 0.779` is a statement about the
+distribution's tail rather than about the interval, and the discussion has to say
+so. That is a possible outcome of this study, and it would be a more useful result
+than a confirmation.
