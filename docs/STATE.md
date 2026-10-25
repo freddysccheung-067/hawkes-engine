@@ -1,4 +1,4 @@
-# Project state after gate H8
+# Project state after gate H10
 
 ## What is measured
 
@@ -259,8 +259,14 @@ reporting, if SECURITY.md is to point at it; and the decision below.
 
 **Owner decision.** `ljung_box` and `ReliabilityReport` are used in the docs but
 are not in `__all__` (the surface is pinned by `tests/test_api.py`). The docs
-import `ljung_box` from `hawkes_engine.diagnostics`. Exporting both would be a
-one-line change plus the pinned list.
+import `ljung_box` from `hawkes_engine.diagnostics`. **Resolved 2026-10-25: both
+are exported.** The reason is that each was a completeness gap rather than a
+design choice — `ljung_box` is the third of three diagnostics of which `ks_test`
+and `qq_data` already shipped, and `ReliabilityReport` is the documented return
+type of `report`, which shipped, so a user could call `report()` and receive an
+object they could not name. Exporting a docstring also exposed that
+`ljung_box`'s had no Parameters section; it has one now, because the pinned
+surface test checks it.
 
 **Next: H9 (v0.1.0 release).**
 
@@ -315,3 +321,61 @@ uploaded by trusted publishing. `CITATION.cff` carries the Zenodo version DOI
   was chosen. arXiv is still pending an endorsement for `stat.ME`. Every
   bibliography entry has been checked; the Laub identifier resolved to
   `1507.02822` and is no longer marked `[VERIFY]`.
+
+## What is next
+
+Written 2026-10-25, after the round of work recorded above. Each line says what is
+known and what would settle it; none of these is a target.
+
+### Shipped, but not yet on PyPI
+
+- **cp313 and cp314 wheels build; they have not been released.** `CIBW_BUILD`
+  covers cp310 to cp314 and the test matrix runs 3.13 and 3.14, so the source is
+  known good on those interpreters — a cp313 wheel was built locally and passed
+  `CIBW_TEST_COMMAND`. They reach a user only with the next release, which needs
+  a version bump and a tag; neither is part of the change that added them.
+- **The `Development Status` classifier moved to `3 - Alpha`**, with
+  `docs/index.md`, `CONTRIBUTING.md`, `SECURITY.md` and `CHANGELOG.md` moved with
+  it. ADR-009 is unchanged: 0.x minors may still break the surface.
+
+### Open defects and gaps
+
+- **`se_source` is wrong for an explicit bootstrap.** `fit(...,
+  se_method="bootstrap")` returns `se_source="hessian"`, which contradicts what
+  `FitResult.se_source` documents and what `auto` reports for the same method.
+  The initialiser in `fit.py` never sets it for that branch, and
+  `test_se_source_and_se_never_contradict` passes only because it asserts
+  membership in a set rather than the value. Not fixed, because it was found
+  while working on the bootstrap pool and is a separate defect.
+- **The bootstrap pool is unreliable at the default worker count.** Measured 2
+  failures in 25 runs of the README's `auto` block, and a death after 12 of 200
+  replications. A dead pool now falls back to computing the replications in the
+  caller, which gives the same draws at a wall time that is not the same (36.69 s
+  serial against 5.47 s pooled at 24 workers). The pool itself is still not
+  trustworthy, which is worth a native diagnosis; lowering the worker count was
+  rejected as hiding it.
+- **The serial fallback cannot be distinguished from a missing guard by outcome**
+  in one case: both are `BrokenProcessPool`. It is told apart by how many
+  replications completed first, which is 0 unguarded and was 12 under load at this
+  size. A race that kills the pool before its first completion would still be
+  reported as a guard failure.
+- **The calibration map covers pair decay only.** `shared_decay=True` is M decay
+  rates rather than M², sits outside the map, and `se_method="auto"` therefore
+  falls back to the Hessian and labels the interval uncalibrated. For a user with
+  more types than events that is the model they would fit, so it is the largest
+  known gap in what `auto` can do.
+- **The paper states a measurement it did not run.** Its theory section derives
+  the sandwich covariance `I^-1 J I^-1` and names a correctly evaluated `J` as the
+  natural candidate for closing the measured gap, and then says the study stored
+  no per-replication Hessian, so it could not be tested. That is accurate, and it
+  is the one place the paper says "cannot test" where a rerun could say "tested".
+
+### Awaiting the world, not this repository
+
+- **HAL** `hal-05838093` is in moderation. The API indexes public records only and
+  does not answer for it; nothing on this side changes that. When it is accepted,
+  `CITATION.cff`, the HAL paragraph above and the release notes should name the
+  URL.
+- **arXiv** `stat.ME` needs an endorsement. There is no preprint identifier, and
+  `CITATION.cff` therefore carries no `preferred-citation` rather than an
+  unpublished one.
