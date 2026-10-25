@@ -14,13 +14,13 @@ objective, the self-test -- is private and may change without notice.
 """
 
 from hawkes_engine._version import __version__
-from hawkes_engine.diagnostics import ks_test, qq_data, time_rescale
+from hawkes_engine.diagnostics import ks_test, ljung_box, qq_data, time_rescale
 from hawkes_engine.fit import fit
 from hawkes_engine.loglik import LoglikResult, loglik
 from hawkes_engine.model import FitResult
 from hawkes_engine.simulation import simulate, simulate_many
 from hawkes_engine.stability import spectral_radius, stationary_mean
-from hawkes_engine.trust import report
+from hawkes_engine.trust import ReliabilityReport, report
 from hawkes_engine.trust_map import MapAnswer
 from hawkes_engine.trust_map import lookup as trust_lookup
 
@@ -37,7 +37,9 @@ __all__ = [
     "time_rescale",
     "ks_test",
     "qq_data",
+    "ljung_box",
     "report",
+    "ReliabilityReport",
     "trust_lookup",
     "MapAnswer",
     "spectral_radius",

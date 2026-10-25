@@ -1,6 +1,6 @@
 # Contributing
 
-The project is pre-alpha and its gates are sequential (see
+The project is alpha and its gates are sequential (see
 [docs/ROADMAP.md](docs/ROADMAP.md)). The most useful contribution is a defect report
 against the specification, the reference implementation, or a figure in the
 documentation that a committed output does not support.
