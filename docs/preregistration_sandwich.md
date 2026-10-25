@@ -288,3 +288,113 @@ section 11 requires to be reported as a result like any other.
   where the bias, not the interval, is the defect.
 - **Other models.** `shared_decay=True` is a separate study (workstream 4 of the
   same session), and nothing measured here transfers to it.
+
+---
+
+## Amendment 1 — 2026-10-25, correcting the definition of J before any measurement
+
+**What was wrong.** Section 4 defined the meat as
+`J_r = s_r s_r^T`, "the outer product of that replication's score vector at
+`theta_hat_r`", and described it as a rank-one matrix. That definition is
+numerically empty and would have produced a meaningless null.
+
+The total score of a fitted dataset is zero by the first-order condition, up to
+the optimiser's tolerance. Measured on the README's own 39 027-event fit:
+`gradient_inf_norm = 1.31e-4`, so `s s^T` has a largest entry of `1.7e-8` and its
+diagonal is smaller still. A sandwich built from it is a zero matrix, `rho` would
+come out near 0, and the study would "show" that the sandwich fails when in fact
+it had been handed an empty meat.
+
+**Why the paper's own equation does not license that definition.** Section 4 of
+the theory chapter states `J(theta) = E[U_T(theta) U_T(theta)^T]` with
+`U_T = grad ell_T(theta)`, and the asymptotic result
+`sqrt(N)(theta_hat - theta) -> N(0, I^-1 J I^-1)`. Both are evaluated at the
+**true** `theta`, not at the estimate. At `theta_0` the expectation of the score
+is zero and its *variance* is `J(theta_0)`, a genuine `p x p` matrix. At
+`theta_hat` there is no such thing: the score is identically zero there because
+the estimator put it there.
+
+**What is corrected.** Section 4's E4.1 and E4.2 are **superseded** by the
+following definitions, which replace them for every purpose of this study. Section
+4 is left standing and unedited, per the amendment rule at the top of this file;
+where the two disagree, this amendment governs. The study reports both meats,
+because they answer different questions:
+
+- **The truth-evaluated meat, `J_0`.** `J_0 = (1/R) sum_r U_T^{(r)}(theta_0)
+  U_T^{(r)}(theta_0)^T`, the sample covariance of the score vectors *evaluated at
+  the true parameter*, one per replication. This is `J(theta_0)` in the paper's
+  equation, estimated by its sample analogue. `I_0` is the observed information
+  at `theta_0`. The truth-evaluated sandwich is `I_0^-1 J_0 I_0^-1`. This is the
+  primary estimand, because it is what "does the information equality explain the
+  shortfall" means. A simulation study knows `theta_0`, so this is computable
+  here and would not be computable by a user, which is exactly why it is the
+  diagnostic and not the product.
+- **The empirical meat, `J_hat`.** `J_hat = sum_n s_n(theta_hat) s_n(theta_hat)^T`,
+  summed over **events**, not over replications, where `s_n` is one event's
+  contribution to the score. This does not vanish at the estimate, because
+  individual contributions are non-zero even when they sum to the score. It is
+  what a practitioner could actually compute from their own data, so it is the
+  secondary estimand and the one that decides whether there is anything to ship.
+
+**What this costs.** The truth-evaluated meat needs only `U_T` at `theta_0`,
+which the shipped API already returns (`loglik_grad_log_space`), so section 8's
+core change is needed for the empirical meat alone. It is still needed: `J_hat`
+requires per-event contributions, which the core accumulates in place and never
+materialises.
+
+**What is unchanged.** The question, the cells, `R`, the hypotheses, their
+directions, the 0.10 tolerance, the Holm family, the stopping rule, and the
+statement of what would count as the sandwich not working. No measurement
+existed when this amendment was written: the tag `SW-preregistration` points at
+commit `24ee4cd`, and no `sw-v1` cell has been run.
+
+**One consequential clarification, not a change of hypothesis.** H-S1 and H-S2
+are stated about `rho_Beta`, which E4.2 defined from the meat. This amendment
+fixes which meat: `rho` is computed from the **truth-evaluated** sandwich
+`I_0^-1 J_0 I_0^-1` for the primary decision, because that is the quantity the
+paper's equation is about. The empirical-meat ratio is reported alongside as
+`rho_hat_B` and does not decide a hypothesis; it is the exploratory quantity
+that says whether shipping anything is possible. Reading a hypothesis off the
+secondary quantity would have meant deciding a claim about `J(theta_0)` from an
+estimate of something else.
+
+**A finding recorded against the paper, not fixed here.** Section 8 of this
+document said the core change was required, and that remains true for `J_hat`.
+The paper's theory chapter should probably say which `J` it means, because its
+own prose ("a sandwich estimator computed from a correctly evaluated J") is
+ambiguous between the two and a reader could implement the degenerate one. That
+is a paper edit for the discussion update, not a change to this study.
+
+## Amendment 2 — 2026-10-25, the primary estimand needs no core change
+
+**What was found.** Amendment 1 split the meat in two. Before writing any harness
+code, the primary one was tested for feasibility, and it is computable with the
+shipped API alone: `loglik_grad_log_space` returns the total score, and evaluating
+it at `theta_0` gives a vector whose variance across replications is the meat.
+Measured on the anchor parameters at `T = 2000` over 40 replications, the score at
+the truth has a largest coordinate mean of 3.33 against a per-coordinate spread
+of 10.7, and `J_0`'s diagonal entries are 633, 1333, 12.8 and 170 — positive,
+finite and far from degenerate.
+
+**What this changes.** Section 8 said the study needs a new entry point in the
+compiled core that returns per-event score contributions. For the hypotheses as
+Amendment 1 restated them, it does not. `J_0` needs only what the core already
+returns, so:
+
+- **Sections 5, 9 and 10 stand unchanged.** The five primary cells, the two
+  H-S4 cells, the four hypotheses, the Holm family and the stopping rule are
+  decided entirely from the truth-evaluated sandwich.
+- **Section 8 is superseded for the confirmatory part of the study.** No C++
+  change is made for it. The empirical meat `J_hat` is reported where it is
+  cheap, and its per-event requirement is why this amendment does not delete
+  section 8's reasoning — it defers it. If a later study needs `J_hat` as a
+  decided quantity rather than an exploratory one, the core change described in
+  section 8 is what it will need, and that is where to read about it.
+
+**Why this matters for the risk.** It removes the one part of this study that
+touched a verified artefact. The compiled core is unchanged, its 1e-12 agreement
+with the reference is untouched, and the study is a harness plus an analysis, both
+in Python, both reading only the public API.
+
+**No hypothesis, cell, replication count, tolerance or stopping rule changed.**
+This amendment removes work; it does not add a claim.
