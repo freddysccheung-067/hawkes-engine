@@ -315,3 +315,16 @@ uploaded by trusted publishing. `CITATION.cff` carries the Zenodo version DOI
   was chosen. arXiv is still pending an endorsement for `stat.ME`. Every
   bibliography entry has been checked; the Laub identifier resolved to
   `1507.02822` and is no longer marked `[VERIFY]`.
+
+  What the wait actually looks like, measured on 2026-10-25 rather than assumed.
+  The public record returns an Anubis bot-check page to an anonymous fetch, so a
+  browser check cannot distinguish "held" from "blocked" and the URL is not
+  evidence either way. The API can: `api.archives-ouvertes.fr` indexes public
+  records only, and a query for `halId_s:hal-05838093` returns zero while a
+  control query for an unrelated public identifier returns one. The identifier is
+  in range and current, not stale: `hal-05838202` and `hal-05838203` were both
+  public at the same moment, and both are numbered above it. A held deposit is
+  therefore the reading that fits every observation, and no action on this side
+  changes it. Once the record is accepted the API will answer for it, and the
+  repository's HAL paragraph, `CITATION.cff` and the release notes should name the
+  URL then.
