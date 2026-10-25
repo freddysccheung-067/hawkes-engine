@@ -12,8 +12,9 @@ Windows (AMD64), plus an sdist. It is a pre-alpha research release: the API may
 change between 0.x minor versions, as described in
 [ADR-009](https://github.com/freddysccheung-067/hawkes-engine/blob/main/docs/adr/ADR-009-versioning.md).
 
-Nothing is built for musllinux, 32-bit targets, ARM Windows, or Python 3.13 and
-3.14. On those, build from source.
+CPython 3.13 and 3.14 wheels are built by the `Build Wheels` workflow and ship
+with the next release; 0.2.0 on PyPI predates them. Nothing is built for
+musllinux, 32-bit targets, or ARM Windows. On those, build from source.
 
 ## From a wheel built by CI
 
@@ -33,7 +34,7 @@ tag, not an error.
 
 ## From source
 
-You need a C++20 compiler, CMake 3.24 or newer, and Python 3.10-3.12 with
+You need a C++20 compiler, CMake 3.24 or newer, and Python 3.10-3.14 with
 development headers. The build fetches pybind11 through scikit-build-core, so
 the first build needs network access.
 
@@ -110,10 +111,9 @@ slower (ADR-006).
 ## Known limitations
 
 - 0.2.0 on PyPI covers only the platforms listed above. `pip install
-  hawkes-engine` fails on Python 3.13 or 3.14 and on musllinux, 32-bit and ARM
-  Windows; all of those build from source.
-- Python 3.13 and 3.14 are not built. The wheel matrix is cp310-cp312; adding a
-  version is a change to `CIBW_BUILD` and a test run, not a rebuild.
+  hawkes-engine` fails on musllinux, 32-bit and ARM Windows; all of those build
+  from source. On Python 3.13 and 3.14, install the next release, whose matrix
+  includes them.
 - musllinux is not built. The core has no libc-sensitive dependency, so those
   wheels would be untested duplicates of the manylinux ones.
 - No 32-bit or ARM Windows wheels.

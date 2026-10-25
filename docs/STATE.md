@@ -79,7 +79,10 @@ were labelled `reliable` (H6 section below).
 
 ### Known limitations
 
-- Python 3.13 and 3.14 are not built. The wheel matrix is cp310-cp312.
+- CPython 3.13 and 3.14 wheels are built by the `Build Wheels` workflow
+  (`CIBW_BUILD` covers cp310 to cp314) and have not yet shipped: 0.2.0 on PyPI is
+  cp310-cp312 only. The build needs no NumPy at compile time, because pybind11
+  binds the NumPy C API at runtime, so no build-requirement floor moved for them.
 - musllinux is not built. The core has no libc-sensitive dependency.
 - No 32-bit or ARM Windows wheels.
 - `se_method="bootstrap"` refits the model `n_bootstrap` times and is slow. The
