@@ -17,6 +17,15 @@ derived from the caller's seed and the replication index by a SplitMix-style
 mixer. Drawing seeds from one shared generator would make the result depend on
 the order in which workers happened to start, which is not reproducible.
 
+That second decision is what makes the pool survivable. Because a replication's
+draw depends on its index alone, a pool that dies part-way can be replaced by
+running the same jobs in this process, and the answer is the draws the pool
+would have produced had it finished. ``_serial`` is that replacement, and
+``parametric_bootstrap`` falls back to it rather than losing the fit to a
+worker that was killed. A pool that dies *and* leaves the serial pass with
+nothing is still an error, because that is what a missing
+``if __name__ == "__main__":`` guard looks like and the guard is the fix.
+
 The default replication count is small on purpose: 200 is enough for a
 percentile interval to be stable to about a percent of the interval width, and
 a bootstrap that costs an hour is a bootstrap nobody runs.
@@ -94,6 +103,32 @@ def _one(args: tuple) -> np.ndarray | None:
     return np.asarray(refit.theta, dtype=np.float64)
 
 
+def _serial(
+    jobs: list[tuple],
+    progress: Callable[[int, int], None] | None = None,
+) -> list[np.ndarray]:
+    """Run every job in this process, in submission order.
+
+    The replacement for a pool that had finished, and the whole path when the
+    caller asked for one worker. It produces the same draws as a pool because
+    ``_one`` takes its seed from ``_child_seed`` and its arguments, never from a
+    shared generator or from the order workers started, so replication ``i``
+    depends only on ``i``.
+
+    ``progress`` is called after each replication, with the count of finished
+    jobs; it observes and cannot change a draw.
+    """
+    out: list[np.ndarray] = []
+    total = len(jobs)
+    for k, job in enumerate(jobs, start=1):
+        draw = _one(job)
+        if draw is not None:
+            out.append(draw)
+        if progress is not None:
+            progress(k, total)
+    return out
+
+
 def parametric_bootstrap(
     times: FloatArray,
     types: np.ndarray,
@@ -138,6 +173,7 @@ def parametric_bootstrap(
     ]
     draws = []
     finished = 0
+    pool_note = ""
     if workers == 1:
         # A single worker does not want a pool. `ProcessPoolExecutor(1)` would
         # still spawn one process per replication and pay an interpreter import
@@ -146,13 +182,8 @@ def parametric_bootstrap(
         # in this process is the same computation with none of that, and the
         # caller who asked for one worker has already decided not to use the
         # machine's cores.
-        for job in jobs:
-            out = _one(job)
-            if out is not None:
-                draws.append(out)
-            finished += 1
-            if progress is not None:
-                progress(finished, n_bootstrap)
+        draws = _serial(jobs, progress)
+        finished = len(jobs)
     else:
         try:
             with ProcessPoolExecutor(max_workers=workers) as pool:
@@ -166,16 +197,58 @@ def parametric_bootstrap(
             # Where workers are spawned (Windows, macOS) a script with no
             # `if __name__ == "__main__":` guard re-runs itself in every worker, and
             # the pool dies with this error and no hint of why. It is not the only
-            # cause (a worker killed for memory gives the same error), so say so.
-            raise RuntimeError(
-                "the bootstrap worker pool died. If this script has no "
-                '`if __name__ == "__main__":` guard, add one: on Windows and macOS '
-                "each worker re-imports the main module. "
-                "Otherwise a worker was killed, for example for lack of memory; "
-                "try fewer replications (n_bootstrap) or se_method='hessian'."
-            ) from exc
+            # cause (a worker killed for memory gives the same error), and a high
+            # worker count on a large event stream can trigger it with a guard
+            # present: the pool is not reliable enough to be the only route.
+            #
+            # The two cases are told apart by how far the pool got. A missing guard
+            # kills every worker on import, so it dies before one job completes; a
+            # worker killed under load dies after the pool has been working.
+            # Measured at this size: 0 completions unguarded, 12 when the load race
+            # fired. So a pool that produced anything is retried here — the seed
+            # streams make the draws identical — and a pool that produced nothing
+            # keeps the error, because there the guard is the fix and this message
+            # is the only thing that says so.
+            if finished == 0:
+                raise RuntimeError(
+                    "the bootstrap worker pool died. If this script has no "
+                    '`if __name__ == "__main__":` guard, add one: on Windows and macOS '
+                    "each worker re-imports the main module. "
+                    "Otherwise a worker was killed, for example for lack of memory; "
+                    "try fewer replications (n_bootstrap) or se_method='hessian'."
+                ) from exc
+            # The serial pass recomputes every replication from the start, so it
+            # reports only the ones the pool had not finished. A consumer drawing
+            # an indicator then sees 1, 2, 3, 4, ... rather than a bar that jumps
+            # back to 1 halfway through.
+            resumed = finished
+            on_progress = progress
+
+            def _after(replication: int, total: int) -> None:
+                if replication > resumed and on_progress is not None:
+                    on_progress(replication, total)
+
+            serial = _serial(jobs, _after if progress is not None else None)
+            if not serial:
+                raise RuntimeError(
+                    "the bootstrap worker pool died after "
+                    f"{finished} of {len(jobs)} replications, and re-running the "
+                    "remaining work in this process produced no usable refit; no "
+                    "bootstrap standard errors are reported. If this script has no "
+                    '`if __name__ == "__main__":` guard, add one.'
+                ) from exc
+            draws = serial
+            pool_note = (
+                f"the bootstrap worker pool died ({type(exc).__name__}) after "
+                f"{finished} of {len(jobs)} replications; the work was recomputed "
+                f"serially in the calling process, which gives the same draws "
+                f"because each replication's seed comes from its index, at a wall "
+                f"time that is not the same"
+            )
 
     notes: list[str] = []
+    if pool_note:
+        notes.append(pool_note)
     if len(draws) < max(10, n_bootstrap // 2):
         notes.append(
             f"only {len(draws)} of {n_bootstrap} bootstrap replications produced a "
