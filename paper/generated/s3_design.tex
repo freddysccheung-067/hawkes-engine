@@ -5,14 +5,14 @@ $c \in \{1, 10^{-3}\}$ that multiplies every decay rate: 120 cells at $M = 2$ an
 an eight-cell four-type satellite. The anchor cell ($N = 2000$, $\rho = 0.3028$,
 $c = 1$, $r = 0$) is the configuration of an earlier recovery study to within
 $8 \times 10^{-5}$ relative, so the design starts from a regime that had already
-been measured rather than from an untested one. Each cell runs
+been measured, not an untested one. Each cell runs
 \HsixReplications{} replications, and the realised mean event count in every cell
 is within \ThCountTolerance{} percent of its target, which is what lets the design
-treat $N$ as an axis rather than a hope.
+treat $N$ as an axis instead of a hope.
 
-Replications are not independent draws in the programming sense but in the
-statistical one, and the seed contract is what makes a rerun reproduce rather than
-resemble. The cell seed is derived from a hash of the cell's own coordinates,
+Replications are independent in the statistical sense but not in the programming
+one, and the seed contract is what makes a rerun reproduce instead of resemble. The
+cell seed is derived from a hash of the cell's own coordinates,
 \begin{equation}
 s_{\text{cell}} = \operatorname{SplitMix64}\!\left(
   \operatorname{int}\big(\operatorname{SHA256}(\texttt{h6-v1}|M|N|\rho|r|c)[:16],\,16\big)

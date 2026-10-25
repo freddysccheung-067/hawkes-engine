@@ -849,14 +849,14 @@ $c \in \{1, 10^{-3}\}$ that multiplies every decay rate: 120 cells at $M = 2$ an
 an eight-cell four-type satellite. The anchor cell ($N = 2000$, $\rho = 0.3028$,
 $c = 1$, $r = 0$) is the configuration of an earlier recovery study to within
 $8 \times 10^{-5}$ relative, so the design starts from a regime that had already
-been measured rather than from an untested one. Each cell runs
+been measured, not an untested one. Each cell runs
 \HsixReplications{} replications, and the realised mean event count in every cell
 is within \ThCountTolerance{} percent of its target, which is what lets the design
-treat $N$ as an axis rather than a hope.
+treat $N$ as an axis instead of a hope.
 
-Replications are not independent draws in the programming sense but in the
-statistical one, and the seed contract is what makes a rerun reproduce rather than
-resemble. The cell seed is derived from a hash of the cell's own coordinates,
+Replications are independent in the statistical sense but not in the programming
+one, and the seed contract is what makes a rerun reproduce instead of resemble. The
+cell seed is derived from a hash of the cell's own coordinates,
 \begin{equation}
 s_{\text{cell}} = \operatorname{SplitMix64}\!\left(
   \operatorname{int}\big(\operatorname{SHA256}(\texttt{h6-v1}|M|N|\rho|r|c)[:16],\,16\big)
@@ -1003,9 +1003,8 @@ often enough that \ThTailReliable{} wrong-but-confident fits passed through.
 No fix is proposed here, because none has been tested. A profile likelihood, a
 penalty on the flat direction, or a multi-start rule would each change the estimator
 rather than the verdict, and this study measured one estimator at one start. The
-honest statement is that the verdict's three thresholds were fixed before the study
-and do what they were built to do, and that the tail is outside what a local
-conditioning check can express.
+verdict's three thresholds were fixed before the study and do what they were built
+to do. The tail falls outside what a local conditioning check can express.
 
 \begin{table}[t]
 \centering
@@ -1057,14 +1056,14 @@ a replication without one covers nothing by the pre-registered definition.}
 \end{figure}
 """,
     "s2b_theory": r"""
-The measurement in Section~\ref{sec:results} needs an explanation. Under a
+Section~\ref{sec:results} reports a shortfall that needs an explanation. Under a
 correctly specified model the inverse-Hessian standard error is consistent for the
 sampling standard deviation, so a pooled ratio of $q = \HsixQ{}$ should not appear
-as an asymptote. This section derives the object the library actually reports,
-states what has to break for it to understate its own spread, and sets a
-leading-order correction against the measured per-block ratios. The correction
-does not reproduce the measurement, and the size of the disagreement is itself the
-most informative number in this section.
+as an asymptote. This section derives the object the library reports, states what
+has to break for it to understate its own spread, and sets a leading-order
+correction against the measured per-block ratios. The correction gets the sign and
+the ordering right and the magnitude wrong. How wrong is the most informative
+number here.
 
 \subsection{The asymptotic covariance of the estimator}
 
@@ -1096,18 +1095,18 @@ for every $\theta$ in the interior of the parameter space. Equation~\eqref{eq:eq
 is the information equality in its point-process form: under exact specification the
 observed information is an unbiased estimator of the score variance, and the
 sandwich collapses to $I^{-1}$, which is what the library computes. When the model
-is correct and the window is long against the decay time, then, the asymptotic
-theory predicts $q \to 1$. The shortfall measured here is not a misspecified
+is correct and the window is long against the decay time, the asymptotic theory
+then predicts $q \to 1$. The shortfall measured here is not a misspecified
 intensity in the usual sense; it comes from the finite window, from parameters whose
 information the window cannot supply, and from the arithmetic of comparing a
 reported interval with a realised spread.
 
 \subsection{What breaks the equality}
 
-Three violations of \eqref{eq:equality} appear at finite window, and a fourth effect
-in the ratio itself is larger than all three. The first three are worth separating
-because they are shared with ordinary finite-sample theory; the fourth is specific
-to measuring a reported interval against a realised spread.
+Three violations of \eqref{eq:equality} appear at finite window. A fourth effect in
+the ratio itself is larger than all three. The first three belong to ordinary
+finite-sample theory. The fourth is specific to measuring a reported interval
+against a realised spread.
 
 The likelihood is not the sampling distribution of a fixed number of events. The
 study fixes the window $T$ and lets the event count fall where it may, and a
@@ -1124,13 +1123,12 @@ The exponential kernel truncates information at the window edge. An event at tim
 $t$ contributes to the intensity at $u > t$ with weight $e^{-\beta(u - t)}$, so the
 fraction of its kernel mass that falls outside the window is $1 - e^{-\beta(T-t)}$.
 For an event in the last $1/\beta$ of the window that fraction is at least
-$1 - e^{-1} \approx 0.63$ and can be arbitrarily close to one at the boundary,
-while for an event early in the window it is negligible. The effective sample size
-for the decay parameters is therefore closer to $\beta_{\min} T$ than to $N$, and
-the two are very different across this grid: $\beta_{\min} T$ is between
-\ThBetaMinTLow{} and roughly \ThBetaMinTHigh{} in the exact-timestamp cells at
-$c = 1$, and below one in \ThShallowBelowOne{} of the \ThShallowCells{}
-exact-timestamp shallow-decay cells.
+$1 - e^{-1} \approx 0.63$, and it approaches one at the boundary. For an event
+early in the window it is negligible. Effective sample size for the decay
+parameters therefore tracks $\beta_{\min} T$ and not $N$, and over this grid the
+two part company: $\beta_{\min} T$ runs from \ThBetaMinTLow{} to roughly
+\ThBetaMinTHigh{} in the exact-timestamp cells at $c = 1$, and sits below one in
+\ThShallowBelowOne{} of the \ThShallowCells{} exact-timestamp shallow-decay cells.
 
 The decay parameters are weakly identified when $\beta_{\min} T$ is small. The
 information about $\beta_{ij}$ comes from the curvature of the decay profile
@@ -1138,8 +1136,8 @@ within the window, and if the window holds less than one decay time, the profile
 is nearly flat and the information nearly vanishes. In the limit the information
 matrix is singular in the $\beta$ direction, and any inverse is unstable.
 
-The reported interval is a nonlinear functional of the information. This is the
-one that matters, and it is the subject of the next subsection.
+The reported interval is a nonlinear functional of the information. This fourth
+effect is the one that matters, and it is the subject of the next subsection.
 
 \subsection{The leading-order correction}
 
@@ -1180,18 +1178,18 @@ The reported interval systematically understates the spread whenever the reporte
 variance is not constant, and the shortfall is one eighth of its squared
 coefficient of variation.
 
-Equation~\eqref{eq:qvarcv} can be inverted at the block level, and inverted it is a
-description of the reported variance's dispersion rather than a test of it, since
-the right-hand side is fitted from the same numbers as the left. Inverting at the
-three measured block ratios gives implied coefficients of variation of
+Equation~\eqref{eq:qvarcv} can be inverted at the block level, and inverted it
+describes the reported variance's dispersion; it does not test the correction,
+since the right-hand side is fitted from the same numbers as the left. Inverting at
+the three measured block ratios gives implied coefficients of variation of
 \ThCvMu{} for the baselines, \ThCvAlpha{} for the excitation entries and
 \ThCvBeta{} for the decay rates. The decay block's reported variance therefore
 varies \ThCvRatio{} times as much as the baseline's. The deficit ratio
 \ThDefRatio{} carries no information beyond that one, since \eqref{eq:qvarcv} makes
 it the square of the CV ratio by construction. What the inversion does not do is
-predict which block should have the larger coefficient of variation; the identity
-holds for every $q$, and the prediction that the decay block is the irregular one
-comes from the ridge argument below, not from this equation.
+predict which block should have the larger coefficient of variation. The identity
+holds for every $q$. The prediction that the decay block is the irregular one comes
+from the ridge argument below, not from this equation.
 
 The relevant scale for a regular parameter is $\operatorname{CV}(X_j) = O(N^{-1/2})$,
 because the information is an average of $N$ terms and its relative dispersion
@@ -1203,7 +1201,7 @@ most generous regularity benchmark this design admits, and at the smallest poole
 event count it predicts a deficit of \ThRegDeficit{}, against a measured decay
 deficit of \ThDefBeta{}. The two differ by a factor of \ThMismatch. The Jensen
 correction therefore explains the direction and the ordering across blocks and
-cannot supply the magnitude in the decay block; the decay block is not behaving
+cannot supply the magnitude in the decay block; that block is not behaving
 like a regular parameter, because its information is not an average over a large
 effective sample but a functional of a nearly flat direction whose curvature is
 itself random. The derivation closes to \eqref{eq:qvarcv} and stops there. A
@@ -1215,8 +1213,7 @@ record and cannot recover from the committed outputs.
 
 The failure of the $O(N^{-1/2})$ scale in the decay block is not a matter of
 constants. It follows from the shape of the information matrix near the ridge, and
-it is worth writing out because it is what makes the whole phenomenon have a heavy
-tail rather than a uniform shrinkage.
+it is what turns the phenomenon from a uniform shrinkage into a heavy tail.
 
 Write the information matrix in its eigenbasis, $I(\theta) = \sum_k \lambda_k
 v_k v_k^{\top}$ with $\lambda_1 \ge \cdots \ge \lambda_p > 0$. The variance of a
@@ -1227,8 +1224,8 @@ coordinate $j$ is the diagonal of the inverse,
 \end{equation}
 so a coordinate that loads on a nearly null direction has a variance that no
 average over events explains. What can be derived here is the direction the decay
-parameters share with their own excitation weights, and it is derived from the
-likelihood rather than asserted.
+parameters share with their own excitation weights. It comes out of the likelihood
+directly.
 
 Fix one pair $(i,j)$ and consider the path that sends $\beta_{ij} \to \infty$ while
 holding $\alpha_{ij}/\beta_{ij} = n_{ij}$ constant, so $\alpha_{ij} = n_{ij}
@@ -1252,13 +1249,14 @@ information matrix at the estimates this study produced, and the committed outpu
 cannot settle that, because they record no per-replication Hessian or eigenvector.
 Throughout this subsection the identification of \eqref{eq:eigenvar}'s small
 eigenvalue with the alpha--beta direction is therefore an assumption that the study
-is consistent with rather than a result it proves. What the study does show is that
+are consistent with rather than a result it proves. What the study does show is that
 the decay block is the one whose reported ratio fails, which is what an assumption
 of that kind predicts, and that at the anchor cell the coordinate with the smallest
 reported ratio in both the excitation and the decay block is the same pair,
-$(\alpha_{01}, \beta_{01})$, which is also the pair with the smallest true
-excitation weight and therefore the smallest kernel mass along the flat path. That
-is consistent with the plateau argument and is not a substitute for the eigenvector.
+$(\alpha_{01}, \beta_{01})$. That pair also carries the smallest true
+excitation weight, and therefore the smallest kernel mass along the flat path. The
+pattern is consistent with the plateau argument. It is not a substitute for the
+eigenvector.
 
 The baseline block is regular for a structural reason: its parameters do not appear
 in the flat direction above, so its information is an average over $N$
@@ -1281,10 +1279,10 @@ companion replaces the mean reported standard error with a median and the standa
 deviation with a scaled median absolute deviation, so it is driven by the bulk of
 the replications rather than the tail, and across the twelve pooled cells it stays
 between \ThQrobBetaLow{} and \ThQrobBetaHigh{} in the decay block, against
-\ThQrobMuLow{} to \ThQrobMuHigh{} in the baseline block. Close to one everywhere is
-the honest reading. The pooled mean-based ratio is a decay result because the decay
-block is where the mean and the median diverge, not because the decay block is
-badly calibrated by every measure.
+\ThQrobMuLow{} to \ThQrobMuHigh{} in the baseline block. Both ranges sit close to
+one. The pooled mean-based ratio is a decay result because the decay block is where
+the mean and the median diverge, not because the decay block is badly calibrated by
+every measure.
 
 None of this makes the sandwich inconsistent. Equation~\eqref{eq:sandwich} remains
 the right target in the limit, and a sandwich estimator computed from a correctly
@@ -1352,11 +1350,11 @@ the worst coverage anywhere in the study is \AutoHtwoWorst{} against a ceiling o
 is \AutoHthreeLabel{}: the pooled difference is \AutoLowRhoDelta{} at $\rho =
 0.3028$ and \AutoHighRhoDelta{} at $\rho = 0.95$.
 
-Two properties of the run are worth stating rather than rounding off. At $\rho =
+Two properties of the run are reported here rather than rounded off. At $\rho =
 0.95$, \AutoUnmappedHighRho{} of the 2000 fitted branching ratios landed above
-0.95 and so fell outside the measured box; those replications kept the Hessian
-interval and are included in the coverage reported above, which lowers it rather
-than flattering the switch. And the lookup answers from the nearest cell however
+0.95 and so fell outside the measured box. Those replications kept the Hessian
+interval and are included in the coverage reported above, which lowers it instead
+of flattering the switch. And the lookup answers from the nearest cell however
 far away that cell is: in 15 of the 2000 replications at $\rho = 0.3028$ the
 nearest cell lay in a different branching-ratio column, and one of them drew an
 undefined-regime answer from a shallow-decay cell up to \AutoMaxDistance{} grid
@@ -1456,120 +1454,111 @@ claim about any other.
     "s6b_discussion": r"""
 \subsection{What a practitioner should take from this}
 
-The library's answer to its own measurement is three behaviours, and the useful
-part of this paper for someone fitting a process is knowing which of them they are
-getting. The first is that a reported interval is a lower bound on the uncertainty
-rather than the uncertainty itself. The pooled ratio is below one in each of the
-twelve pooled cells, and the user who reads a 95\% interval as though it were one
-gets an interval covering \ThCovSmallLow{} to \ThCovSmallHigh{} of the time across
-the cells at $N = 2000$. That is a statement about the interval's width, not about
-the estimate: the point estimate is unchanged, its bias is unchanged, and an
-honestly wide interval around a biased estimate is still an interval around the
-wrong number.
+Three behaviours answer the measurement, and fitting a process means knowing which
+one you are getting. The first is that a reported interval is a lower bound on the
+uncertainty. The pooled ratio is below one in each of the twelve pooled cells. A
+reader who takes a 95\% interval at face value gets one that covers
+\ThCovSmallLow{} to \ThCovSmallHigh{} of the time across the cells at $N = 2000$.
+That says something about the width, not about the estimate. The point estimate is
+unchanged, its bias is unchanged, and a wide interval around a biased estimate still
+sits around the wrong number.
 
 The second behaviour is refusal. In \HsixUndefined{} of the \HsixCells{} cells the
-estimator is undefined, and the library reports no interval there rather than a
-number extrapolated from a neighbouring regime. That refusal is the most
-conservative thing it does and it is the one most likely to be mistaken for a bug,
-because a fit that converges and then declines to give an interval looks broken
-until one checks what the window holds. A user who hits it should check
-$\beta_{\min} T$ themselves. The library does not stop them fitting such data, and
-it does not warn before the fit; it reports the failure afterwards, which is
-late for a user who has already spent an hour on it.
+estimator is undefined, and there the library reports no interval at all, not a
+number extrapolated from a neighbouring regime. This is the most conservative thing
+it does and the one most likely to be mistaken for a bug, because a fit that
+converges and then declines to give an interval looks broken until you check what
+the window holds. A user who hits it should check $\beta_{\min} T$ themselves. The
+library will not stop them fitting such data, and it does not warn beforehand. It
+reports the failure afterwards, which is late for someone who has already spent an
+hour on it.
 
 The third behaviour is the switch. Where the map measures a shortfall the fit
-replaces the Hessian interval with a parametric bootstrap, and where the map is
-silent it keeps the Hessian interval and says it is uncalibrated. Both are
-defensible and neither is free: the bootstrap costs seconds to a couple of minutes
-at the measured configurations, and it is not available at all where the map has no
-measurement, which includes everything outside two types, pair decay, a spectral
-radius at or below 0.95 and $N$ between 200 and 50\,000. A practitioner working in
-one of those regions is back to the Hessian interval and should know it.
+replaces the Hessian interval with a parametric bootstrap. Where the map is silent
+it keeps the Hessian interval and calls it uncalibrated. Both choices are defensible
+and neither is free. The bootstrap costs seconds to a couple of minutes at the
+measured configurations, and it is unavailable wherever the map has no measurement:
+anything outside two types, pair decay, a spectral radius at or below 0.95 and $N$
+between 200 and 50\,000. A practitioner working outside those walls is back on the
+Hessian interval, and should know it.
 
 \subsection{What the negative results mean}
 
-Two of the six hypotheses were not confirmed, and they fail in different ways,
-which is why both are reported rather than one. H6.3's failure is a partial one:
-its threshold clause held, with coverage at the lowest branching ratio exceeding
-coverage at the highest by \DiscThreeT{}, and its monotonicity clause failed,
-because coverage rose from $\rho = 0.3028$ to $\rho = 0.60$ before falling toward
-0.95. That is the shape of a prediction that got the endpoints right and the path
-wrong, and it is what one would expect from a mechanism with two competing effects:
-at low branching ratio the process is nearly Poisson and the effective sample for
-the decay parameters is small, at the highest branching ratio the information is
-nearly singular, and in between the estimator is better behaved than either
-endpoint. The hypothesis was written as a monotone decline because that is what the
-near-critical intuition suggests, and the data say the intuition holds only past
-the middle of the range.
+Two of the six hypotheses were not confirmed, and they fail in different ways, so
+both are reported. H6.3's failure is partial. Its threshold clause held, with
+coverage at the lowest branching ratio exceeding coverage at the highest by
+\DiscThreeT{}, and its monotonicity clause failed, because coverage rose from
+$\rho = 0.3028$ to $\rho = 0.60$ before falling toward 0.95. A prediction that got
+the endpoints right and the path wrong is what two competing effects produce. At low
+branching ratio the process is nearly Poisson and the effective sample for the decay
+parameters is small. At the highest branching ratio the information is nearly
+singular. In between, the estimator is better behaved than at either endpoint. The
+hypothesis was written as a monotone decline because near-critical intuition
+suggests one, and the data say that intuition holds only past the middle of the
+range.
 
-H6.4's failure is a reversal and it is the more interesting of the two. The
-hypothesis was that quantising timestamps to a grid coarser than the decay time
-would bias the decay estimate upward, on the reasoning that ties broken at the grid
-spacing look like slower decay than the ties really are. At the \DiscFourCells{}
-cells with $N \ge 10\,000$ and $c = 1$, quantisation moved the relative bias of the
-decay estimate down, by between \DiscFourLow{} and \DiscFourHigh{} percent, in every
-one of them. The direction was wrong and the size is large enough to be a finding
-in its own right: a mechanism that moves the relative bias of the decay estimate by
-tens of percent, in the opposite direction from the one predicted, is a mechanism
-the field does not currently model.
+H6.4's failure is a reversal, and the more interesting of the two. The hypothesis
+was that quantising timestamps to a grid coarser than the decay time would bias the
+decay estimate upward, on the reasoning that ties broken at the grid spacing look
+like slower decay than the ties really are. At the \DiscFourCells{} cells with
+$N \ge 10\,000$ and $c = 1$, quantisation moved the relative bias of the decay
+estimate down, by between \DiscFourLow{} and \DiscFourHigh{} percent, in every one
+of them. The direction was wrong, and the size is a finding on its own. A mechanism
+that moves the relative bias of the decay estimate by tens of percent, in the
+opposite direction from the one predicted, is a mechanism the field does not
+currently model.
 
-A reversal is more informative than a null because a null is consistent with the
-effect being absent and with the design being unable to see it, while a reversal
-excludes both. The sign of the error tells us something about the mechanism, and
-the direction observed here suggests that what quantisation destroys is not the
-timing of the decay but the multiplicity of near-simultaneous events: collapsing
-events onto a grid merges them, and a merged pair looks like one event with the
-energy of two, which the likelihood can explain by sharpening the decay rather than
-slowing it. That explanation is a hypothesis and not a result, since nothing in this
-study separates merging from timing. It is written down because it is the
-explanation the direction points to and because a reader who wants to design the
-study that would test it should start from here.
+A reversal beats a null, because a null is consistent both with the effect being
+absent and with the design being unable to see it. A reversal rules out both. The
+sign of the error says something about the mechanism. What quantisation destroys may
+not be the timing of the decay but the multiplicity of near-simultaneous events:
+collapsing events onto a grid merges them, and a merged pair looks like one event
+with the energy of two, which the likelihood can explain by sharpening the decay
+instead of slowing it. That is a hypothesis, not a result, since nothing here
+separates merging from timing. It is written down because the direction points at
+it, and because anyone designing the study that would test it should start here.
 
 \subsection{What this does not establish}
 
-The box is narrow and it is worth naming every wall. The model is two types with a
+The box is narrow and every wall deserves naming. The model is two types with a
 four-type satellite of eight cells, pair-specific decay, and an exponential kernel.
-A power-law kernel, a shared decay rate across types, a marked or a spatial
-process, or a model with covariates in the intensity are all outside what was
-measured, and the map says so rather than extrapolating. Every timing in the
-capability table is from one machine, so the cost figures carry no spread across
-hardware. Nothing above $10^6$ events was timed and no fit reached an hour, so the
-upper limit of the measured region is not located; the largest cell in the
-calibration grid is $5 \times 10^4$ events, an order of magnitude below that. The
-bootstrap standard errors are not part of the calibration study at all: the
-separate study measured them at three cells, not across the grid, so the auto
-switch's own intervals have a measured property at three points and an assumed one
-everywhere else. And the study measures one estimator, at one start, with
-\texttt{se\_method="hessian"}; a multi-start fit, a profile likelihood or a
-different optimiser is a different estimator whose calibration was not measured
-here.
+A power-law kernel, a shared decay rate across types, a marked or a spatial process,
+or a model with covariates in the intensity all sit outside what was measured, and
+the map says so instead of extrapolating. Every timing in the capability table comes
+from one machine, so the cost figures carry no spread across hardware. Nothing above
+$10^6$ events was timed and no fit reached an hour, so the upper limit of the
+measured region is not located; the largest cell in the calibration grid is
+$5 \times 10^4$ events, an order of magnitude below that. The bootstrap standard
+errors are not part of the calibration study at all. A separate study measured them
+at three cells, not across the grid, so the auto switch's own intervals have a
+measured property at three points and an assumed one everywhere else. And the study
+measures one estimator, at one start, with \texttt{se\_method="hessian"}. A
+multi-start fit, a profile likelihood or a different optimiser is a different
+estimator whose calibration was not measured here.
 
-Two further limits are worth stating because they are the ones a reader is most
-likely to assume away. The map answers from the nearest of \HsixCells{} cells and
-reports the distance, but it answers however far away that cell is, so a
-\texttt{measured} status at distance two describes a regime two grid steps from the
-one measured. And every cell was run at one fixed parameter set, so the map
-describes those parameters at that $(N, \rho, \beta T)$, not every process with the
-same summary numbers; two processes with the same spectral radius and the same
-window can have different excitation structure, and the map's answer is only as
-representative as the parameter set it was measured at.
+Two further limits a reader is likely to assume away. The map answers from the
+nearest of \HsixCells{} cells and reports the distance, but it answers however far
+away that cell is, so a \texttt{measured} status at distance two describes a regime
+two grid steps from the one measured. And every cell was run at one fixed parameter
+set, so the map describes those parameters at that $(N, \rho, \beta T)$, not every
+process with the same summary numbers. Two processes with the same spectral radius
+and the same window can have different excitation structure, and the map's answer is
+only as representative as the parameter set it was measured at.
 
 \subsection{What to measure next}
 
-Four measurements would move this from a description to a decision rule, and each
-is stated as a measurement rather than a hope. The first is power at the effect
-sizes the map actually reports: the study was powered to resolve a 4.5 percent
-shortcut in $q$, and a replication at $R = 2000$ in the cells where $q$ is between
-0.875 and 0.977 could say whether the residual shortfall there is zero or merely
-small. The second is the bootstrap's own calibration across the full grid rather
-than at three cells, because the auto switch is only as good as the interval it
-switches to. The third is shared decay, which is a different model with $M$ decay
-rates instead of $M^2$, is outside the map, and is the natural next cell population
-for a practitioner who has more types than events. The fourth is whether a sandwich
-estimator closes the gap where the map says it is open: equation
-\eqref{eq:sandwich} gives the target, the study's stored per-replication Hessians
-are not among the committed outputs, and the measurement that would settle it is a
-rerun that keeps them.
+Four measurements would move this from a description to a decision rule. The first
+is power at the effect sizes the map actually reports: the study was powered to
+resolve a 4.5 percent shortfall in $q$, and a replication at $R = 2000$ in the cells
+where $q$ is between 0.875 and 0.977 could say whether the residual shortfall there
+is zero or merely small. The second is the bootstrap's own calibration across the
+full grid instead of at three cells, because the auto switch is only as good as the
+interval it switches to. The third is shared decay, a different model with $M$ decay
+rates instead of $M^2$, outside the map, and the natural next cell population for a
+practitioner with more types than events. The fourth is whether a sandwich estimator
+closes the gap where the map says it is open: equation \eqref{eq:sandwich} gives the
+target, the study's stored per-replication Hessians are not among the committed
+outputs, and the measurement that would settle it is a rerun that keeps them.
 """,
     "s7_repro": r"""
 Every figure in this paper is emitted by \texttt{studies/make\_paper\_tex.py} from a
