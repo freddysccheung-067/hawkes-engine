@@ -24,6 +24,7 @@ a bootstrap that costs an hour is a bootstrap nobody runs.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
@@ -108,8 +109,16 @@ def parametric_bootstrap(
     seed: int | None = None,
     zero_diagonal: bool = False,
     workers: int | None = None,
+    progress: Callable[[int, int], None] | None = None,
 ) -> BootstrapResult:
-    """Refit on ``n_bootstrap`` simulations from the fitted model."""
+    """Refit on ``n_bootstrap`` simulations from the fitted model.
+
+    ``progress``, when given, is called as ``progress(done, total)`` in this
+    process after each replication returns. It is called from the consumer loop,
+    never inside a worker, and it receives the count of *finished* replications
+    rather than usable ones, so a consumer drawing a progress bar sees movement
+    even while every draw is being rejected. It does not touch the draws.
+    """
     from hawkes_engine.hessian import natural_standard_errors
 
     jobs = [
@@ -128,6 +137,7 @@ def parametric_bootstrap(
         for i in range(n_bootstrap)
     ]
     draws = []
+    finished = 0
     if workers == 1:
         # A single worker does not want a pool. `ProcessPoolExecutor(1)` would
         # still spawn one process per replication and pay an interpreter import
@@ -140,12 +150,18 @@ def parametric_bootstrap(
             out = _one(job)
             if out is not None:
                 draws.append(out)
+            finished += 1
+            if progress is not None:
+                progress(finished, n_bootstrap)
     else:
         try:
             with ProcessPoolExecutor(max_workers=workers) as pool:
                 for out in pool.map(_one, jobs):
                     if out is not None:
                         draws.append(out)
+                    finished += 1
+                    if progress is not None:
+                        progress(finished, n_bootstrap)
         except BrokenProcessPool as exc:
             # Where workers are spawned (Windows, macOS) a script with no
             # `if __name__ == "__main__":` guard re-runs itself in every worker, and
