@@ -14,6 +14,7 @@ Sources, all committed:
 ``studies/results/analysis/``       the H6 study (``hypotheses.json``,
                                     ``cells.csv``, ``blocks.csv``, provenance);
 ``studies/results/auto/analysis/``  the auto-v1 study;
+``studies/results/sandwich/``       the sw-v1 study (``estimands.json``, ``report.txt``);
 ``studies/RUN_REPORT.md``           the grid's wall clock and replication count;
 ``benchmarks/results/``             the capability table's timing figures;
 ``data/trust/v1_excitation_only.csv`` the shipped map.
@@ -38,6 +39,7 @@ STUDIES = Path(__file__).resolve().parent
 REPO = STUDIES.parent
 ANALYSIS = STUDIES / "results" / "analysis"
 AUTO = STUDIES / "results" / "auto" / "analysis"
+SANDWICH = STUDIES / "results" / "sandwich"
 PAPER = REPO / "paper"
 GENERATED = PAPER / "generated"
 
@@ -143,6 +145,39 @@ def macro(name: str, value: str) -> str:
             "by the text '61Label', which lands in the preamble and fails the compile."
         )
     return rf"\newcommand{{\{name}}}{{{value}}}"
+
+
+# -------------------------------------------------------------- sw-v1 numbers
+
+
+def sw_macros() -> list[str]:
+    """The sandwich study's figures, read from its committed estimands.
+
+    Every value here comes from ``studies/results/sandwich/estimands.json``,
+    which is written by ``studies/analyze_sandwich.py`` from the study's rows. The
+    cells are selected by their frozen keys rather than by shape, so a change to
+    the study's population cannot silently change what these macros report.
+    """
+    est = json.loads((SANDWICH / "estimands.json").read_text(encoding="utf-8"))
+    primary = [
+        "M2_N2000_rho0.3028_r0.0_c1.0",
+        "M2_N2000_rho0.6_r0.0_c1.0",
+        "M2_N2000_rho0.85_r0.0_c1.0",
+        "M2_N2000_rho0.95_r0.0_c1.0",
+        "M2_N10000_rho0.95_r0.0_c1.0",
+    ]
+    g = [est[key]["beta"]["g"] for key in primary]
+    g_low, g_high = min(g), max(g)
+    # sqrt(J/I) is how much the sandwich can move the interval, relative to the
+    # inverse Hessian. Bounded on both sides so the paper cannot overstate either.
+    factor = max(g_high**0.5, g_low**-0.5)
+    return [
+        macro("SwCells", str(len(est))),
+        macro("SwReplications", str(next(iter(est.values()))["replications"])),
+        macro("SwGRatioLow", tex_num(g_low)),
+        macro("SwGRatioHigh", tex_num(g_high)),
+        macro("SwMaxFactor", tex_num(factor)),
+    ]
 
 
 # ------------------------------------------------------------------- H6 numbers
@@ -1285,11 +1320,21 @@ the mean and the median diverge, not because the decay block is badly calibrated
 every measure.
 
 None of this makes the sandwich inconsistent. Equation~\eqref{eq:sandwich} remains
-the right target in the limit, and a sandwich estimator computed from a correctly
-evaluated $J$ is the natural candidate for closing the gap measured here. The reason
-this paper does not report that experiment is that it requires per-replication
-score variances, which the study did not store and which cannot be reconstructed
-from the committed analysis outputs.
+the right target in the limit. The study described in Section~\ref{sec:repro} was
+run after this paper's first draft, on seven cells from the same frozen grid, and
+it answers the question this paragraph used to leave open: the sandwich does not
+close the gap. What it shows instead is why nothing built from
+\eqref{eq:sandwich} can close it here.
+
+Evaluated at the true parameters, where the score has a non-degenerate covariance,
+the information equality \eqref{eq:equality} holds to within the finite-window
+effect: $J_0/I_0$ is between \SwGRatioLow{} and \SwGRatioHigh{} coordinate by
+coordinate across the five primary cells. A sandwich built from
+$I_0^{-1} J_0 I_0^{-1}$ therefore differs from the inverse Hessian by a factor of
+$\sqrt{J_0/I_0}$, which is at most \SwMaxFactor{} and cannot account for a
+shortfall of the size measured above. The deficit is not an information-equality
+failure, so the remedy this paragraph previously named was aimed at the wrong
+term, and the estimator is not the explanation for it.
 
 The pooled figure is consistent with the block account and adds nothing to it. The
 pooled statistic is the coordinate-weighted mean of the three block ratios, so it
@@ -1663,7 +1708,7 @@ def copy_figures() -> list[Path]:
 
 def write_tree() -> list[Path]:
     GENERATED.mkdir(parents=True, exist_ok=True)
-    macros = h6_macros() + theory_macros() + auto_macros() + cost_macros()
+    macros = h6_macros() + theory_macros() + auto_macros() + cost_macros() + sw_macros()
     head = _data_commit()
     # The abstract's length is a submission requirement, so it is reported rather
     # than estimated. Macro invocations count as their expansion would read: a
