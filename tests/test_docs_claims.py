@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -326,6 +327,78 @@ def test_the_toctree_lists_exactly_the_published_pages():
     assert listed == pages
 
 
+# ------------------------------------------------- the paper's prose, not its numbers
+#
+# Every number in the paper is pinned to a committed output elsewhere in this file.
+# None of that checks the prose, and the prose is what a reader meets first. These
+# are the patterns that creep into generated text and that survive a spell-check:
+# stock vocabulary, dashes used for rhythm, and one construction used so often it
+# becomes a tic. The counts are set where the current text sits, not at zero, so the
+# tests catch a regression without forbidding a word that has a legitimate use.
+
+PAPER_TEX = [
+    Path("paper/main.tex"),
+    *sorted(Path("paper/generated").glob("*.tex")),
+]
+
+# Words that say nothing and mark the register as promotional or generated. The
+# repository's own hygiene test bans these on published pages; the paper is submitted
+# under the author's name, so it is held to the same list plus the stock ones.
+PAPER_BANNED = re.compile(
+    r"\b(delve|tapestry|intricate|interplay|intricacies|foster|garner|showcase|"
+    r"meticulous|crucial|pivotal|multifaceted|ever-changing|seamless|"
+    r"landscape|realm|leverage|harness|unlock|elevate|embark)\b",
+    re.I,
+)
+# Openers that delay the sentence rather than starting it.
+PAPER_FILLER = re.compile(
+    r"\b(it is worth noting|it should be noted|it is important to note|"
+    r"notably|interestingly|importantly|in conclusion|in summary|ultimately)\b",
+    re.I,
+)
+# A construction that is fine once and conspicuous at four times per thousand words.
+RATHER_THAN = re.compile(r"rather than", re.I)
+RATHER_RATE_MAX = 2.6  # per thousand words; the file sat at 3.2 before the rewrite
+
+
+def _paper_words() -> int:
+    return sum(len(re.findall(r"[A-Za-z]+", p.read_text(encoding="utf-8"))) for p in PAPER_TEX)
+
+
+@pytest.mark.parametrize("path", PAPER_TEX, ids=lambda p: p.name)
+def test_the_paper_uses_no_stock_or_promotional_vocabulary(path):
+    text = path.read_text(encoding="utf-8")
+    for pattern, what in ((PAPER_BANNED, "stock vocabulary"), (PAPER_FILLER, "a filler opener")):
+        match = pattern.search(text)
+        assert match is None, f"{path} uses {what}: {match.group(0)!r}"
+
+
+@pytest.mark.parametrize("path", PAPER_TEX, ids=lambda p: p.name)
+def test_the_paper_has_no_em_dash_or_emoji(path):
+    # An em dash in LaTeX source is almost always a typing habit rather than a
+    # typographic choice: the paper does not use "---" anywhere. En dashes are
+    # written as "--" and are left alone.
+    text = path.read_text(encoding="utf-8")
+    assert "—" not in text, f"{path} contains an em dash"
+    assert not EMOJI.search(text), f"{path} contains an emoji"
+
+
+def test_the_paper_does_not_lean_on_one_construction():
+    """'rather than' is the paper's favourite move and it was doing too much work.
+
+    It was at 3.2 per thousand words before the prose rewrite, in a paper of under
+    ten thousand, which reads as a tic rather than an argument. The ceiling is set
+    just above where the rewritten text sits so a later section that reaches for it
+    again fails here rather than in a reader's patience.
+    """
+    total = sum(len(RATHER_THAN.findall(p.read_text(encoding="utf-8"))) for p in PAPER_TEX)
+    rate = 1000.0 * total / _paper_words()
+    assert rate <= RATHER_RATE_MAX, (
+        f"'rather than' appears {total} times, {rate:.1f} per thousand words, "
+        f"above the {RATHER_RATE_MAX} ceiling"
+    )
+
+
 # ------------------------------------------------------------- the auto study
 
 
@@ -469,3 +542,364 @@ def test_the_figure_readme_names_every_figure_once():
     text = readme.read_text(encoding="utf-8")
     for path in sorted((ROOT / "studies" / "figures").glob("*.pdf")):
         assert text.count(f"`{path.name}`") >= 1, f"{path.name} is not in the figure list"
+
+
+# ------------------------------------------------- the theory and discussion block
+#
+# The theory section and the discussion are the most numerically loaded pages of the
+# paper and until now had no coverage here: every figure they quote arrives as a
+# \Th... or \Disc... macro defined by ``theory_macros`` in
+# ``studies/make_paper_tex.py``, and nothing compared those macros to the outputs
+# they are computed from. The tests below recompute each quantity from the committed
+# CSVs and JSON with an implementation written independently of the generator. They
+# are not a check that the derivation is right; they are a check that the paper
+# prints the number the committed outputs imply.
+#
+# Three of the macros, ``ThCvMu``, ``ThCvAlpha`` and ``ThCvBeta``, invert the Jensen
+# correction at the measured ratio, and every macro derived from them inherits that.
+# The generator says so and so does the paper: the inversion describes the
+# dispersion of the reported variance and is not an independent test of the
+# correction, because the right-hand side is fitted from the same q as the left.
+# They are pinned anyway, for the reason above: paper and generator must agree.
+#
+# Four further properties are checked that no single-macro test can see, because
+# they are relations between a macro and a claim the prose makes: that the two ratio
+# macros are algebraically dependent, that the block shares sum to one and the
+# pooled ratio really is their weighted mean, that the discussion's interval macro
+# carries both of its numbers, and that the coordinate the theory names as the flat
+# one is the coordinate the analysis measures as the worst.
+
+THEORY_CELL = "M2_N2000_rho0.3028_r0.0_c1.0"
+MACRO = re.compile(r"\\newcommand\{\\([A-Za-z]+)\}\{((?:[^{}]|\{[^{}]*\})*)\}")
+
+
+def _macros() -> dict[str, str]:
+    """Every ``\\newcommand`` in the generated paper, by name, without the braces."""
+    found = MACRO.findall((ROOT / "paper" / "main.tex").read_text(encoding="utf-8"))
+    assert found, "paper/main.tex defines no macros; run python -m studies.make_paper_tex"
+    return dict(found)
+
+
+def _tex_number(body: str) -> float:
+    """Read one of the generator's numbers back out of its rendered form.
+
+    ``tex_num`` writes three shapes the paper uses: plain digits (``0.221``), a
+    thousands-separated integer (``5{,}454``) and scientific notation with a
+    typeset exponent (``$4.3\\times 10^{4}$``). Anything else is a format this
+    test does not know about, which is a failure rather than a pass.
+    """
+    text = body.strip().strip("$").replace("{,}", "").replace("\\,", "")
+    sci = re.fullmatch(r"(-?[\d.]+)\\times 10\^\{(-?\d+)\}", text)
+    if sci:
+        return float(sci.group(1)) * 10.0 ** int(sci.group(2))
+    return float(text)
+
+
+def _tex_pm(body: str) -> tuple[float, float]:
+    """Read an ``estimate \\pm se`` macro as two numbers."""
+    text = body.strip().strip("$")
+    parts = text.split(r"\pm")
+    assert len(parts) == 2, f"not an estimate +/- se macro: {body!r}"
+    return _tex_number(parts[0]), _tex_number(parts[1])
+
+
+def _h6() -> dict:
+    return json.loads((ROOT / HYP).read_text(encoding="utf-8"))
+
+
+def _blocks() -> list[dict[str, str]]:
+    with (ROOT / ANALYSIS / "blocks.csv").open(newline="", encoding="utf-8") as fh:
+        return list(csv.DictReader(fh))
+
+
+def _companions() -> list[dict[str, str]]:
+    with (ROOT / ANALYSIS / "companions.csv").open(newline="", encoding="utf-8") as fh:
+        return list(csv.DictReader(fh))
+
+
+def _cells() -> list[dict[str, str]]:
+    with (ROOT / ANALYSIS / "cells.csv").open(newline="", encoding="utf-8") as fh:
+        return list(csv.DictReader(fh))
+
+
+def _coordinate_weights() -> dict[str, int]:
+    """Coordinates per block at M = 2: two baselines, four alphas, four betas."""
+    return {"mu": 2, "alpha": 4, "beta": 4}
+
+
+def _deficits() -> dict[str, float]:
+    """``1 - q`` per block, over the pooled cells, from the H6.5 analysis output."""
+    per_block = _h6()["H6.5"]["per_block"]
+    return {b: 1.0 - per_block[b]["q"] for b in _coordinate_weights()}
+
+
+def _block_q(n_lo: int, n_hi: int) -> list[float]:
+    """Sorted per-cell decay-block q over the primary cells in an event-count band."""
+    return sorted(
+        float(r["q"])
+        for r in _blocks()
+        if r["M"] == "2"
+        and r["c"] == "1.0"
+        and r["r"] == "0.0"
+        and r["block"] == "beta"
+        and n_lo <= int(r["N"]) <= n_hi
+    )
+
+
+def _tail_share(n: int) -> float:
+    """Mean over the four branching-ratio columns of the wild-beta share at N."""
+    size = {r["cell"]: int(r["N"]) for r in _blocks()}
+    vals = [
+        float(r["medbias"])
+        for r in _companions()
+        if r["block"] == "tail"
+        and r["cell"].startswith("M2_")
+        and "_c1.0" in r["cell"]
+        and "_r0.0_" in r["cell"]
+        and size[r["cell"]] == n
+        and r["medbias"] not in ("", "nan", "inf")
+    ]
+    assert vals, f"no companions rows for the tail at N = {n}"
+    return sum(vals) / len(vals)
+
+
+ANCHOR_LINE = re.compile(
+    r"beta\[0,1\]: median ([\d.]+), mean ([\d.]+), p95 ([\d.]+), p99 ([\d.]+), "
+    r"max (\d+) \(truth ([\d.]+)\)"
+)
+
+
+def _anchor_line() -> tuple[float, ...]:
+    """The beta[0,1] distribution at the anchor: median, mean, p95, p99, max, truth."""
+    found = ANCHOR_LINE.search((ROOT / PHASE3).read_text(encoding="utf-8"))
+    assert found, "phase3_report.txt no longer states the beta[0,1] distribution"
+    return tuple(float(g) for g in found.groups())
+
+
+def _anchor_row(block: str) -> dict[str, str]:
+    return next(r for r in _blocks() if r["cell"] == THEORY_CELL and r["block"] == block)
+
+
+def _anchor_companion(block: str) -> dict[str, str]:
+    return next(r for r in _companions() if r["cell"] == THEORY_CELL and r["block"] == block)
+
+
+def _theory_expected() -> list[tuple[str, float, int]]:
+    """Each theory macro, the value the committed outputs imply, and its decimals.
+
+    Recomputing here rather than importing ``theory_macros`` is deliberate: a test
+    that called the generator and compared two of its own outputs would pass even if
+    both were wrong in the same way.
+    """
+    deficits = _deficits()
+    weights = _coordinate_weights()
+    total_weight = sum(weights.values())
+    pooled_deficit = sum(weights[b] * deficits[b] for b in weights) / total_weight
+    cv = {b: math.sqrt(8.0 * deficits[b]) for b in deficits}
+    pooled_cells = set(_h6()["H6.5"]["cells"])
+    n_floor = min(int(k.split("_")[1][1:]) for k in pooled_cells)
+    regular = 1.0 / (8.0 * n_floor)
+    small = _block_q(2000, 2000)
+    large = _block_q(10000, 50000)
+    anchor = _anchor_row("beta")
+    anchor_comp = _anchor_companion("beta")
+    median, mean, p95, p99, _, truth = _anchor_line()
+    beta_min_t = [float(r["beta_min_T"]) for r in _cells() if r["c"] == "1.0" and r["r"] == "0.0"]
+    shallow = [r for r in _cells() if r["c"] == "0.001" and r["r"] == "0.0"]
+    run_report = (ROOT / RUN).read_text(encoding="utf-8")
+    tail_fits = int(re.search(r"In total (\d+) such fits", run_report).group(1))
+    tail_reliable = int(re.search(r"of which (\d+) carry the verdict", run_report).group(1))
+
+    with (ROOT / ANALYSIS / "crosstab.csv").open(newline="", encoding="utf-8") as fh:
+        crosstab = list(csv.DictReader(fh))
+    c1_shares = []
+    for row in crosstab:
+        if "_c1.0" not in row["cell"]:
+            continue
+        n = sum(int(row[k] or 0) for k in ("n_reliable", "n_marginal", "n_unreliable"))
+        if n:
+            c1_shares.append(int(row["n_unreliable"] or 0) / n)
+
+    pooled_cov = [
+        float(r["cov_all"])
+        for r in _blocks()
+        if r["cell"] in pooled_cells and r["block"] == "all" and int(r["N"]) == n_floor
+    ]
+    qrob = {
+        b: sorted(
+            float(r["qrob"])
+            for r in _companions()
+            if r["block"] == b and r["cell"] in pooled_cells and r["qrob"] not in ("", "nan", "inf")
+        )
+        for b in ("beta", "mu")
+    }
+    h4 = [c for c in _h6()["H6.4"]["cells"] if c["c"] == 1.0 and c["N"] >= 10000]
+    return [
+        # The pooled deficit and the decomposition of the headline into blocks.
+        ("ThPooledDeficit", pooled_deficit, 3),
+        ("ThShareMu", 100.0 * weights["mu"] * deficits["mu"] / (pooled_deficit * total_weight), 1),
+        (
+            "ThShareAlpha",
+            100.0 * weights["alpha"] * deficits["alpha"] / (pooled_deficit * total_weight),
+            1,
+        ),
+        (
+            "ThShareBeta",
+            100.0 * weights["beta"] * deficits["beta"] / (pooled_deficit * total_weight),
+            1,
+        ),
+        # Per-block deficits and the coefficients of variation inverted from them.
+        ("ThDefMu", deficits["mu"], 3),
+        ("ThDefAlpha", deficits["alpha"], 3),
+        ("ThDefBeta", deficits["beta"], 3),
+        ("ThCvMu", cv["mu"], 3),
+        ("ThCvAlpha", cv["alpha"], 3),
+        ("ThCvBeta", cv["beta"], 3),
+        ("ThCvRatio", cv["beta"] / cv["mu"], 2),
+        ("ThDefRatio", deficits["beta"] / deficits["mu"], 2),
+        # The regularity benchmark and the factor by which the decay block exceeds it.
+        ("ThRegDeficit", regular, 3),
+        ("ThMismatch", deficits["beta"] / regular, 0),
+        # The decay block's q by event count.
+        ("ThBetaQSmallLow", small[0], 4),
+        ("ThBetaQSmallHigh", small[-1], 4),
+        ("ThBetaQLargeLow", large[0], 4),
+        ("ThBetaQLargeHigh", large[-1], 4),
+        # The wild-beta share by event count.
+        ("ThTailNtwohundred", _tail_share(200), 3),
+        ("ThTailNtwothousand", _tail_share(2000), 3),
+        ("ThTailNtenthousand", _tail_share(10000), 4),
+        # The window-length range, restricted to the exact-timestamp c = 1 cells.
+        ("ThBetaMinTLow", min(beta_min_t), 1),
+        ("ThBetaMinTHigh", max(beta_min_t), -1),
+        ("ThShallowBelowOne", float(sum(float(r["beta_min_T"]) < 1.0 for r in shallow)), 0),
+        ("ThShallowCells", float(len(shallow)), 0),
+        # The anchor cell.
+        ("ThAnchorBetaSd", float(anchor["sd"]), 1),
+        ("ThAnchorBetaMse", float(anchor["mse"]), 3),
+        ("ThAnchorBetaQ", float(anchor["q"]), 4),
+        ("ThAnchorBetaQrob", float(anchor_comp["qrob"]), 4),
+        ("ThAnchorBetaCov", float(anchor["cov_all"]), 4),
+        # The beta[0,1] distribution at the anchor, from the phase-3 report.
+        ("ThBetaMedian", median, 3),
+        ("ThBetaMean", mean, 2),
+        ("ThBetaPninetyfive", p95, 2),
+        ("ThBetaPninetynine", p99, 1),
+        ("ThBetaTruth", truth, 1),
+        ("ThBetaMeanOverTruth", mean / truth, 1),
+        ("ThBetaMedianRelErr", (median - truth) / truth, 2),
+        ("ThAnchorBetaGap", 1.0 / float(anchor["q"]), 0),
+        # Counts and ranges the tail and discussion subsections quote.
+        ("ThTailFits", float(tail_fits), 0),
+        ("ThTailReliable", float(tail_reliable), 0),
+        ("ThWorstUnreliableShare", 100.0 * max(c1_shares), 1),
+        ("ThCovSmallLow", min(pooled_cov), 3),
+        ("ThCovSmallHigh", max(pooled_cov), 3),
+        ("ThQrobBetaLow", qrob["beta"][0], 3),
+        ("ThQrobBetaHigh", qrob["beta"][-1], 3),
+        ("ThQrobMuLow", qrob["mu"][0], 3),
+        ("ThQrobMuHigh", qrob["mu"][-1], 3),
+        # H6.3's threshold clause and H6.4's downward movement, quoted in the discussion.
+        ("DiscFourLow", 100.0 * -max(c["D"] for c in h4), 0),
+        ("DiscFourHigh", 100.0 * -min(c["D"] for c in h4), 0),
+        ("DiscFourCells", float(len(h4)), 0),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("name", "expected", "digits"),
+    _theory_expected(),
+    ids=[row[0] for row in _theory_expected()],
+)
+def test_theory_macro_is_the_committed_output(name, expected, digits):
+    """The paper's theory and discussion figures are the ones the outputs imply."""
+    body = _macros().get(name)
+    assert body is not None, f"\\{name} is not defined in paper/main.tex"
+    printed = _tex_number(body)
+    if digits < 0:
+        # Rendered to two significant figures rather than to a decimal place, so a
+        # relative comparison is the honest one: $4.3\times10^{4}$ is 43000 here and
+        # 43065.7 in the output, and both are the same number at the precision the
+        # paper quotes.
+        assert printed == pytest.approx(
+            expected, rel=0.01
+        ), f"\\{name} prints {body!r} but the committed outputs give {expected!r}"
+        return
+    assert round(printed, digits) == pytest.approx(round(expected, digits), abs=1e-9), (
+        f"\\{name} prints {body!r} but the committed outputs give {expected!r}, "
+        f"which rounds to {round(expected, digits)}"
+    )
+
+
+def test_the_discussion_interval_macro_carries_both_numbers():
+    """``DiscThreeT`` is estimate +/- se, and each half is pinned separately.
+
+    The single-register test above can only read the estimate out of it, so the
+    standard error half needs its own check.
+    """
+    estimate, se = _tex_pm(_macros()["DiscThreeT"])
+    h63 = _h6()["H6.3"]
+    assert estimate == pytest.approx(round(h63["T"], 4), abs=1e-9)
+    assert se == pytest.approx(round(h63["se"], 4), abs=1e-9)
+
+
+def test_the_two_ratio_macros_are_algebraically_dependent():
+    """``ThDefRatio`` is ``ThCvRatio`` squared, so the paper does not count them twice.
+
+    The theory section says so explicitly. If the relation stops holding, the
+    sentence that calls the deficit ratio redundant is wrong and the paper has to
+    change with it.
+    """
+    macros = _macros()
+    ratio = _tex_number(macros["ThCvRatio"])
+    squared = _tex_number(macros["ThDefRatio"])
+    assert squared == pytest.approx(ratio**2, rel=0.01), (
+        f"ThDefRatio {squared} is not the square of ThCvRatio {ratio}; the paper's "
+        "claim that the deficit ratio carries no further information fails"
+    )
+
+
+def test_the_pooled_deficit_decomposes_into_its_blocks():
+    """The headline is the coordinate-weighted mean of the three block ratios.
+
+    The theory section says the block shares sum to one and that the pooled figure
+    adds nothing beyond the block account. Both are checked against the weights the
+    design fixes: two baselines, four excitation entries and four decay rates.
+    """
+    macros = _macros()
+    shares = [_tex_number(macros[f"ThShare{b}"]) for b in ("Mu", "Alpha", "Beta")]
+    assert sum(shares) == pytest.approx(100.0, abs=0.2), shares
+    weights = _coordinate_weights()
+    per_block = _h6()["H6.5"]["per_block"]
+    weighted = sum(weights[b] * per_block[b]["q"] for b in weights) / sum(weights.values())
+    assert weighted == pytest.approx(
+        _h6()["H6.5"]["T"], abs=1e-9
+    ), "the pooled q is not the coordinate-weighted mean of the block q values"
+
+
+def test_the_coordinate_the_theory_calls_flat_is_the_one_measured_worst():
+    """The ridge narrative needs one source-target pair to be worst in both blocks.
+
+    The theory section says the pair with the smallest true excitation weight,
+    (0, 1), is the pair whose reported ratio is worst in the excitation block and in
+    the decay block at the anchor cell. That is a claim about the committed
+    per-coordinate output, so it is checked there rather than asserted.
+    """
+    with (ROOT / ANALYSIS / "coordinates.csv").open(newline="", encoding="utf-8") as fh:
+        rows = [r for r in csv.DictReader(fh) if r["cell"] == THEORY_CELL]
+    assert rows, f"coordinates.csv has no rows for {THEORY_CELL}"
+    alpha = {r["coordinate"]: float(r["q"]) for r in rows if r["coordinate"].startswith("alpha")}
+    beta = {r["coordinate"]: float(r["q"]) for r in rows if r["coordinate"].startswith("beta")}
+    truth = {
+        r["coordinate"]: float(r["theta0"]) for r in rows if r["coordinate"].startswith("alpha")
+    }
+    weakest = min(truth, key=lambda k: truth[k])
+    assert min(alpha, key=lambda k: alpha[k]) == weakest, (
+        f"the smallest true alpha is {weakest} but the worst excitation ratio is "
+        f"{min(alpha, key=lambda k: alpha[k])}"
+    )
+    as_beta = weakest.replace("alpha", "beta")
+    assert min(beta, key=lambda k: beta[k]) == as_beta, (
+        "the worst decay ratio is not the same source-target pair as the worst "
+        "excitation ratio, which the theory section's ridge argument relies on"
+    )

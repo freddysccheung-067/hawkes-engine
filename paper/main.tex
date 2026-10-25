@@ -56,6 +56,60 @@
 \newcommand{\HsixThreeHighRho}{$0.9450 \pm 0.0036$}
 \newcommand{\HsixMechanicalShare}{96.4}
 \newcommand{\HsixPostHoc}{$0.0726 \pm 0.0394$}
+\newcommand{\ThParams}{10}
+\newcommand{\ThPooledDeficit}{0.221}
+\newcommand{\ThShareMu}{5.8}
+\newcommand{\ThShareAlpha}{23.7}
+\newcommand{\ThShareBeta}{70.5}
+\newcommand{\ThDefMu}{0.064}
+\newcommand{\ThDefAlpha}{0.131}
+\newcommand{\ThDefBeta}{0.389}
+\newcommand{\ThCvMu}{0.715}
+\newcommand{\ThCvAlpha}{1.023}
+\newcommand{\ThCvBeta}{1.765}
+\newcommand{\ThDefRatio}{6.10}
+\newcommand{\ThCvRatio}{2.47}
+\newcommand{\ThRegDeficit}{$6.25\times 10^{-5}$}
+\newcommand{\ThMismatch}{6232}
+\newcommand{\ThBetaQSmallLow}{0.0065}
+\newcommand{\ThBetaQSmallHigh}{0.0690}
+\newcommand{\ThBetaQLargeLow}{0.7165}
+\newcommand{\ThBetaQLargeHigh}{0.9404}
+\newcommand{\ThTailNtwohundred}{0.574}
+\newcommand{\ThTailNtwothousand}{0.025}
+\newcommand{\ThTailNtenthousand}{0.0001}
+\newcommand{\ThBetaMinTLow}{11.9}
+\newcommand{\ThBetaMinTHigh}{$4.3\times 10^{4}$}
+\newcommand{\ThShallowBelowOne}{12}
+\newcommand{\ThShallowCells}{20}
+\newcommand{\ThAnchorBetaSd}{517.7}
+\newcommand{\ThAnchorBetaMse}{3.371}
+\newcommand{\ThAnchorBetaQ}{0.0065}
+\newcommand{\ThAnchorBetaQrob}{0.9393}
+\newcommand{\ThAnchorBetaCov}{0.9080}
+\newcommand{\ThBetaMedian}{1.305}
+\newcommand{\ThBetaMean}{38.11}
+\newcommand{\ThBetaPninetyfive}{11.59}
+\newcommand{\ThBetaPninetynine}{147.2}
+\newcommand{\ThBetaMax}{$4.4\times 10^{4}$}
+\newcommand{\ThBetaTruth}{1.2}
+\newcommand{\ThBetaMeanOverTruth}{31.8}
+\newcommand{\ThBetaMedianRelErr}{0.09}
+\newcommand{\ThAnchorBetaGap}{154}
+\newcommand{\ThWorstUnreliableShare}{97.5}
+\newcommand{\ThCovSmallLow}{0.894}
+\newcommand{\ThCovSmallHigh}{0.940}
+\newcommand{\ThQrobBetaLow}{0.935}
+\newcommand{\ThQrobBetaHigh}{1.011}
+\newcommand{\ThQrobMuLow}{0.755}
+\newcommand{\ThQrobMuHigh}{1.020}
+\newcommand{\ThTailFits}{5{,}454}
+\newcommand{\ThTailReliable}{3{,}211}
+\newcommand{\ThCountTolerance}{10}
+\newcommand{\DiscThreeT}{$0.0167 \pm 0.0059$}
+\newcommand{\DiscFourLow}{37}
+\newcommand{\DiscFourHigh}{62}
+\newcommand{\DiscFourCells}{8}
 \newcommand{\AutoCells}{3}
 \newcommand{\AutoReplications}{2000}
 \newcommand{\AutoRows}{6{,}000}
@@ -102,6 +156,9 @@ and what a library can do about it}
 \section{Model and estimator}\label{sec:model}
 \input{generated/s2_model}
 
+\section{Why the interval understates its own spread}\label{sec:theory}
+\input{generated/s2b_theory}
+
 \section{Design}\label{sec:design}
 \input{generated/s3_design}
 
@@ -113,6 +170,9 @@ and what a library can do about it}
 
 \section{Related work}\label{sec:related}
 \input{generated/s6_related}
+
+\section{Discussion}\label{sec:discussion}
+\input{generated/s6b_discussion}
 
 \section{Reproducibility}\label{sec:repro}
 \input{generated/s7_repro}

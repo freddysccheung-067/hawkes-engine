@@ -1,18 +1,44 @@
-An $M$-dimensional Hawkes process with baseline $\mu$, excitation matrix $\alpha$
-and pair-specific exponential decay $\beta$ has conditional intensity
+The data are a sequence of marked event times $0 < t_1 < \cdots < t_N \le T$ on a
+single observation window $[0, T]$, each with a type $i_k \in \{1, \ldots, M\}$. An
+$M$-dimensional Hawkes process with baseline $\mu$, excitation matrix $\alpha$ and
+pair-specific exponential decay $\beta$ has conditional intensity
 \begin{equation}
 \lambda_i(t) = \mu_i + \sum_{j=1}^{M}\sum_{t_k^j < t} \alpha_{ij}\,
 e^{-\beta_{ij}(t - t_k^j)},
 \end{equation}
-with rows indexing targets and columns sources. The branching matrix is
-$\Gamma = \alpha / \beta$, and its spectral radius $\rho(\Gamma)$ governs whether
-the process is stationary; a value at or above one is the near-critical regime in
-which the finite-sample distribution of the estimates is strongly skewed.
+where $t_k^j$ runs over the events of type $j$ strictly before $t$. Rows index
+targets and columns index sources, so $\alpha_{ij}$ is the effect of a type-$j$
+event on the intensity of type $i$; this is the convention fixed in ADR-002, which
+also places the optimizer in log space, $\mu = e^{a}$, $\alpha = e^{b}$,
+$\beta = e^{c}$, so that positivity is structural rather than enforced by bounds.
 
-The estimator is maximum likelihood, with the optimizer working in log space so
-that positivity is structural. Standard errors are the square roots of the diagonal
-of the inverse observed information, computed by differencing the analytic gradient.
-When that matrix cannot be inverted to tolerance the library reports no interval
-rather than a number it does not believe. Every fit also carries a three-level
-conditioning verdict built from the condition number, bound hits, the branching
-ratio, the implied alpha--beta correlation, and events per parameter.
+The likelihood is the standard point-process expression,
+\begin{equation}
+\ell(\theta) = \sum_{k=1}^{N} \log \lambda_{i_k}(t_k)
+- \sum_{i=1}^{M} \int_0^T \lambda_i(u)\,du,
+\label{eq:likelihood}
+\end{equation}
+with $\theta = (\mu, \alpha, \beta)$ carrying $M + 2M^2$ coordinates, which is
+\ThParams{} at $M = 2$. The integral in \eqref{eq:likelihood} has a closed form for
+the exponential kernel, so both the likelihood and its gradient are $O(NM^2)$
+rather than $O(N^2)$, and the estimator maximises \eqref{eq:likelihood} directly.
+
+The branching matrix is $\Gamma = \alpha/\beta$, element-wise, and its spectral
+radius $\rho(\Gamma)$ governs whether the process is stationary: the process has a
+finite mean intensity exactly when $\rho(\Gamma) < 1$, and a value at or above one
+is the near-critical regime in which the finite-sample distribution of the
+estimates is strongly skewed. Every fit reports $\rho(\Gamma)$, and the design
+places four of its five event counts at branching ratios up to 0.95, just inside
+the boundary.
+
+Standard errors are the square roots of the diagonal of the inverse observed
+information, $\widehat{\operatorname{Var}}(\hat\theta) = [-\nabla^2 \ell(\hat\theta)]^{-1}$,
+computed by differencing the analytic gradient. When that matrix cannot be
+inverted to tolerance the library reports no interval rather than a number it does
+not believe. Every fit also carries a three-level conditioning verdict
+(\texttt{reliable}, \texttt{marginal}, \texttt{unreliable}) built from the
+condition number, bound hits, the branching ratio, the implied alpha--beta
+correlation, and events per parameter. Those thresholds are engineering judgement
+that predates this study, and Section~\ref{sec:results} and
+Section~\ref{sec:theory} are both, in part, a measurement of what they do and do
+not detect.

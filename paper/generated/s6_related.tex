@@ -1,24 +1,77 @@
-The Hawkes process itself is \citet{hawkes1971}. The thinning simulation used here
-is \citet{ogata1981}, which is still the standard way to draw exact samples for an
-inhomogeneous point process with a bounded intensity; the package implements it
-against a second, independent branching simulator and the two are compared at the
-distributional level. The review that supplies the vocabulary of this paper -- the
-branching matrix, its spectral radius, the near-critical regime -- is
-\citet{bacry2015}.
+\subsection{The process and its simulation}
 
-What this study does that those works do not is measure the estimator against its
-own claimed uncertainty over a pre-registered grid, and then act on the
-measurement. \citet{filimonov2012} estimate a Hawkes branching ratio on financial
-data and use the ratio itself as a reflexivity diagnostic, without a sampling
-distribution for the maximum-likelihood fit; \citet{bacry2013} model microstructure
-noise with mutually exciting processes and report fitted parameters rather than the
-coverage of their intervals. The methodological literature that does address
-inference is largely asymptotic: \citet{laub2015} sets out the likelihood and its
-properties for the standard parameterisations, and \citet{chen2013} develops
-semiparametric inference under a nonstationary specification. This paper does not
-dispute any of those asymptotic results. It reports what happened at finite sample
-sizes in a box it measured, which is a different question, and it reports where the
-asymptotics did not hold.
+The Hawkes process itself is \citet{hawkes1971}, which defines the self-exciting
+and mutually exciting classes and derives the spectral density that gives the
+process its name; the conditional-intensity and branching-matrix formulation used
+throughout this paper is the modern reading of that construction. The thinning
+simulation used here is \citet{ogata1981}, which is still the standard way to draw
+exact samples for an inhomogeneous point process with a bounded intensity: one
+simulates an upper bound and accepts each candidate with probability proportional
+to the intensity ratio. The package implements that algorithm against a second,
+independent branching simulator and compares the two at the distributional level,
+so a disagreement between the simulators fails a test rather than a downstream
+study. Neither of those works discusses the sampling distribution of a
+maximum-likelihood fit, and neither is a claim this paper revises.
+
+\subsection{Inference for Hawkes processes}
+
+The methodological literature on inference is recent and largely asymptotic.
+\citet{laub2015} is the standard reference for the likelihood, the exponential
+kernel's recursions and the properties that make the estimator tractable, and it
+sets out the heuristic for consistency in the stationary case. \citet{chen2013}
+develops inference under a nonstationary specification, with a parametric
+likelihood corrected for nonstationarity and an application to ultra-high-frequency
+returns. Both establish consistency and asymptotic normality in their settings, and
+both state the covariance in the sandwich form of \eqref{eq:sandwich}. Neither
+measures what that covariance does at a fixed number of events, which is the
+question this paper asks, and neither reports the ratio of mean reported standard
+error to empirical standard deviation anywhere, because neither is a simulation
+study of the estimator against itself.
+
+The asymptotic results are not in dispute here. Section~\ref{sec:theory} uses them
+as the starting point and asks what the information equality \eqref{eq:equality}
+delivers in a finite window. The finding that the reported interval is too narrow at
+$N = 2000$ and adequate at $N = 50\,000$ is consistent with those results rather
+than in tension with them: an asymptotic approximation that is good at five
+thousand events per type can be poor at two thousand, and the paper's contribution
+is to locate where the crossing happens in a box it measured, not to argue that
+asymptotics fail.
+
+\subsection{Applications that report parameters without intervals}
+
+The finance literature fits these models routinely and reports the parameters. The
+vocabulary this paper uses, the branching matrix, its spectral radius and the
+near-critical regime, is set by the review of \citet{bacry2015}, which is the
+clearest statement of why $\rho(\Gamma)$ close to one is the regime of interest.
+\citet{filimonov2012} estimate a Hawkes branching ratio on financial data and use
+the ratio itself as a reflexivity diagnostic, with the fitted parameter as the
+reported quantity and no sampling distribution attached to the maximum-likelihood
+fit. \citet{bacry2013} model microstructure noise with mutually exciting processes
+and report fitted parameters and goodness of fit rather than the coverage of their
+intervals.
+
+That body of work is not doing anything wrong, and this paper does not claim it is.
+A diagnostic whose value is read as a level does not need an interval to be useful,
+and a parameter reported to six figures can be a legitimate summary of a fitted
+model. What those papers do not report is the property this paper measures: whether
+the standard error that comes out of the same fit describes the spread of estimates
+the procedure would produce. When the answer is that it understates that spread by
+a third at the sample sizes those papers often work at, a reader who treats the
+reported interval as one is reading a number with no measured coverage behind it.
+The paper's claim is narrow and it is about the interval, not the parameter.
+
+\subsection{Software and reproducibility}
+
+The algorithmic treatment closest to the implementation here is \citet{bacry2015},
+which also indexes the simulation and estimation tooling that practice relies on.
+None of the software this paper could compare against ships a measured calibration
+map for its own standard errors, and none refuses to report an interval where the
+estimator is undefined; those are the two behaviours the package adds, and they are
+additions to the inference layer rather than to the likelihood. The design of this
+study, frozen before measurement and amended six times with each amendment dated
+and justified, follows the practice the reproducibility literature argues for
+without needing to cite it: the point is that a reader can determine what was known
+when each decision was made, and the appendix is there so they can.
 
 No speed or accuracy comparison with another library is made here. The capability
 table the package ships times this implementation on one machine and states no
