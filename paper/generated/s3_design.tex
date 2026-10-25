@@ -2,14 +2,53 @@ The study's grid spans the number of events $N \in \{200, 1000, 2000, 10\,000,
 50\,000\}$, the branching ratio $\rho \in \{0.3028, 0.60, 0.85, 0.95\}$, the
 timestamp resolution $r = \beta\delta \in \{0, 0.01, 0.1\}$, and a decay scale
 $c \in \{1, 10^{-3}\}$ that multiplies every decay rate: 120 cells at $M = 2$ and
-an eight-cell four-type satellite. Each cell runs \HsixReplications{} replications
-under a seed contract that makes a replication a pure function of its cell and its
-index.
+an eight-cell four-type satellite. The anchor cell ($N = 2000$, $\rho = 0.3028$,
+$c = 1$, $r = 0$) is the configuration of an earlier recovery study to within
+$8 \times 10^{-5}$ relative, so the design starts from a regime that had already
+been measured rather than from an untested one. Each cell runs
+\HsixReplications{} replications, and the realised mean event count in every cell
+is within \ThCountTolerance{} percent of its target, which is what lets the design
+treat $N$ as an axis rather than a hope.
 
-The estimands were fixed before the data existed: mean and relative bias, empirical
-standard deviation across replications, mean reported standard error, coverage of
-nominal-95\% intervals with a missing interval counted as a miss, and the ratio
-$q = \text{mean SE} / \text{SD}$, which is below one exactly when the interval is
-too narrow. Every estimate carries a Monte Carlo standard error. Four hypotheses
-form a Holm family; two are labelled exploratory because an earlier study had
-already seen their direction.
+Replications are not independent draws in the programming sense but in the
+statistical one, and the seed contract is what makes a rerun reproduce rather than
+resemble. The cell seed is derived from a hash of the cell's own coordinates,
+\begin{equation}
+s_{\text{cell}} = \operatorname{SplitMix64}\!\left(
+  \operatorname{int}\big(\operatorname{SHA256}(\texttt{h6-v1}|M|N|\rho|r|c)[:16],\,16\big)
+\right),
+\end{equation}
+and replication $k$ draws from \texttt{seed\_stream}$(s_{\text{cell}}, k)$. A
+replication is therefore a pure function of its cell and its index: any single
+cell re-runs bit for bit from its coordinates alone, and raising $R$ does not
+change the seed of any earlier replication. The derivation is implemented once and
+asserted against a golden vector, so the contract cannot drift silently.
+
+The estimands were fixed before the data existed, and each is a coordinate-weighted
+mean over the coordinates of a parameter block $B$ (two baselines, four excitation
+entries, four decay rates at $M = 2$, so weights $2/10$, $4/10$ and $4/10$):
+\begin{align}
+\text{bias}_B &= \frac{1}{|J_B|}\sum_{j \in J_B} \mathbb{E}[\hat\theta_j] - \theta_{0j}, \qquad
+\text{se}_B = \frac{1}{R}\sum_{r=1}^{R} \operatorname{mean}_{j \in J_B} \hat{\text{se}}_{jr}, \\
+\text{sd}_B &= \sqrt{\frac{1}{R}\sum_{r=1}^{R} \operatorname{mean}_{j \in J_B}
+(\hat\theta_{jr} - \bar\theta_j)^2}, \qquad
+q_B = \frac{\text{se}_B}{\text{sd}_B}.
+\end{align}
+Coverage at nominal 0.95 counts a replication whose interval contains the truth,
+and a replication that returned no interval counts as a miss, so a method that
+declines to answer is not credited with silence. The ratio $q_B$ is the study's
+central object: it is below one exactly when the interval is narrower than the
+spread the same procedure produces. Every estimate carries a Monte Carlo standard
+error, computed by a parametric bootstrap over replications where the analytic form
+is in doubt, and the larger of the bootstrap and delta-method readings governs
+where they disagree by more than a factor of two.
+
+Six hypotheses were frozen, four confirmatory, and the four form a Holm family at
+family-wise $\alpha = 0.05$: the smallest $p$-value is compared to $0.05/4$, the
+next to $0.05/3$, and so on, so no step can be bought by another. Holm rather than
+Bonferroni because the four are ordered by importance and Holm is uniformly more
+powerful without giving up family-wise control. Two hypotheses (H6.1 and H6.2) are
+labelled exploratory: an earlier study had already seen their direction, so they
+replicate rather than test and are reported outside the family. Where admissible
+readings of a standard error disagreed, the least favourable label governs, and
+that rule was adopted before the paper was written.

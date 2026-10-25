@@ -9,10 +9,14 @@ one, the excitation and decay parameters trade off against each other along a ri
 in the likelihood, and a maximum-likelihood fit can converge to a point that looks
 precise and is not. The curvature of the likelihood at that point, which is what an
 inverse-Hessian standard error reads, can be steep along a direction the sampling
-distribution does not respect.
+distribution does not respect. A simulation study that reports the fitted parameters
+and their intervals cannot reveal that, because a single dataset carries one point
+on the ridge and one curvature; the discrepancy is a property of the procedure and
+is only visible when the same procedure is run many times on data generated from a
+known truth.
 
-This paper measures that discrepancy instead of assuming it away, and then acts on
-the measurement. It makes three contributions.
+This paper measures that discrepancy instead of assuming it away, explains where it
+comes from, and then acts on the measurement. It makes four contributions.
 
 \begin{enumerate}
 \item \textbf{A public implementation.} A compiled likelihood and gradient for the
@@ -27,8 +31,26 @@ when it was written; a grid of \HsixCells{} cells at \HsixReplications{}
 replications; and a result in which the headline is a measured shortfall and two of
 the six hypotheses are not confirmed. The two are reported for the same reason as
 the four that held, on the same page, with the numbers that decided them.
+\item \textbf{An explanation of the shortfall that stops where it stops.} The
+asymptotic covariance of the estimator predicts that the reported interval is
+correct in the limit, and Section~\ref{sec:theory} says what has to fail for it not
+to be. A Jensen correction on the reported variance derives the sign and the
+ordering across parameter blocks, and it does not reproduce the measured
+magnitude in the decay block, by a factor the paper states. The disagreement is
+reported as a measured property of the decay block rather than smoothed over, and
+the part of the derivation that could not be closed is named.
 \item \textbf{A shipped lookup that refuses to extrapolate.} A map of the measured
 quantities, installed with the package, which answers for a regime only inside the
 box it measured, says so when it has no measurement, and says the estimator is
 undefined when the cell it found is one where it does not exist.
 \end{enumerate}
+
+The rest of the paper follows that order. Section~\ref{sec:model} writes the model
+and the estimator down. Section~\ref{sec:theory} sets up the asymptotic covariance
+and derives the correction. Section~\ref{sec:design} gives the design and the
+estimands. Section~\ref{sec:results} reports the measurement, including the heavy
+tail in the decay estimate and what the conditioning verdict does not see.
+Section~\ref{sec:auto} reports the decision rule that acts on the measurement and
+the study that tested it. Section~\ref{sec:related} places the work against the
+literature, Section~\ref{sec:discussion} draws out what a practitioner should do
+with it, and Section~\ref{sec:repro} states how to reproduce every number.

@@ -40,6 +40,73 @@ detect an interval that is wrong. Figure~\ref{fig:verdict} gives the separation 
 verdict class, and Figure~\ref{fig:bias} shows the heavy tail in the decay
 estimate that decides whether the mean-based figure is safe to read.
 
+\subsection{The decay estimate has a heavy tail, and the verdict does not see it}
+\label{sec:tail}
+
+The pooled ratio is a mean of reported standard errors over a standard deviation of
+estimates, and both of those are the wrong summaries for the decay block. At the
+anchor cell, where the true $\beta_{01}$ is \ThBetaTruth{}, the estimate of that
+coordinate has median \ThBetaMedian{}, mean \ThBetaMean{}, 95th percentile
+\ThBetaPninetyfive{}, 99th percentile \ThBetaPninetynine{} and maximum
+\ThBetaMax{}. The mean sits \ThBetaMeanOverTruth{} times the truth, roughly an order
+and a half of magnitude, while the median is within \ThBetaMedianRelErr{} of it,
+which is the signature of a tail rather than a shift. The block's standard deviation
+at that cell is \ThAnchorBetaSd{} against a mean reported standard error of
+\ThAnchorBetaMse{}, so the measured ratio there is \ThAnchorBetaQ{}, which
+corresponds to a reported interval about \ThAnchorBetaGap{} times narrower than the
+spread of the estimates it describes. The median-based companion for the same block
+is \ThAnchorBetaQrob{}, and the coverage is \ThAnchorBetaCov{}. Coverage and the
+mean-based ratio disagree because the coverage calculation is not dominated by the
+tail and the ratio is.
+
+The thing that has to be explained is how a converged maximum-likelihood fit reports
+a standard error of order one for a parameter whose estimate is in the thousands.
+Section~\ref{sec:theory} gives the mechanism: the likelihood is nearly flat along a
+ridge that trades $\alpha$ against $\beta$ at almost constant $\alpha/\beta$, and
+the second derivative along that ridge is small. When the flat direction is
+occupied, the estimate can travel far along it with almost no likelihood penalty,
+and the reported standard error is the inverse square root of the curvature at the
+endpoint. That does not make the interval narrow; it makes it wide and centred on
+the wrong value, which is what the anchor cell shows. The tail is not a numerical
+failure, and the optimizer's convergence criterion is not the thing that should
+have caught it.
+
+The tail is a small-$N$ phenomenon and it is steep in $N$. In the primary cells at
+$c = 1$, $r = 0$, the share of converged fits with some $\hat\beta$ above ten times
+the largest true $\beta$ averages \ThTailNtwohundred{} at $N = 200$,
+\ThTailNtwothousand{} at $N = 2000$ and \ThTailNtenthousand{} at $N = 10\,000$. Over
+those twenty cells there were \ThTailFits{} such fits, and \ThTailReliable{} of them
+carried the verdict \texttt{reliable}. The decay block's per-cell $q$ tracks the
+same collapse: it lies between \ThBetaQSmallLow{} and \ThBetaQSmallHigh{} at
+$N = 2000$ and between \ThBetaQLargeLow{} and \ThBetaQLargeHigh{} at the two largest
+event counts. Nothing in the tail's shape suggests a slowly vanishing anomaly; it
+disappears as soon as the effective number of decay times inside the window is
+large, which is what the identification argument predicts.
+
+The verdict misses these fits because of what it measures. Its inputs are the
+observed information's condition number, bound hits, the fitted branching ratio,
+the implied alpha--beta correlation and events per parameter, and every one of them
+is evaluated at the estimate the optimizer returned. On a nearly flat direction
+the observed information is small, which is exactly the signal the condition-number
+rule is built to act on, and the rule does act at the extreme: in the worst
+$c = 1$ cell \ThWorstUnreliableShare{}~percent of replications are labelled
+\texttt{unreliable}. What it does not catch is the intermediate case, a fit that has
+moved far enough along the ridge to wreck the mean but not far enough to make the
+curvature at its endpoint extreme. The condition number is a property of the
+information matrix at one point, and the problem is that the likelihood surface has
+a better point a long way away that the optimizer did not find and the local
+curvature cannot see. A verdict built from the local Hessian is a statement about
+the neighbourhood of the answer, and the tail is a statement about the shape of the
+surface. The two coincide often enough to separate coverage in aggregate and diverge
+often enough that \ThTailReliable{} wrong-but-confident fits passed through.
+
+No fix is proposed here, because none has been tested. A profile likelihood, a
+penalty on the flat direction, or a multi-start rule would each change the estimator
+rather than the verdict, and this study measured one estimator at one start. The
+honest statement is that the verdict's three thresholds were fixed before the study
+and do what they were built to do, and that the tail is outside what a local
+conditioning check can express.
+
 \begin{table}[t]
 \centering
 \caption{Coverage and the standard-error ratio for the twenty primary cells
@@ -75,7 +142,7 @@ summarises their position. Filled markers are the cells the headline pools over.
 \caption{Relative bias against the number of events, mean-based (solid) and
 median-based (dotted). The two diverge at small sample size because the mean is
 dominated by a heavy tail in the decay estimate, which is why a mean-based figure
-is reported beside its robust companion and decides nothing.}
+is reported beside its median-based companion and decides nothing.}
 \label{fig:bias}
 \end{figure}
 

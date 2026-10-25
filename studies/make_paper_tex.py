@@ -227,6 +227,211 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(fh))
 
 
+# ------------------------------------------------------------- theory numbers
+
+
+def theory_macros() -> list[str]:
+    """Quantities the theory and discussion sections quote, all derived here.
+
+    Two of these invert the leading-order correction at the measured ratio. The
+    paper says in the text what that inversion is: a description of the reported
+    variance's dispersion, not an independent test of it. Nothing below is typed
+    by hand; each is a function of a committed output.
+    """
+    h = json.loads(H6_HYP.read_text(encoding="utf-8"))
+    h5 = h["H6.5"]
+    pb = h5["per_block"]
+    blocks = _read_csv(ANALYSIS / "blocks.csv")
+    companions = _read_csv(ANALYSIS / "companions.csv")
+    cells = _read_csv(ANALYSIS / "cells.csv")
+    run_report = RUN_REPORT.read_text(encoding="utf-8")
+    phase3 = (ANALYSIS / "phase3_report.txt").read_text(encoding="utf-8")
+
+    coord_weight = {"mu": 2, "alpha": 4, "beta": 4}
+    total_weight = sum(coord_weight.values())
+    deficit = {b: 1.0 - pb[b]["q"] for b in coord_weight}
+    total_deficit = sum(coord_weight[b] * deficit[b] for b in coord_weight) / total_weight
+    cv = {b: math.sqrt(8.0 * deficit[b]) for b in deficit}
+
+    pooled = set(h5["cells"])
+    # The regularity benchmark is the Poisson baseline, where the count is the only
+    # information and CV^2 of the estimated rate is exactly 1/N. Applied at the
+    # smallest pooled event count it is the most generous reading available: a
+    # larger N would only widen the gap the paper reports.
+    n_floor = min(int(k.split("_")[1][1:]) for k in pooled)
+    regular = 1.0 / (8.0 * n_floor)
+
+    def block_q(n_lo: int, n_hi: int) -> tuple[float, float]:
+        """Range of per-cell beta-block q over the primary cells in an N band."""
+        vals = [
+            float(r["q"])
+            for r in blocks
+            if r["M"] == "2"
+            and r["c"] == "1.0"
+            and r["r"] == "0.0"
+            and r["block"] == "beta"
+            and n_lo <= int(r["N"]) <= n_hi
+        ]
+        return min(vals), max(vals)
+
+    n_by_cell = {r["cell"]: int(r["N"]) for r in blocks}
+
+    def tail_share(n: int) -> float:
+        """Mean over the four branching-ratio columns of the wild-beta share."""
+        vals = [
+            float(r["medbias"])
+            for r in companions
+            if r["block"] == "tail"
+            and r["cell"].startswith("M2_")
+            and "_c1.0" in r["cell"]
+            and "_r0.0_" in r["cell"]
+            and n_by_cell[r["cell"]] == n
+            and r["medbias"] not in ("", "nan", "inf")
+        ]
+        return sum(vals) / len(vals)
+
+    anchor_beta = next(
+        r for r in blocks if r["cell"] == "M2_N2000_rho0.3028_r0.0_c1.0" and r["block"] == "beta"
+    )
+    anchor_qrob = next(
+        r
+        for r in companions
+        if r["cell"] == "M2_N2000_rho0.3028_r0.0_c1.0" and r["block"] == "beta"
+    )
+    beta_min_t = [float(r["beta_min_T"]) for r in cells if r["c"] == "1.0" and r["r"] == "0.0"]
+    n_shallow_below_one = sum(
+        float(r["beta_min_T"]) < 1.0 for r in cells if r["c"] == "0.001" and r["r"] == "0.0"
+    )
+    n_shallow = sum(1 for r in cells if r["c"] == "0.001" and r["r"] == "0.0")
+
+    def share(block: str) -> float:
+        weighted = coord_weight[block] * deficit[block]
+        return 100.0 * weighted / (total_deficit * total_weight)
+
+    out = [
+        macro("ThParams", str(2 + 2 * 2**2)),
+        macro("ThPooledDeficit", tex_num(total_deficit)),
+        macro("ThShareMu", tex_num(share("mu"), 1)),
+        macro("ThShareAlpha", tex_num(share("alpha"), 1)),
+        macro("ThShareBeta", tex_num(share("beta"), 1)),
+        macro("ThDefMu", tex_num(deficit["mu"])),
+        macro("ThDefAlpha", tex_num(deficit["alpha"])),
+        macro("ThDefBeta", tex_num(deficit["beta"])),
+        macro("ThCvMu", tex_num(cv["mu"])),
+        macro("ThCvAlpha", tex_num(cv["alpha"])),
+        macro("ThCvBeta", tex_num(cv["beta"])),
+        macro("ThDefRatio", tex_num(deficit["beta"] / deficit["mu"], 2)),
+        macro("ThCvRatio", tex_num(cv["beta"] / cv["mu"], 2)),
+        macro("ThRegDeficit", tex_num(regular, 3)),
+        macro("ThMismatch", tex_num(deficit["beta"] / regular, 0)),
+        macro("ThBetaQSmallLow", tex_num(block_q(2000, 2000)[0], 4)),
+        macro("ThBetaQSmallHigh", tex_num(block_q(2000, 2000)[1], 4)),
+        macro("ThBetaQLargeLow", tex_num(block_q(10000, 50000)[0], 4)),
+        macro("ThBetaQLargeHigh", tex_num(block_q(10000, 50000)[1], 4)),
+        macro("ThTailNtwohundred", tex_num(tail_share(200))),
+        macro("ThTailNtwothousand", tex_num(tail_share(2000))),
+        macro("ThTailNtenthousand", tex_num(tail_share(10000), 4)),
+        macro("ThBetaMinTLow", tex_num(min(beta_min_t), 1)),
+        macro("ThBetaMinTHigh", tex_num(max(beta_min_t), 0)),
+        macro("ThShallowBelowOne", str(n_shallow_below_one)),
+        macro("ThShallowCells", str(n_shallow)),
+        macro("ThAnchorBetaSd", tex_num(float(anchor_beta["sd"]), 1)),
+        macro("ThAnchorBetaMse", tex_num(float(anchor_beta["mse"]))),
+        macro("ThAnchorBetaQ", tex_num(float(anchor_beta["q"]), 4)),
+        macro("ThAnchorBetaQrob", tex_num(float(anchor_qrob["qrob"]), 4)),
+        macro("ThAnchorBetaCov", tex_num(float(anchor_beta["cov_all"]), 4)),
+    ]
+
+    m = re.search(
+        r"beta\[0,1\]: median ([\d.]+), mean ([\d.]+), p95 ([\d.]+), p99 ([\d.]+), "
+        r"max (\d+) \(truth ([\d.]+)\)",
+        phase3,
+    )
+    beta_mean = math.nan
+    beta_truth = math.nan
+    beta_median = math.nan
+    if m:
+        beta_median = float(m.group(1))
+        beta_mean = float(m.group(2))
+        beta_truth = float(m.group(6))
+        for name, value, digits in (
+            ("ThBetaMedian", m.group(1), 3),
+            ("ThBetaMean", m.group(2), 2),
+            ("ThBetaPninetyfive", m.group(3), 2),
+            ("ThBetaPninetynine", m.group(4), 1),
+            ("ThBetaMax", m.group(5), 0),
+            ("ThBetaTruth", m.group(6), 1),
+        ):
+            out.append(macro(name, tex_num(float(value), digits)))
+    if not math.isnan(beta_mean) and not math.isnan(beta_truth):
+        # The two order-of-magnitude sentences the tail subsection used to state in
+        # words are ratios of numbers the paper already quotes, so they are computed.
+        out.append(macro("ThBetaMeanOverTruth", tex_num(beta_mean / beta_truth, 1)))
+        out.append(macro("ThBetaMedianRelErr", tex_num((beta_median - beta_truth) / beta_truth, 2)))
+        out.append(macro("ThAnchorBetaGap", tex_num(1.0 / float(anchor_beta["q"]), 0)))
+
+    # The share of c = 1 replications labelled unreliable at its most extreme cell.
+    # The tail subsection used to say "nearly every replication"; the measurement
+    # says 0.975 at the worst cell and far less at the anchor, so the number is
+    # quoted rather than the adjective.
+    with (ANALYSIS / "crosstab.csv").open(newline="", encoding="utf-8") as fh:
+        crosstab = list(csv.DictReader(fh))
+    c1_shares = []
+    for r in crosstab:
+        if "_c1.0" not in r["cell"]:
+            continue
+        n = sum(int(r[k] or 0) for k in ("n_reliable", "n_marginal", "n_unreliable"))
+        if n:
+            c1_shares.append(int(r["n_unreliable"] or 0) / n)
+    if c1_shares:
+        out.append(macro("ThWorstUnreliableShare", tex_num(100.0 * max(c1_shares), 1)))
+
+    # Coverage of the all-coordinate block across the pooled cells at the smallest
+    # pooled event count. The discussion used to say "closer to 90 percent"; the
+    # measured range starts above that at the low end of the grid and the largest
+    # gap is in one branching-ratio column, so the range is quoted instead.
+    pooled_cov = [
+        float(r["cov_all"])
+        for r in blocks
+        if r["cell"] in pooled and r["block"] == "all" and int(r["N"]) == n_floor
+    ]
+    if pooled_cov:
+        out.append(macro("ThCovSmallLow", tex_num(min(pooled_cov), 3)))
+        out.append(macro("ThCovSmallHigh", tex_num(max(pooled_cov), 3)))
+
+    # The median-based companion per block over the pooled cells. The theory section
+    # says this companion stays near one everywhere, so it quotes the range rather
+    # than claiming a block ordering the companion does not show.
+    for block, name in (("beta", "ThQrobBeta"), ("mu", "ThQrobMu")):
+        vals = [
+            float(r["qrob"])
+            for r in companions
+            if r["block"] == block and r["cell"] in pooled and r["qrob"] not in ("", "nan", "inf")
+        ]
+        if vals:
+            out.append(macro(name + "Low", tex_num(min(vals), 3)))
+            out.append(macro(name + "High", tex_num(max(vals), 3)))
+
+    m = re.search(r"In total (\d+) such fits", run_report)
+    if m:
+        out.append(macro("ThTailFits", thousands(int(m.group(1)))))
+    m = re.search(r"of which (\d+) carry the verdict", run_report)
+    if m:
+        out.append(macro("ThTailReliable", thousands(int(m.group(1)))))
+    m = re.search(r"within (\d+) percent of `N_target`", run_report)
+    if m:
+        out.append(macro("ThCountTolerance", m.group(1)))
+
+    # H6.3's threshold clause and H6.4's downward movement, for the discussion.
+    out.append(macro("DiscThreeT", tex_pm(h["H6.3"]["T"], h["H6.3"]["se"], 4)))
+    big = [c["D"] for c in h["H6.4"]["cells"] if c["c"] == 1.0 and c["N"] >= 10000]
+    if big:
+        out.append(macro("DiscFourLow", tex_num(-max(big) * 100.0, 0)))
+        out.append(macro("DiscFourHigh", tex_num(-min(big) * 100.0, 0)))
+        out.append(macro("DiscFourCells", str(len(big))))
+    return out
+
+
 # ----------------------------------------------------------------- auto numbers
 
 
@@ -475,6 +680,9 @@ and what a library can do about it}
 \section{Model and estimator}\label{sec:model}
 \input{generated/s2_model}
 
+\section{Why the interval understates its own spread}\label{sec:theory}
+\input{generated/s2b_theory}
+
 \section{Design}\label{sec:design}
 \input{generated/s3_design}
 
@@ -486,6 +694,9 @@ and what a library can do about it}
 
 \section{Related work}\label{sec:related}
 \input{generated/s6_related}
+
+\section{Discussion}\label{sec:discussion}
+\input{generated/s6b_discussion}
 
 \section{Reproducibility}\label{sec:repro}
 \input{generated/s7_repro}
@@ -538,10 +749,14 @@ one, the excitation and decay parameters trade off against each other along a ri
 in the likelihood, and a maximum-likelihood fit can converge to a point that looks
 precise and is not. The curvature of the likelihood at that point, which is what an
 inverse-Hessian standard error reads, can be steep along a direction the sampling
-distribution does not respect.
+distribution does not respect. A simulation study that reports the fitted parameters
+and their intervals cannot reveal that, because a single dataset carries one point
+on the ridge and one curvature; the discrepancy is a property of the procedure and
+is only visible when the same procedure is run many times on data generated from a
+known truth.
 
-This paper measures that discrepancy instead of assuming it away, and then acts on
-the measurement. It makes three contributions.
+This paper measures that discrepancy instead of assuming it away, explains where it
+comes from, and then acts on the measurement. It makes four contributions.
 
 \begin{enumerate}
 \item \textbf{A public implementation.} A compiled likelihood and gradient for the
@@ -556,48 +771,131 @@ when it was written; a grid of \HsixCells{} cells at \HsixReplications{}
 replications; and a result in which the headline is a measured shortfall and two of
 the six hypotheses are not confirmed. The two are reported for the same reason as
 the four that held, on the same page, with the numbers that decided them.
+\item \textbf{An explanation of the shortfall that stops where it stops.} The
+asymptotic covariance of the estimator predicts that the reported interval is
+correct in the limit, and Section~\ref{sec:theory} says what has to fail for it not
+to be. A Jensen correction on the reported variance derives the sign and the
+ordering across parameter blocks, and it does not reproduce the measured
+magnitude in the decay block, by a factor the paper states. The disagreement is
+reported as a measured property of the decay block rather than smoothed over, and
+the part of the derivation that could not be closed is named.
 \item \textbf{A shipped lookup that refuses to extrapolate.} A map of the measured
 quantities, installed with the package, which answers for a regime only inside the
 box it measured, says so when it has no measurement, and says the estimator is
 undefined when the cell it found is one where it does not exist.
 \end{enumerate}
+
+The rest of the paper follows that order. Section~\ref{sec:model} writes the model
+and the estimator down. Section~\ref{sec:theory} sets up the asymptotic covariance
+and derives the correction. Section~\ref{sec:design} gives the design and the
+estimands. Section~\ref{sec:results} reports the measurement, including the heavy
+tail in the decay estimate and what the conditioning verdict does not see.
+Section~\ref{sec:auto} reports the decision rule that acts on the measurement and
+the study that tested it. Section~\ref{sec:related} places the work against the
+literature, Section~\ref{sec:discussion} draws out what a practitioner should do
+with it, and Section~\ref{sec:repro} states how to reproduce every number.
 """,
     "s2_model": r"""
-An $M$-dimensional Hawkes process with baseline $\mu$, excitation matrix $\alpha$
-and pair-specific exponential decay $\beta$ has conditional intensity
+The data are a sequence of marked event times $0 < t_1 < \cdots < t_N \le T$ on a
+single observation window $[0, T]$, each with a type $i_k \in \{1, \ldots, M\}$. An
+$M$-dimensional Hawkes process with baseline $\mu$, excitation matrix $\alpha$ and
+pair-specific exponential decay $\beta$ has conditional intensity
 \begin{equation}
 \lambda_i(t) = \mu_i + \sum_{j=1}^{M}\sum_{t_k^j < t} \alpha_{ij}\,
 e^{-\beta_{ij}(t - t_k^j)},
 \end{equation}
-with rows indexing targets and columns sources. The branching matrix is
-$\Gamma = \alpha / \beta$, and its spectral radius $\rho(\Gamma)$ governs whether
-the process is stationary; a value at or above one is the near-critical regime in
-which the finite-sample distribution of the estimates is strongly skewed.
+where $t_k^j$ runs over the events of type $j$ strictly before $t$. Rows index
+targets and columns index sources, so $\alpha_{ij}$ is the effect of a type-$j$
+event on the intensity of type $i$; this is the convention fixed in ADR-002, which
+also places the optimizer in log space, $\mu = e^{a}$, $\alpha = e^{b}$,
+$\beta = e^{c}$, so that positivity is structural rather than enforced by bounds.
 
-The estimator is maximum likelihood, with the optimizer working in log space so
-that positivity is structural. Standard errors are the square roots of the diagonal
-of the inverse observed information, computed by differencing the analytic gradient.
-When that matrix cannot be inverted to tolerance the library reports no interval
-rather than a number it does not believe. Every fit also carries a three-level
-conditioning verdict built from the condition number, bound hits, the branching
-ratio, the implied alpha--beta correlation, and events per parameter.
+The likelihood is the standard point-process expression,
+\begin{equation}
+\ell(\theta) = \sum_{k=1}^{N} \log \lambda_{i_k}(t_k)
+- \sum_{i=1}^{M} \int_0^T \lambda_i(u)\,du,
+\label{eq:likelihood}
+\end{equation}
+with $\theta = (\mu, \alpha, \beta)$ carrying $M + 2M^2$ coordinates, which is
+\ThParams{} at $M = 2$. The integral in \eqref{eq:likelihood} has a closed form for
+the exponential kernel, so both the likelihood and its gradient are $O(NM^2)$
+rather than $O(N^2)$, and the estimator maximises \eqref{eq:likelihood} directly.
+
+The branching matrix is $\Gamma = \alpha/\beta$, element-wise, and its spectral
+radius $\rho(\Gamma)$ governs whether the process is stationary: the process has a
+finite mean intensity exactly when $\rho(\Gamma) < 1$, and a value at or above one
+is the near-critical regime in which the finite-sample distribution of the
+estimates is strongly skewed. Every fit reports $\rho(\Gamma)$, and the design
+places four of its five event counts at branching ratios up to 0.95, just inside
+the boundary.
+
+Standard errors are the square roots of the diagonal of the inverse observed
+information, $\widehat{\operatorname{Var}}(\hat\theta) = [-\nabla^2 \ell(\hat\theta)]^{-1}$,
+computed by differencing the analytic gradient. When that matrix cannot be
+inverted to tolerance the library reports no interval rather than a number it does
+not believe. Every fit also carries a three-level conditioning verdict
+(\texttt{reliable}, \texttt{marginal}, \texttt{unreliable}) built from the
+condition number, bound hits, the branching ratio, the implied alpha--beta
+correlation, and events per parameter. Those thresholds are engineering judgement
+that predates this study, and Section~\ref{sec:results} and
+Section~\ref{sec:theory} are both, in part, a measurement of what they do and do
+not detect.
 """,
     "s3_design": r"""
 The study's grid spans the number of events $N \in \{200, 1000, 2000, 10\,000,
 50\,000\}$, the branching ratio $\rho \in \{0.3028, 0.60, 0.85, 0.95\}$, the
 timestamp resolution $r = \beta\delta \in \{0, 0.01, 0.1\}$, and a decay scale
 $c \in \{1, 10^{-3}\}$ that multiplies every decay rate: 120 cells at $M = 2$ and
-an eight-cell four-type satellite. Each cell runs \HsixReplications{} replications
-under a seed contract that makes a replication a pure function of its cell and its
-index.
+an eight-cell four-type satellite. The anchor cell ($N = 2000$, $\rho = 0.3028$,
+$c = 1$, $r = 0$) is the configuration of an earlier recovery study to within
+$8 \times 10^{-5}$ relative, so the design starts from a regime that had already
+been measured rather than from an untested one. Each cell runs
+\HsixReplications{} replications, and the realised mean event count in every cell
+is within \ThCountTolerance{} percent of its target, which is what lets the design
+treat $N$ as an axis rather than a hope.
 
-The estimands were fixed before the data existed: mean and relative bias, empirical
-standard deviation across replications, mean reported standard error, coverage of
-nominal-95\% intervals with a missing interval counted as a miss, and the ratio
-$q = \text{mean SE} / \text{SD}$, which is below one exactly when the interval is
-too narrow. Every estimate carries a Monte Carlo standard error. Four hypotheses
-form a Holm family; two are labelled exploratory because an earlier study had
-already seen their direction.
+Replications are not independent draws in the programming sense but in the
+statistical one, and the seed contract is what makes a rerun reproduce rather than
+resemble. The cell seed is derived from a hash of the cell's own coordinates,
+\begin{equation}
+s_{\text{cell}} = \operatorname{SplitMix64}\!\left(
+  \operatorname{int}\big(\operatorname{SHA256}(\texttt{h6-v1}|M|N|\rho|r|c)[:16],\,16\big)
+\right),
+\end{equation}
+and replication $k$ draws from \texttt{seed\_stream}$(s_{\text{cell}}, k)$. A
+replication is therefore a pure function of its cell and its index: any single
+cell re-runs bit for bit from its coordinates alone, and raising $R$ does not
+change the seed of any earlier replication. The derivation is implemented once and
+asserted against a golden vector, so the contract cannot drift silently.
+
+The estimands were fixed before the data existed, and each is a coordinate-weighted
+mean over the coordinates of a parameter block $B$ (two baselines, four excitation
+entries, four decay rates at $M = 2$, so weights $2/10$, $4/10$ and $4/10$):
+\begin{align}
+\text{bias}_B &= \frac{1}{|J_B|}\sum_{j \in J_B} \mathbb{E}[\hat\theta_j] - \theta_{0j}, \qquad
+\text{se}_B = \frac{1}{R}\sum_{r=1}^{R} \operatorname{mean}_{j \in J_B} \hat{\text{se}}_{jr}, \\
+\text{sd}_B &= \sqrt{\frac{1}{R}\sum_{r=1}^{R} \operatorname{mean}_{j \in J_B}
+(\hat\theta_{jr} - \bar\theta_j)^2}, \qquad
+q_B = \frac{\text{se}_B}{\text{sd}_B}.
+\end{align}
+Coverage at nominal 0.95 counts a replication whose interval contains the truth,
+and a replication that returned no interval counts as a miss, so a method that
+declines to answer is not credited with silence. The ratio $q_B$ is the study's
+central object: it is below one exactly when the interval is narrower than the
+spread the same procedure produces. Every estimate carries a Monte Carlo standard
+error, computed by a parametric bootstrap over replications where the analytic form
+is in doubt, and the larger of the bootstrap and delta-method readings governs
+where they disagree by more than a factor of two.
+
+Six hypotheses were frozen, four confirmatory, and the four form a Holm family at
+family-wise $\alpha = 0.05$: the smallest $p$-value is compared to $0.05/4$, the
+next to $0.05/3$, and so on, so no step can be bought by another. Holm rather than
+Bonferroni because the four are ordered by importance and Holm is uniformly more
+powerful without giving up family-wise control. Two hypotheses (H6.1 and H6.2) are
+labelled exploratory: an earlier study had already seen their direction, so they
+replicate rather than test and are reported outside the family. Where admissible
+readings of a standard error disagreed, the least favourable label governs, and
+that rule was adopted before the paper was written.
 """,
     "s4_results": r"""
 \begin{table}[t]
@@ -642,6 +940,73 @@ detect an interval that is wrong. Figure~\ref{fig:verdict} gives the separation 
 verdict class, and Figure~\ref{fig:bias} shows the heavy tail in the decay
 estimate that decides whether the mean-based figure is safe to read.
 
+\subsection{The decay estimate has a heavy tail, and the verdict does not see it}
+\label{sec:tail}
+
+The pooled ratio is a mean of reported standard errors over a standard deviation of
+estimates, and both of those are the wrong summaries for the decay block. At the
+anchor cell, where the true $\beta_{01}$ is \ThBetaTruth{}, the estimate of that
+coordinate has median \ThBetaMedian{}, mean \ThBetaMean{}, 95th percentile
+\ThBetaPninetyfive{}, 99th percentile \ThBetaPninetynine{} and maximum
+\ThBetaMax{}. The mean sits \ThBetaMeanOverTruth{} times the truth, roughly an order
+and a half of magnitude, while the median is within \ThBetaMedianRelErr{} of it,
+which is the signature of a tail rather than a shift. The block's standard deviation
+at that cell is \ThAnchorBetaSd{} against a mean reported standard error of
+\ThAnchorBetaMse{}, so the measured ratio there is \ThAnchorBetaQ{}, which
+corresponds to a reported interval about \ThAnchorBetaGap{} times narrower than the
+spread of the estimates it describes. The median-based companion for the same block
+is \ThAnchorBetaQrob{}, and the coverage is \ThAnchorBetaCov{}. Coverage and the
+mean-based ratio disagree because the coverage calculation is not dominated by the
+tail and the ratio is.
+
+The thing that has to be explained is how a converged maximum-likelihood fit reports
+a standard error of order one for a parameter whose estimate is in the thousands.
+Section~\ref{sec:theory} gives the mechanism: the likelihood is nearly flat along a
+ridge that trades $\alpha$ against $\beta$ at almost constant $\alpha/\beta$, and
+the second derivative along that ridge is small. When the flat direction is
+occupied, the estimate can travel far along it with almost no likelihood penalty,
+and the reported standard error is the inverse square root of the curvature at the
+endpoint. That does not make the interval narrow; it makes it wide and centred on
+the wrong value, which is what the anchor cell shows. The tail is not a numerical
+failure, and the optimizer's convergence criterion is not the thing that should
+have caught it.
+
+The tail is a small-$N$ phenomenon and it is steep in $N$. In the primary cells at
+$c = 1$, $r = 0$, the share of converged fits with some $\hat\beta$ above ten times
+the largest true $\beta$ averages \ThTailNtwohundred{} at $N = 200$,
+\ThTailNtwothousand{} at $N = 2000$ and \ThTailNtenthousand{} at $N = 10\,000$. Over
+those twenty cells there were \ThTailFits{} such fits, and \ThTailReliable{} of them
+carried the verdict \texttt{reliable}. The decay block's per-cell $q$ tracks the
+same collapse: it lies between \ThBetaQSmallLow{} and \ThBetaQSmallHigh{} at
+$N = 2000$ and between \ThBetaQLargeLow{} and \ThBetaQLargeHigh{} at the two largest
+event counts. Nothing in the tail's shape suggests a slowly vanishing anomaly; it
+disappears as soon as the effective number of decay times inside the window is
+large, which is what the identification argument predicts.
+
+The verdict misses these fits because of what it measures. Its inputs are the
+observed information's condition number, bound hits, the fitted branching ratio,
+the implied alpha--beta correlation and events per parameter, and every one of them
+is evaluated at the estimate the optimizer returned. On a nearly flat direction
+the observed information is small, which is exactly the signal the condition-number
+rule is built to act on, and the rule does act at the extreme: in the worst
+$c = 1$ cell \ThWorstUnreliableShare{}~percent of replications are labelled
+\texttt{unreliable}. What it does not catch is the intermediate case, a fit that has
+moved far enough along the ridge to wreck the mean but not far enough to make the
+curvature at its endpoint extreme. The condition number is a property of the
+information matrix at one point, and the problem is that the likelihood surface has
+a better point a long way away that the optimizer did not find and the local
+curvature cannot see. A verdict built from the local Hessian is a statement about
+the neighbourhood of the answer, and the tail is a statement about the shape of the
+surface. The two coincide often enough to separate coverage in aggregate and diverge
+often enough that \ThTailReliable{} wrong-but-confident fits passed through.
+
+No fix is proposed here, because none has been tested. A profile likelihood, a
+penalty on the flat direction, or a multi-start rule would each change the estimator
+rather than the verdict, and this study measured one estimator at one start. The
+honest statement is that the verdict's three thresholds were fixed before the study
+and do what they were built to do, and that the tail is outside what a local
+conditioning check can express.
+
 \begin{table}[t]
 \centering
 \caption{Coverage and the standard-error ratio for the twenty primary cells
@@ -677,7 +1042,7 @@ summarises their position. Filled markers are the cells the headline pools over.
 \caption{Relative bias against the number of events, mean-based (solid) and
 median-based (dotted). The two diverge at small sample size because the mean is
 dominated by a heavy tail in the decay estimate, which is why a mean-based figure
-is reported beside its robust companion and decides nothing.}
+is reported beside its median-based companion and decides nothing.}
 \label{fig:bias}
 \end{figure}
 
@@ -690,6 +1055,252 @@ standard errors. The separation is real and largely mechanical: the
 a replication without one covers nothing by the pre-registered definition.}
 \label{fig:verdict}
 \end{figure}
+""",
+    "s2b_theory": r"""
+The measurement in Section~\ref{sec:results} needs an explanation. Under a
+correctly specified model the inverse-Hessian standard error is consistent for the
+sampling standard deviation, so a pooled ratio of $q = \HsixQ{}$ should not appear
+as an asymptote. This section derives the object the library actually reports,
+states what has to break for it to understate its own spread, and sets a
+leading-order correction against the measured per-block ratios. The correction
+does not reproduce the measurement, and the size of the disagreement is itself the
+most informative number in this section.
+
+\subsection{The asymptotic covariance of the estimator}
+
+Write $\ell_T(\theta)$ for \eqref{eq:likelihood} and $U_T(\theta) = \nabla\ell_T(\theta)$
+for the score, with $p = M + 2M^2$ coordinates. Under stationarity and the usual
+regularity conditions for point-process likelihoods, the maximum-likelihood
+estimator satisfies
+\begin{equation}
+\sqrt{N}\,\big(\hat\theta - \theta\big) \;\overset{d}{\longrightarrow}\;
+\mathcal{N}\!\left(0,\; I(\theta)^{-1} J(\theta) I(\theta)^{-1}\right),
+\label{eq:sandwich}
+\end{equation}
+where $I(\theta) = \mathbb{E}[-\nabla^2 \ell_T(\theta)]$ is the expected
+information per replication and $J(\theta) = \mathbb{E}[U_T(\theta) U_T(\theta)^{\top}]$
+is the covariance of the score. The matrix in \eqref{eq:sandwich} is the sandwich,
+and the library reports its middle factor inverted: the observed information
+$-\nabla^2 \ell_T(\hat\theta)$, evaluated at the estimate rather than averaged
+over the truth.
+
+The gap between the two is governed by whether $I = J$. For a point process whose
+intensity is the true conditional intensity, the score is a martingale with
+respect to the natural filtration, and the predictable-variation identity gives
+\begin{equation}
+J(\theta) = \mathbb{E}\!\left[\int_0^T \sum_{i} \lambda_i(u)\,
+\nabla\log\lambda_i(u)\,\nabla\log\lambda_i(u)^{\top} du\right] = I(\theta)
+\label{eq:equality}
+\end{equation}
+for every $\theta$ in the interior of the parameter space. Equation~\eqref{eq:equality}
+is the information equality in its point-process form: under exact specification the
+observed information is an unbiased estimator of the score variance, and the
+sandwich collapses to $I^{-1}$, which is what the library computes. When the model
+is correct and the window is long against the decay time, then, the asymptotic
+theory predicts $q \to 1$. The shortfall measured here is not a misspecified
+intensity in the usual sense; it comes from the finite window, from parameters whose
+information the window cannot supply, and from the arithmetic of comparing a
+reported interval with a realised spread.
+
+\subsection{What breaks the equality}
+
+Three violations of \eqref{eq:equality} appear at finite window, and a fourth effect
+in the ratio itself is larger than all three. The first three are worth separating
+because they are shared with ordinary finite-sample theory; the fourth is specific
+to measuring a reported interval against a realised spread.
+
+The likelihood is not the sampling distribution of a fixed number of events. The
+study fixes the window $T$ and lets the event count fall where it may, and a
+stationary Hawkes process observed on $[0, T]$ has a random count whose mean is
+$T$ times the mean intensity. The information in \eqref{eq:equality} therefore
+scales with $T$ rather than being held fixed by the design, and the realised count
+is itself informative about $\rho$, so a reading that treats the count as ancillary
+is reading an approximation. The study reports its realised counts as within
+\ThCountTolerance{} percent of target, which bounds this effect without removing
+it. It is present for every parameter, and it is the standard reason a likelihood
+conditioned on an achieved count understates the variance of its own estimate.
+
+The exponential kernel truncates information at the window edge. An event at time
+$t$ contributes to the intensity at $u > t$ with weight $e^{-\beta(u - t)}$, so the
+fraction of its kernel mass that falls outside the window is $1 - e^{-\beta(T-t)}$.
+For an event in the last $1/\beta$ of the window that fraction is at least
+$1 - e^{-1} \approx 0.63$ and can be arbitrarily close to one at the boundary,
+while for an event early in the window it is negligible. The effective sample size
+for the decay parameters is therefore closer to $\beta_{\min} T$ than to $N$, and
+the two are very different across this grid: $\beta_{\min} T$ is between
+\ThBetaMinTLow{} and roughly \ThBetaMinTHigh{} in the exact-timestamp cells at
+$c = 1$, and below one in \ThShallowBelowOne{} of the \ThShallowCells{}
+exact-timestamp shallow-decay cells.
+
+The decay parameters are weakly identified when $\beta_{\min} T$ is small. The
+information about $\beta_{ij}$ comes from the curvature of the decay profile
+within the window, and if the window holds less than one decay time, the profile
+is nearly flat and the information nearly vanishes. In the limit the information
+matrix is singular in the $\beta$ direction, and any inverse is unstable.
+
+The reported interval is a nonlinear functional of the information. This is the
+one that matters, and it is the subject of the next subsection.
+
+\subsection{The leading-order correction}
+
+The quantity the study measures is a ratio of averages, $q_B = \text{se}_B /
+\text{sd}_B$, and the two averages are taken over the same replications but not
+over the same functional. The numerator averages the reported standard error,
+which is $\sqrt{\widehat{\text{Var}}}$ evaluated at that replication's estimate;
+the denominator takes the square root of an averaged squared deviation. For a
+coordinate $j$, write $X_r = \widehat{\text{Var}}_j(\hat\theta_r)$ for the reported
+variance at replication $r$. The reported standard error is $\sqrt{X_r}$ and the
+squared spread the denominator measures is, to leading order,
+$\mathbb{E}[X_r]$ plus a term of order $N^{-1}$ that the bias expansion supplies.
+Then
+\begin{equation}
+q_j \;=\; \frac{\mathbb{E}[\sqrt{X_j}]}{\sqrt{\mathbb{E}[X_j]} + O(N^{-1})}.
+\label{eq:qjensen}
+\end{equation}
+The average of a concave function is at most the function of the average, so
+$\mathbb{E}[\sqrt{X_j}] \le \sqrt{\mathbb{E}[X_j]}$, with equality only when $X_j$
+is constant across replications. Because $\sqrt{\cdot}$ is strictly concave, the
+inequality is strict whenever the reported variance varies at all, and the size of
+the gap is set by that variation. Expand $\sqrt{X}$ about $\mathbb{E}[X]$ with
+$X = \mu_X(1 + \epsilon)$, $\mathbb{E}[\epsilon] = 0$:
+\begin{equation}
+\frac{\mathbb{E}[\sqrt{X}]}{\sqrt{\mu_X}}
+= \mathbb{E}\big[(1 + \epsilon)^{1/2}\big]
+= 1 - \tfrac{1}{8}\operatorname{Var}(\epsilon) + O(\mathbb{E}[\epsilon^3]),
+\label{eq:jensen}
+\end{equation}
+so to leading order
+\begin{equation}
+q_j \;\approx\; \frac{1}{1 + \operatorname{CV}(X_j)^2/8}
+\;\approx\; 1 - \frac{\operatorname{CV}(X_j)^2}{8},
+\qquad \operatorname{CV}(X_j) = \frac{\operatorname{sd}(X_j)}{\mathbb{E}[X_j]}.
+\label{eq:qvarcv}
+\end{equation}
+The reported interval systematically understates the spread whenever the reported
+variance is not constant, and the shortfall is one eighth of its squared
+coefficient of variation.
+
+Equation~\eqref{eq:qvarcv} can be inverted at the block level, and inverted it is a
+description of the reported variance's dispersion rather than a test of it, since
+the right-hand side is fitted from the same numbers as the left. Inverting at the
+three measured block ratios gives implied coefficients of variation of
+\ThCvMu{} for the baselines, \ThCvAlpha{} for the excitation entries and
+\ThCvBeta{} for the decay rates. The decay block's reported variance therefore
+varies \ThCvRatio{} times as much as the baseline's. The deficit ratio
+\ThDefRatio{} carries no information beyond that one, since \eqref{eq:qvarcv} makes
+it the square of the CV ratio by construction. What the inversion does not do is
+predict which block should have the larger coefficient of variation; the identity
+holds for every $q$, and the prediction that the decay block is the irregular one
+comes from the ridge argument below, not from this equation.
+
+The relevant scale for a regular parameter is $\operatorname{CV}(X_j) = O(N^{-1/2})$,
+because the information is an average of $N$ terms and its relative dispersion
+shrinks at that rate. The Poisson baseline makes the constant concrete: for a
+single type with a known decay or a baseline-only model, the estimated rate is the
+event count over $T$, its squared coefficient of variation is exactly $1/N$, and
+\eqref{eq:qvarcv} gives a deficit of $1/(8N)$ with no free constant. That is the
+most generous regularity benchmark this design admits, and at the smallest pooled
+event count it predicts a deficit of \ThRegDeficit{}, against a measured decay
+deficit of \ThDefBeta{}. The two differ by a factor of \ThMismatch. The Jensen
+correction therefore explains the direction and the ordering across blocks and
+cannot supply the magnitude in the decay block; the decay block is not behaving
+like a regular parameter, because its information is not an average over a large
+effective sample but a functional of a nearly flat direction whose curvature is
+itself random. The derivation closes to \eqref{eq:qvarcv} and stops there. A
+closed-form prediction of the ratio would need the joint distribution of the
+reported variance's fluctuation in the decay direction, which this study did not
+record and cannot recover from the committed outputs.
+
+\subsection{Why the decay block is not regular}
+
+The failure of the $O(N^{-1/2})$ scale in the decay block is not a matter of
+constants. It follows from the shape of the information matrix near the ridge, and
+it is worth writing out because it is what makes the whole phenomenon have a heavy
+tail rather than a uniform shrinkage.
+
+Write the information matrix in its eigenbasis, $I(\theta) = \sum_k \lambda_k
+v_k v_k^{\top}$ with $\lambda_1 \ge \cdots \ge \lambda_p > 0$. The variance of a
+coordinate $j$ is the diagonal of the inverse,
+\begin{equation}
+\operatorname{Var}(\hat\theta_j) = \sum_{k=1}^{p} \frac{v_{kj}^2}{\lambda_k},
+\label{eq:eigenvar}
+\end{equation}
+so a coordinate that loads on a nearly null direction has a variance that no
+average over events explains. What can be derived here is the direction the decay
+parameters share with their own excitation weights, and it is derived from the
+likelihood rather than asserted.
+
+Fix one pair $(i,j)$ and consider the path that sends $\beta_{ij} \to \infty$ while
+holding $\alpha_{ij}/\beta_{ij} = n_{ij}$ constant, so $\alpha_{ij} = n_{ij}
+\beta_{ij}$ grows with it. The excitation term in the intensity at an event time
+$t_k$ is $\sum_{l} \alpha_{ij} e^{-\beta_{ij}(t_k - t_l)} = n_{ij} \beta_{ij}
+\sum_l e^{-\beta_{ij}(t_k - t_l)}$, and for exact timestamps no two events coincide,
+so for every gap $\Delta > 0$ this tends to zero as $\beta_{ij} \to \infty$. The
+compensator integral tends instead to $n_{ij}$ times the number of type-$j$ events,
+because the kernel integrates to $\alpha_{ij}/\beta_{ij} = n_{ij}$ however narrow it
+becomes. The log-likelihood along this path therefore converges to a limit in which
+$\beta_{ij}$ appears only through the fixed ratio $n_{ij}$, so its derivative with
+respect to $\beta_{ij}$ vanishes and the direction is flat. Along it the two
+parameters move together at constant ratio, not in opposite directions, and the
+baselines do not move at all to first order: the stationary mean intensity is
+$(I - \Gamma)^{-1}\mu$ and $\Gamma_{ij} = \alpha_{ij}/\beta_{ij} = n_{ij}$ is what
+the path holds fixed.
+
+That derivation establishes a flat direction and the shape of it. It does not
+establish that this particular direction is the least-curved eigenvector of the
+information matrix at the estimates this study produced, and the committed outputs
+cannot settle that, because they record no per-replication Hessian or eigenvector.
+Throughout this subsection the identification of \eqref{eq:eigenvar}'s small
+eigenvalue with the alpha--beta direction is therefore an assumption that the study
+is consistent with rather than a result it proves. What the study does show is that
+the decay block is the one whose reported ratio fails, which is what an assumption
+of that kind predicts, and that at the anchor cell the coordinate with the smallest
+reported ratio in both the excitation and the decay block is the same pair,
+$(\alpha_{01}, \beta_{01})$, which is also the pair with the smallest true
+excitation weight and therefore the smallest kernel mass along the flat path. That
+is consistent with the plateau argument and is not a substitute for the eigenvector.
+
+The baseline block is regular for a structural reason: its parameters do not appear
+in the flat direction above, so its information is an average over $N$
+contributions and its reported variance has the $O(N^{-1/2})$ dispersion the
+expansion assumes. The decay block is irregular for a structural reason as well: it
+loads on a direction whose curvature is small and, because the plateau is not
+reached exactly at any finite $\beta$, variable from one replication to the next.
+
+That variability is the quantity \eqref{eq:qvarcv} needs and this study does not
+have. The reported variance at a replication is not $\lambda_{\min}^{-1}$ evaluated
+at the truth, which is a fixed number; it is the curvature at the estimate the
+optimizer found, and the estimate lands at a random point along a direction whose
+curvature changes as it moves. The average of the reported standard error is
+dominated by the many replications where the curvature is typical, and the square
+root of the averaged squared deviation is dominated by the few where the estimate
+has run furthest along the flat direction. That asymmetry is the reason the decay
+block's deficit is so much larger than the correction allows for. It is also the
+reason the median-based companion does not single the decay block out: that
+companion replaces the mean reported standard error with a median and the standard
+deviation with a scaled median absolute deviation, so it is driven by the bulk of
+the replications rather than the tail, and across the twelve pooled cells it stays
+between \ThQrobBetaLow{} and \ThQrobBetaHigh{} in the decay block, against
+\ThQrobMuLow{} to \ThQrobMuHigh{} in the baseline block. Close to one everywhere is
+the honest reading. The pooled mean-based ratio is a decay result because the decay
+block is where the mean and the median diverge, not because the decay block is
+badly calibrated by every measure.
+
+None of this makes the sandwich inconsistent. Equation~\eqref{eq:sandwich} remains
+the right target in the limit, and a sandwich estimator computed from a correctly
+evaluated $J$ is the natural candidate for closing the gap measured here. The reason
+this paper does not report that experiment is that it requires per-replication
+score variances, which the study did not store and which cannot be reconstructed
+from the committed analysis outputs.
+
+The pooled figure is consistent with the block account and adds nothing to it. The
+pooled statistic is the coordinate-weighted mean of the three block ratios, so it
+equals $(2 q_\mu + 4 q_\alpha + 4 q_\beta)/10$ exactly, and the pooled deficit of
+\ThPooledDeficit{} decomposes into \ThShareMu{}~percent from the baselines,
+\ThShareAlpha{}~percent from the excitation entries and \ThShareBeta{}~percent from
+the decay rates. The headline is a decay-rate result with a baseline block along
+for the ride, and reporting it pooled is a decision about presentation rather than
+about evidence.
 """,
     "s5_auto": r"""
 A measurement that says the interval is too narrow is only useful if something
@@ -763,31 +1374,202 @@ tick marks the Hessian value the marker moved from. The dashed line is nominal
 \end{figure}
 """,
     "s6_related": r"""
-The Hawkes process itself is \citet{hawkes1971}. The thinning simulation used here
-is \citet{ogata1981}, which is still the standard way to draw exact samples for an
-inhomogeneous point process with a bounded intensity; the package implements it
-against a second, independent branching simulator and the two are compared at the
-distributional level. The review that supplies the vocabulary of this paper -- the
-branching matrix, its spectral radius, the near-critical regime -- is
-\citet{bacry2015}.
+\subsection{The process and its simulation}
 
-What this study does that those works do not is measure the estimator against its
-own claimed uncertainty over a pre-registered grid, and then act on the
-measurement. \citet{filimonov2012} estimate a Hawkes branching ratio on financial
-data and use the ratio itself as a reflexivity diagnostic, without a sampling
-distribution for the maximum-likelihood fit; \citet{bacry2013} model microstructure
-noise with mutually exciting processes and report fitted parameters rather than the
-coverage of their intervals. The methodological literature that does address
-inference is largely asymptotic: \citet{laub2015} sets out the likelihood and its
-properties for the standard parameterisations, and \citet{chen2013} develops
-semiparametric inference under a nonstationary specification. This paper does not
-dispute any of those asymptotic results. It reports what happened at finite sample
-sizes in a box it measured, which is a different question, and it reports where the
-asymptotics did not hold.
+The Hawkes process itself is \citet{hawkes1971}, which defines the self-exciting
+and mutually exciting classes and derives the spectral density that gives the
+process its name; the conditional-intensity and branching-matrix formulation used
+throughout this paper is the modern reading of that construction. The thinning
+simulation used here is \citet{ogata1981}, which is still the standard way to draw
+exact samples for an inhomogeneous point process with a bounded intensity: one
+simulates an upper bound and accepts each candidate with probability proportional
+to the intensity ratio. The package implements that algorithm against a second,
+independent branching simulator and compares the two at the distributional level,
+so a disagreement between the simulators fails a test rather than a downstream
+study. Neither of those works discusses the sampling distribution of a
+maximum-likelihood fit, and neither is a claim this paper revises.
+
+\subsection{Inference for Hawkes processes}
+
+The methodological literature on inference is recent and largely asymptotic.
+\citet{laub2015} is the standard reference for the likelihood, the exponential
+kernel's recursions and the properties that make the estimator tractable, and it
+sets out the heuristic for consistency in the stationary case. \citet{chen2013}
+develops inference under a nonstationary specification, with a parametric
+likelihood corrected for nonstationarity and an application to ultra-high-frequency
+returns. Both establish consistency and asymptotic normality in their settings, and
+both state the covariance in the sandwich form of \eqref{eq:sandwich}. Neither
+measures what that covariance does at a fixed number of events, which is the
+question this paper asks, and neither reports the ratio of mean reported standard
+error to empirical standard deviation anywhere, because neither is a simulation
+study of the estimator against itself.
+
+The asymptotic results are not in dispute here. Section~\ref{sec:theory} uses them
+as the starting point and asks what the information equality \eqref{eq:equality}
+delivers in a finite window. The finding that the reported interval is too narrow at
+$N = 2000$ and adequate at $N = 50\,000$ is consistent with those results rather
+than in tension with them: an asymptotic approximation that is good at five
+thousand events per type can be poor at two thousand, and the paper's contribution
+is to locate where the crossing happens in a box it measured, not to argue that
+asymptotics fail.
+
+\subsection{Applications that report parameters without intervals}
+
+The finance literature fits these models routinely and reports the parameters. The
+vocabulary this paper uses, the branching matrix, its spectral radius and the
+near-critical regime, is set by the review of \citet{bacry2015}, which is the
+clearest statement of why $\rho(\Gamma)$ close to one is the regime of interest.
+\citet{filimonov2012} estimate a Hawkes branching ratio on financial data and use
+the ratio itself as a reflexivity diagnostic, with the fitted parameter as the
+reported quantity and no sampling distribution attached to the maximum-likelihood
+fit. \citet{bacry2013} model microstructure noise with mutually exciting processes
+and report fitted parameters and goodness of fit rather than the coverage of their
+intervals.
+
+That body of work is not doing anything wrong, and this paper does not claim it is.
+A diagnostic whose value is read as a level does not need an interval to be useful,
+and a parameter reported to six figures can be a legitimate summary of a fitted
+model. What those papers do not report is the property this paper measures: whether
+the standard error that comes out of the same fit describes the spread of estimates
+the procedure would produce. When the answer is that it understates that spread by
+a third at the sample sizes those papers often work at, a reader who treats the
+reported interval as one is reading a number with no measured coverage behind it.
+The paper's claim is narrow and it is about the interval, not the parameter.
+
+\subsection{Software and reproducibility}
+
+The algorithmic treatment closest to the implementation here is \citet{bacry2015},
+which also indexes the simulation and estimation tooling that practice relies on.
+None of the software this paper could compare against ships a measured calibration
+map for its own standard errors, and none refuses to report an interval where the
+estimator is undefined; those are the two behaviours the package adds, and they are
+additions to the inference layer rather than to the likelihood. The design of this
+study, frozen before measurement and amended six times with each amendment dated
+and justified, follows the practice the reproducibility literature argues for
+without needing to cite it: the point is that a reader can determine what was known
+when each decision was made, and the appendix is there so they can.
 
 No speed or accuracy comparison with another library is made here. The capability
 table the package ships times this implementation on one machine and states no
 claim about any other.
+""",
+    "s6b_discussion": r"""
+\subsection{What a practitioner should take from this}
+
+The library's answer to its own measurement is three behaviours, and the useful
+part of this paper for someone fitting a process is knowing which of them they are
+getting. The first is that a reported interval is a lower bound on the uncertainty
+rather than the uncertainty itself. The pooled ratio is below one in each of the
+twelve pooled cells, and the user who reads a 95\% interval as though it were one
+gets an interval covering \ThCovSmallLow{} to \ThCovSmallHigh{} of the time across
+the cells at $N = 2000$. That is a statement about the interval's width, not about
+the estimate: the point estimate is unchanged, its bias is unchanged, and an
+honestly wide interval around a biased estimate is still an interval around the
+wrong number.
+
+The second behaviour is refusal. In \HsixUndefined{} of the \HsixCells{} cells the
+estimator is undefined, and the library reports no interval there rather than a
+number extrapolated from a neighbouring regime. That refusal is the most
+conservative thing it does and it is the one most likely to be mistaken for a bug,
+because a fit that converges and then declines to give an interval looks broken
+until one checks what the window holds. A user who hits it should check
+$\beta_{\min} T$ themselves. The library does not stop them fitting such data, and
+it does not warn before the fit; it reports the failure afterwards, which is
+late for a user who has already spent an hour on it.
+
+The third behaviour is the switch. Where the map measures a shortfall the fit
+replaces the Hessian interval with a parametric bootstrap, and where the map is
+silent it keeps the Hessian interval and says it is uncalibrated. Both are
+defensible and neither is free: the bootstrap costs seconds to a couple of minutes
+at the measured configurations, and it is not available at all where the map has no
+measurement, which includes everything outside two types, pair decay, a spectral
+radius at or below 0.95 and $N$ between 200 and 50\,000. A practitioner working in
+one of those regions is back to the Hessian interval and should know it.
+
+\subsection{What the negative results mean}
+
+Two of the six hypotheses were not confirmed, and they fail in different ways,
+which is why both are reported rather than one. H6.3's failure is a partial one:
+its threshold clause held, with coverage at the lowest branching ratio exceeding
+coverage at the highest by \DiscThreeT{}, and its monotonicity clause failed,
+because coverage rose from $\rho = 0.3028$ to $\rho = 0.60$ before falling toward
+0.95. That is the shape of a prediction that got the endpoints right and the path
+wrong, and it is what one would expect from a mechanism with two competing effects:
+at low branching ratio the process is nearly Poisson and the effective sample for
+the decay parameters is small, at the highest branching ratio the information is
+nearly singular, and in between the estimator is better behaved than either
+endpoint. The hypothesis was written as a monotone decline because that is what the
+near-critical intuition suggests, and the data say the intuition holds only past
+the middle of the range.
+
+H6.4's failure is a reversal and it is the more interesting of the two. The
+hypothesis was that quantising timestamps to a grid coarser than the decay time
+would bias the decay estimate upward, on the reasoning that ties broken at the grid
+spacing look like slower decay than the ties really are. At the \DiscFourCells{}
+cells with $N \ge 10\,000$ and $c = 1$, quantisation moved the relative bias of the
+decay estimate down, by between \DiscFourLow{} and \DiscFourHigh{} percent, in every
+one of them. The direction was wrong and the size is large enough to be a finding
+in its own right: a mechanism that moves the relative bias of the decay estimate by
+tens of percent, in the opposite direction from the one predicted, is a mechanism
+the field does not currently model.
+
+A reversal is more informative than a null because a null is consistent with the
+effect being absent and with the design being unable to see it, while a reversal
+excludes both. The sign of the error tells us something about the mechanism, and
+the direction observed here suggests that what quantisation destroys is not the
+timing of the decay but the multiplicity of near-simultaneous events: collapsing
+events onto a grid merges them, and a merged pair looks like one event with the
+energy of two, which the likelihood can explain by sharpening the decay rather than
+slowing it. That explanation is a hypothesis and not a result, since nothing in this
+study separates merging from timing. It is written down because it is the
+explanation the direction points to and because a reader who wants to design the
+study that would test it should start from here.
+
+\subsection{What this does not establish}
+
+The box is narrow and it is worth naming every wall. The model is two types with a
+four-type satellite of eight cells, pair-specific decay, and an exponential kernel.
+A power-law kernel, a shared decay rate across types, a marked or a spatial
+process, or a model with covariates in the intensity are all outside what was
+measured, and the map says so rather than extrapolating. Every timing in the
+capability table is from one machine, so the cost figures carry no spread across
+hardware. Nothing above $10^6$ events was timed and no fit reached an hour, so the
+upper limit of the measured region is not located; the largest cell in the
+calibration grid is $5 \times 10^4$ events, an order of magnitude below that. The
+bootstrap standard errors are not part of the calibration study at all: the
+separate study measured them at three cells, not across the grid, so the auto
+switch's own intervals have a measured property at three points and an assumed one
+everywhere else. And the study measures one estimator, at one start, with
+\texttt{se\_method="hessian"}; a multi-start fit, a profile likelihood or a
+different optimiser is a different estimator whose calibration was not measured
+here.
+
+Two further limits are worth stating because they are the ones a reader is most
+likely to assume away. The map answers from the nearest of \HsixCells{} cells and
+reports the distance, but it answers however far away that cell is, so a
+\texttt{measured} status at distance two describes a regime two grid steps from the
+one measured. And every cell was run at one fixed parameter set, so the map
+describes those parameters at that $(N, \rho, \beta T)$, not every process with the
+same summary numbers; two processes with the same spectral radius and the same
+window can have different excitation structure, and the map's answer is only as
+representative as the parameter set it was measured at.
+
+\subsection{What to measure next}
+
+Four measurements would move this from a description to a decision rule, and each
+is stated as a measurement rather than a hope. The first is power at the effect
+sizes the map actually reports: the study was powered to resolve a 4.5 percent
+shortcut in $q$, and a replication at $R = 2000$ in the cells where $q$ is between
+0.875 and 0.977 could say whether the residual shortfall there is zero or merely
+small. The second is the bootstrap's own calibration across the full grid rather
+than at three cells, because the auto switch is only as good as the interval it
+switches to. The third is shared decay, which is a different model with $M$ decay
+rates instead of $M^2$, is outside the map, and is the natural next cell population
+for a practitioner who has more types than events. The fourth is whether a sandwich
+estimator closes the gap where the map says it is open: equation
+\eqref{eq:sandwich} gives the target, the study's stored per-replication Hessians
+are not among the committed outputs, and the measurement that would settle it is a
+rerun that keeps them.
 """,
     "s7_repro": r"""
 Every figure in this paper is emitted by \texttt{studies/make\_paper\_tex.py} from a
@@ -892,7 +1674,7 @@ def copy_figures() -> list[Path]:
 
 def write_tree() -> list[Path]:
     GENERATED.mkdir(parents=True, exist_ok=True)
-    macros = h6_macros() + auto_macros() + cost_macros()
+    macros = h6_macros() + theory_macros() + auto_macros() + cost_macros()
     head = _data_commit()
     # The abstract's length is a submission requirement, so it is reported rather
     # than estimated. Macro invocations count as their expansion would read: a

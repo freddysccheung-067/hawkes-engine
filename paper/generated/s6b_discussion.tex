@@ -1,0 +1,116 @@
+\subsection{What a practitioner should take from this}
+
+The library's answer to its own measurement is three behaviours, and the useful
+part of this paper for someone fitting a process is knowing which of them they are
+getting. The first is that a reported interval is a lower bound on the uncertainty
+rather than the uncertainty itself. The pooled ratio is below one in each of the
+twelve pooled cells, and the user who reads a 95\% interval as though it were one
+gets an interval covering \ThCovSmallLow{} to \ThCovSmallHigh{} of the time across
+the cells at $N = 2000$. That is a statement about the interval's width, not about
+the estimate: the point estimate is unchanged, its bias is unchanged, and an
+honestly wide interval around a biased estimate is still an interval around the
+wrong number.
+
+The second behaviour is refusal. In \HsixUndefined{} of the \HsixCells{} cells the
+estimator is undefined, and the library reports no interval there rather than a
+number extrapolated from a neighbouring regime. That refusal is the most
+conservative thing it does and it is the one most likely to be mistaken for a bug,
+because a fit that converges and then declines to give an interval looks broken
+until one checks what the window holds. A user who hits it should check
+$\beta_{\min} T$ themselves. The library does not stop them fitting such data, and
+it does not warn before the fit; it reports the failure afterwards, which is
+late for a user who has already spent an hour on it.
+
+The third behaviour is the switch. Where the map measures a shortfall the fit
+replaces the Hessian interval with a parametric bootstrap, and where the map is
+silent it keeps the Hessian interval and says it is uncalibrated. Both are
+defensible and neither is free: the bootstrap costs seconds to a couple of minutes
+at the measured configurations, and it is not available at all where the map has no
+measurement, which includes everything outside two types, pair decay, a spectral
+radius at or below 0.95 and $N$ between 200 and 50\,000. A practitioner working in
+one of those regions is back to the Hessian interval and should know it.
+
+\subsection{What the negative results mean}
+
+Two of the six hypotheses were not confirmed, and they fail in different ways,
+which is why both are reported rather than one. H6.3's failure is a partial one:
+its threshold clause held, with coverage at the lowest branching ratio exceeding
+coverage at the highest by \DiscThreeT{}, and its monotonicity clause failed,
+because coverage rose from $\rho = 0.3028$ to $\rho = 0.60$ before falling toward
+0.95. That is the shape of a prediction that got the endpoints right and the path
+wrong, and it is what one would expect from a mechanism with two competing effects:
+at low branching ratio the process is nearly Poisson and the effective sample for
+the decay parameters is small, at the highest branching ratio the information is
+nearly singular, and in between the estimator is better behaved than either
+endpoint. The hypothesis was written as a monotone decline because that is what the
+near-critical intuition suggests, and the data say the intuition holds only past
+the middle of the range.
+
+H6.4's failure is a reversal and it is the more interesting of the two. The
+hypothesis was that quantising timestamps to a grid coarser than the decay time
+would bias the decay estimate upward, on the reasoning that ties broken at the grid
+spacing look like slower decay than the ties really are. At the \DiscFourCells{}
+cells with $N \ge 10\,000$ and $c = 1$, quantisation moved the relative bias of the
+decay estimate down, by between \DiscFourLow{} and \DiscFourHigh{} percent, in every
+one of them. The direction was wrong and the size is large enough to be a finding
+in its own right: a mechanism that moves the relative bias of the decay estimate by
+tens of percent, in the opposite direction from the one predicted, is a mechanism
+the field does not currently model.
+
+A reversal is more informative than a null because a null is consistent with the
+effect being absent and with the design being unable to see it, while a reversal
+excludes both. The sign of the error tells us something about the mechanism, and
+the direction observed here suggests that what quantisation destroys is not the
+timing of the decay but the multiplicity of near-simultaneous events: collapsing
+events onto a grid merges them, and a merged pair looks like one event with the
+energy of two, which the likelihood can explain by sharpening the decay rather than
+slowing it. That explanation is a hypothesis and not a result, since nothing in this
+study separates merging from timing. It is written down because it is the
+explanation the direction points to and because a reader who wants to design the
+study that would test it should start from here.
+
+\subsection{What this does not establish}
+
+The box is narrow and it is worth naming every wall. The model is two types with a
+four-type satellite of eight cells, pair-specific decay, and an exponential kernel.
+A power-law kernel, a shared decay rate across types, a marked or a spatial
+process, or a model with covariates in the intensity are all outside what was
+measured, and the map says so rather than extrapolating. Every timing in the
+capability table is from one machine, so the cost figures carry no spread across
+hardware. Nothing above $10^6$ events was timed and no fit reached an hour, so the
+upper limit of the measured region is not located; the largest cell in the
+calibration grid is $5 \times 10^4$ events, an order of magnitude below that. The
+bootstrap standard errors are not part of the calibration study at all: the
+separate study measured them at three cells, not across the grid, so the auto
+switch's own intervals have a measured property at three points and an assumed one
+everywhere else. And the study measures one estimator, at one start, with
+\texttt{se\_method="hessian"}; a multi-start fit, a profile likelihood or a
+different optimiser is a different estimator whose calibration was not measured
+here.
+
+Two further limits are worth stating because they are the ones a reader is most
+likely to assume away. The map answers from the nearest of \HsixCells{} cells and
+reports the distance, but it answers however far away that cell is, so a
+\texttt{measured} status at distance two describes a regime two grid steps from the
+one measured. And every cell was run at one fixed parameter set, so the map
+describes those parameters at that $(N, \rho, \beta T)$, not every process with the
+same summary numbers; two processes with the same spectral radius and the same
+window can have different excitation structure, and the map's answer is only as
+representative as the parameter set it was measured at.
+
+\subsection{What to measure next}
+
+Four measurements would move this from a description to a decision rule, and each
+is stated as a measurement rather than a hope. The first is power at the effect
+sizes the map actually reports: the study was powered to resolve a 4.5 percent
+shortcut in $q$, and a replication at $R = 2000$ in the cells where $q$ is between
+0.875 and 0.977 could say whether the residual shortfall there is zero or merely
+small. The second is the bootstrap's own calibration across the full grid rather
+than at three cells, because the auto switch is only as good as the interval it
+switches to. The third is shared decay, which is a different model with $M$ decay
+rates instead of $M^2$, is outside the map, and is the natural next cell population
+for a practitioner who has more types than events. The fourth is whether a sandwich
+estimator closes the gap where the map says it is open: equation
+\eqref{eq:sandwich} gives the target, the study's stored per-replication Hessians
+are not among the committed outputs, and the measurement that would settle it is a
+rerun that keeps them.

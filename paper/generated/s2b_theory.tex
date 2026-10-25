@@ -1,0 +1,244 @@
+The measurement in Section~\ref{sec:results} needs an explanation. Under a
+correctly specified model the inverse-Hessian standard error is consistent for the
+sampling standard deviation, so a pooled ratio of $q = \HsixQ{}$ should not appear
+as an asymptote. This section derives the object the library actually reports,
+states what has to break for it to understate its own spread, and sets a
+leading-order correction against the measured per-block ratios. The correction
+does not reproduce the measurement, and the size of the disagreement is itself the
+most informative number in this section.
+
+\subsection{The asymptotic covariance of the estimator}
+
+Write $\ell_T(\theta)$ for \eqref{eq:likelihood} and $U_T(\theta) = \nabla\ell_T(\theta)$
+for the score, with $p = M + 2M^2$ coordinates. Under stationarity and the usual
+regularity conditions for point-process likelihoods, the maximum-likelihood
+estimator satisfies
+\begin{equation}
+\sqrt{N}\,\big(\hat\theta - \theta\big) \;\overset{d}{\longrightarrow}\;
+\mathcal{N}\!\left(0,\; I(\theta)^{-1} J(\theta) I(\theta)^{-1}\right),
+\label{eq:sandwich}
+\end{equation}
+where $I(\theta) = \mathbb{E}[-\nabla^2 \ell_T(\theta)]$ is the expected
+information per replication and $J(\theta) = \mathbb{E}[U_T(\theta) U_T(\theta)^{\top}]$
+is the covariance of the score. The matrix in \eqref{eq:sandwich} is the sandwich,
+and the library reports its middle factor inverted: the observed information
+$-\nabla^2 \ell_T(\hat\theta)$, evaluated at the estimate rather than averaged
+over the truth.
+
+The gap between the two is governed by whether $I = J$. For a point process whose
+intensity is the true conditional intensity, the score is a martingale with
+respect to the natural filtration, and the predictable-variation identity gives
+\begin{equation}
+J(\theta) = \mathbb{E}\!\left[\int_0^T \sum_{i} \lambda_i(u)\,
+\nabla\log\lambda_i(u)\,\nabla\log\lambda_i(u)^{\top} du\right] = I(\theta)
+\label{eq:equality}
+\end{equation}
+for every $\theta$ in the interior of the parameter space. Equation~\eqref{eq:equality}
+is the information equality in its point-process form: under exact specification the
+observed information is an unbiased estimator of the score variance, and the
+sandwich collapses to $I^{-1}$, which is what the library computes. When the model
+is correct and the window is long against the decay time, then, the asymptotic
+theory predicts $q \to 1$. The shortfall measured here is not a misspecified
+intensity in the usual sense; it comes from the finite window, from parameters whose
+information the window cannot supply, and from the arithmetic of comparing a
+reported interval with a realised spread.
+
+\subsection{What breaks the equality}
+
+Three violations of \eqref{eq:equality} appear at finite window, and a fourth effect
+in the ratio itself is larger than all three. The first three are worth separating
+because they are shared with ordinary finite-sample theory; the fourth is specific
+to measuring a reported interval against a realised spread.
+
+The likelihood is not the sampling distribution of a fixed number of events. The
+study fixes the window $T$ and lets the event count fall where it may, and a
+stationary Hawkes process observed on $[0, T]$ has a random count whose mean is
+$T$ times the mean intensity. The information in \eqref{eq:equality} therefore
+scales with $T$ rather than being held fixed by the design, and the realised count
+is itself informative about $\rho$, so a reading that treats the count as ancillary
+is reading an approximation. The study reports its realised counts as within
+\ThCountTolerance{} percent of target, which bounds this effect without removing
+it. It is present for every parameter, and it is the standard reason a likelihood
+conditioned on an achieved count understates the variance of its own estimate.
+
+The exponential kernel truncates information at the window edge. An event at time
+$t$ contributes to the intensity at $u > t$ with weight $e^{-\beta(u - t)}$, so the
+fraction of its kernel mass that falls outside the window is $1 - e^{-\beta(T-t)}$.
+For an event in the last $1/\beta$ of the window that fraction is at least
+$1 - e^{-1} \approx 0.63$ and can be arbitrarily close to one at the boundary,
+while for an event early in the window it is negligible. The effective sample size
+for the decay parameters is therefore closer to $\beta_{\min} T$ than to $N$, and
+the two are very different across this grid: $\beta_{\min} T$ is between
+\ThBetaMinTLow{} and roughly \ThBetaMinTHigh{} in the exact-timestamp cells at
+$c = 1$, and below one in \ThShallowBelowOne{} of the \ThShallowCells{}
+exact-timestamp shallow-decay cells.
+
+The decay parameters are weakly identified when $\beta_{\min} T$ is small. The
+information about $\beta_{ij}$ comes from the curvature of the decay profile
+within the window, and if the window holds less than one decay time, the profile
+is nearly flat and the information nearly vanishes. In the limit the information
+matrix is singular in the $\beta$ direction, and any inverse is unstable.
+
+The reported interval is a nonlinear functional of the information. This is the
+one that matters, and it is the subject of the next subsection.
+
+\subsection{The leading-order correction}
+
+The quantity the study measures is a ratio of averages, $q_B = \text{se}_B /
+\text{sd}_B$, and the two averages are taken over the same replications but not
+over the same functional. The numerator averages the reported standard error,
+which is $\sqrt{\widehat{\text{Var}}}$ evaluated at that replication's estimate;
+the denominator takes the square root of an averaged squared deviation. For a
+coordinate $j$, write $X_r = \widehat{\text{Var}}_j(\hat\theta_r)$ for the reported
+variance at replication $r$. The reported standard error is $\sqrt{X_r}$ and the
+squared spread the denominator measures is, to leading order,
+$\mathbb{E}[X_r]$ plus a term of order $N^{-1}$ that the bias expansion supplies.
+Then
+\begin{equation}
+q_j \;=\; \frac{\mathbb{E}[\sqrt{X_j}]}{\sqrt{\mathbb{E}[X_j]} + O(N^{-1})}.
+\label{eq:qjensen}
+\end{equation}
+The average of a concave function is at most the function of the average, so
+$\mathbb{E}[\sqrt{X_j}] \le \sqrt{\mathbb{E}[X_j]}$, with equality only when $X_j$
+is constant across replications. Because $\sqrt{\cdot}$ is strictly concave, the
+inequality is strict whenever the reported variance varies at all, and the size of
+the gap is set by that variation. Expand $\sqrt{X}$ about $\mathbb{E}[X]$ with
+$X = \mu_X(1 + \epsilon)$, $\mathbb{E}[\epsilon] = 0$:
+\begin{equation}
+\frac{\mathbb{E}[\sqrt{X}]}{\sqrt{\mu_X}}
+= \mathbb{E}\big[(1 + \epsilon)^{1/2}\big]
+= 1 - \tfrac{1}{8}\operatorname{Var}(\epsilon) + O(\mathbb{E}[\epsilon^3]),
+\label{eq:jensen}
+\end{equation}
+so to leading order
+\begin{equation}
+q_j \;\approx\; \frac{1}{1 + \operatorname{CV}(X_j)^2/8}
+\;\approx\; 1 - \frac{\operatorname{CV}(X_j)^2}{8},
+\qquad \operatorname{CV}(X_j) = \frac{\operatorname{sd}(X_j)}{\mathbb{E}[X_j]}.
+\label{eq:qvarcv}
+\end{equation}
+The reported interval systematically understates the spread whenever the reported
+variance is not constant, and the shortfall is one eighth of its squared
+coefficient of variation.
+
+Equation~\eqref{eq:qvarcv} can be inverted at the block level, and inverted it is a
+description of the reported variance's dispersion rather than a test of it, since
+the right-hand side is fitted from the same numbers as the left. Inverting at the
+three measured block ratios gives implied coefficients of variation of
+\ThCvMu{} for the baselines, \ThCvAlpha{} for the excitation entries and
+\ThCvBeta{} for the decay rates. The decay block's reported variance therefore
+varies \ThCvRatio{} times as much as the baseline's. The deficit ratio
+\ThDefRatio{} carries no information beyond that one, since \eqref{eq:qvarcv} makes
+it the square of the CV ratio by construction. What the inversion does not do is
+predict which block should have the larger coefficient of variation; the identity
+holds for every $q$, and the prediction that the decay block is the irregular one
+comes from the ridge argument below, not from this equation.
+
+The relevant scale for a regular parameter is $\operatorname{CV}(X_j) = O(N^{-1/2})$,
+because the information is an average of $N$ terms and its relative dispersion
+shrinks at that rate. The Poisson baseline makes the constant concrete: for a
+single type with a known decay or a baseline-only model, the estimated rate is the
+event count over $T$, its squared coefficient of variation is exactly $1/N$, and
+\eqref{eq:qvarcv} gives a deficit of $1/(8N)$ with no free constant. That is the
+most generous regularity benchmark this design admits, and at the smallest pooled
+event count it predicts a deficit of \ThRegDeficit{}, against a measured decay
+deficit of \ThDefBeta{}. The two differ by a factor of \ThMismatch. The Jensen
+correction therefore explains the direction and the ordering across blocks and
+cannot supply the magnitude in the decay block; the decay block is not behaving
+like a regular parameter, because its information is not an average over a large
+effective sample but a functional of a nearly flat direction whose curvature is
+itself random. The derivation closes to \eqref{eq:qvarcv} and stops there. A
+closed-form prediction of the ratio would need the joint distribution of the
+reported variance's fluctuation in the decay direction, which this study did not
+record and cannot recover from the committed outputs.
+
+\subsection{Why the decay block is not regular}
+
+The failure of the $O(N^{-1/2})$ scale in the decay block is not a matter of
+constants. It follows from the shape of the information matrix near the ridge, and
+it is worth writing out because it is what makes the whole phenomenon have a heavy
+tail rather than a uniform shrinkage.
+
+Write the information matrix in its eigenbasis, $I(\theta) = \sum_k \lambda_k
+v_k v_k^{\top}$ with $\lambda_1 \ge \cdots \ge \lambda_p > 0$. The variance of a
+coordinate $j$ is the diagonal of the inverse,
+\begin{equation}
+\operatorname{Var}(\hat\theta_j) = \sum_{k=1}^{p} \frac{v_{kj}^2}{\lambda_k},
+\label{eq:eigenvar}
+\end{equation}
+so a coordinate that loads on a nearly null direction has a variance that no
+average over events explains. What can be derived here is the direction the decay
+parameters share with their own excitation weights, and it is derived from the
+likelihood rather than asserted.
+
+Fix one pair $(i,j)$ and consider the path that sends $\beta_{ij} \to \infty$ while
+holding $\alpha_{ij}/\beta_{ij} = n_{ij}$ constant, so $\alpha_{ij} = n_{ij}
+\beta_{ij}$ grows with it. The excitation term in the intensity at an event time
+$t_k$ is $\sum_{l} \alpha_{ij} e^{-\beta_{ij}(t_k - t_l)} = n_{ij} \beta_{ij}
+\sum_l e^{-\beta_{ij}(t_k - t_l)}$, and for exact timestamps no two events coincide,
+so for every gap $\Delta > 0$ this tends to zero as $\beta_{ij} \to \infty$. The
+compensator integral tends instead to $n_{ij}$ times the number of type-$j$ events,
+because the kernel integrates to $\alpha_{ij}/\beta_{ij} = n_{ij}$ however narrow it
+becomes. The log-likelihood along this path therefore converges to a limit in which
+$\beta_{ij}$ appears only through the fixed ratio $n_{ij}$, so its derivative with
+respect to $\beta_{ij}$ vanishes and the direction is flat. Along it the two
+parameters move together at constant ratio, not in opposite directions, and the
+baselines do not move at all to first order: the stationary mean intensity is
+$(I - \Gamma)^{-1}\mu$ and $\Gamma_{ij} = \alpha_{ij}/\beta_{ij} = n_{ij}$ is what
+the path holds fixed.
+
+That derivation establishes a flat direction and the shape of it. It does not
+establish that this particular direction is the least-curved eigenvector of the
+information matrix at the estimates this study produced, and the committed outputs
+cannot settle that, because they record no per-replication Hessian or eigenvector.
+Throughout this subsection the identification of \eqref{eq:eigenvar}'s small
+eigenvalue with the alpha--beta direction is therefore an assumption that the study
+is consistent with rather than a result it proves. What the study does show is that
+the decay block is the one whose reported ratio fails, which is what an assumption
+of that kind predicts, and that at the anchor cell the coordinate with the smallest
+reported ratio in both the excitation and the decay block is the same pair,
+$(\alpha_{01}, \beta_{01})$, which is also the pair with the smallest true
+excitation weight and therefore the smallest kernel mass along the flat path. That
+is consistent with the plateau argument and is not a substitute for the eigenvector.
+
+The baseline block is regular for a structural reason: its parameters do not appear
+in the flat direction above, so its information is an average over $N$
+contributions and its reported variance has the $O(N^{-1/2})$ dispersion the
+expansion assumes. The decay block is irregular for a structural reason as well: it
+loads on a direction whose curvature is small and, because the plateau is not
+reached exactly at any finite $\beta$, variable from one replication to the next.
+
+That variability is the quantity \eqref{eq:qvarcv} needs and this study does not
+have. The reported variance at a replication is not $\lambda_{\min}^{-1}$ evaluated
+at the truth, which is a fixed number; it is the curvature at the estimate the
+optimizer found, and the estimate lands at a random point along a direction whose
+curvature changes as it moves. The average of the reported standard error is
+dominated by the many replications where the curvature is typical, and the square
+root of the averaged squared deviation is dominated by the few where the estimate
+has run furthest along the flat direction. That asymmetry is the reason the decay
+block's deficit is so much larger than the correction allows for. It is also the
+reason the median-based companion does not single the decay block out: that
+companion replaces the mean reported standard error with a median and the standard
+deviation with a scaled median absolute deviation, so it is driven by the bulk of
+the replications rather than the tail, and across the twelve pooled cells it stays
+between \ThQrobBetaLow{} and \ThQrobBetaHigh{} in the decay block, against
+\ThQrobMuLow{} to \ThQrobMuHigh{} in the baseline block. Close to one everywhere is
+the honest reading. The pooled mean-based ratio is a decay result because the decay
+block is where the mean and the median diverge, not because the decay block is
+badly calibrated by every measure.
+
+None of this makes the sandwich inconsistent. Equation~\eqref{eq:sandwich} remains
+the right target in the limit, and a sandwich estimator computed from a correctly
+evaluated $J$ is the natural candidate for closing the gap measured here. The reason
+this paper does not report that experiment is that it requires per-replication
+score variances, which the study did not store and which cannot be reconstructed
+from the committed analysis outputs.
+
+The pooled figure is consistent with the block account and adds nothing to it. The
+pooled statistic is the coordinate-weighted mean of the three block ratios, so it
+equals $(2 q_\mu + 4 q_\alpha + 4 q_\beta)/10$ exactly, and the pooled deficit of
+\ThPooledDeficit{} decomposes into \ThShareMu{}~percent from the baselines,
+\ThShareAlpha{}~percent from the excitation entries and \ThShareBeta{}~percent from
+the decay rates. The headline is a decay-rate result with a baseline block along
+for the ride, and reporting it pooled is a decision about presentation rather than
+about evidence.
