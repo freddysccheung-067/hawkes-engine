@@ -70,11 +70,14 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.3.1
         env:
-          # ADR-006: cp310-cp312 on generic x86-64, no -march=native and no
+          # ADR-006: cp310-cp314 on generic x86-64, no -march=native and no
           # -ffast-math. musllinux is skipped on purpose: the core has no
           # dependency that differs on musl, so those wheels would be untested
           # duplicates of the manylinux ones, and each one is a runner minute.
-          CIBW_BUILD: cp310-* cp311-* cp312-*
+          # `cp314-*` does not match the free-threaded `cp314t-*`: the tag glob
+          # needs the literal `cp314-` prefix, so the GIL-enabled build is the
+          # only 3.14 wheel and the pool-based bootstrap stays supported.
+          CIBW_BUILD: cp310-* cp311-* cp312-* cp313-* cp314-*
           CIBW_SKIP: "*-musllinux_* *-win32 *-manylinux_i686 *_i686"
           CIBW_ARCHS_LINUX: x86_64
           # Two separate wheels, not universal2: an arm64 build of the core has
