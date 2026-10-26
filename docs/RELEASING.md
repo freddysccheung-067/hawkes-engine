@@ -36,14 +36,13 @@ fixed by a new patch version, never by replacing the file.
   `CITATION.cff` to the same date. That field holds a real date rather than a
   marker, because CFF requires a valid date there and a comment would fail
   validation. These three are the only hand-written values in the release.
-- The paper is still a draft. If it has been submitted anywhere, stop: the release
-  notes say it has not, and that sentence would become false.
-  *This precondition no longer holds as written.* The paper was deposited on HAL
-  as `hal-05838093` on 2026-10-25 and is in moderation, which is a submission.
-  Before the next release, either the release notes are edited to say it is
-  deposited rather than unsubmitted, or this bullet is removed and this paragraph
-  is, in the same commit. Do not release against a precondition the repository is
-  known to fail.
+- The paper's submission status is stated accurately in the release notes. From
+  0.2.0 the paper is deposited on HAL as `hal-05838093`, in moderation, and is not on
+  arXiv. The notes must say that rather than saying it is unsubmitted, because the
+  deposit is a submission. Check the status before releasing: a moderation queue can
+  clear between releases, and a note that says "in moderation" after the record has
+  gone public is as wrong as one that says "not submitted" after it has been
+  deposited.
 
 ## 1. Create the PyPI project and register the trusted publisher
 

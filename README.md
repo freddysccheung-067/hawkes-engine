@@ -189,10 +189,10 @@ and [CHANGELOG.md](CHANGELOG.md).
 
 ## Status
 
-0.2.0, released 2026-10-24, on PyPI and archived at DOI
-[10.5281/zenodo.23620653](https://doi.org/10.5281/zenodo.23620653). 0.1.0 is a
-separate Zenodo record at
-[10.5281/zenodo.23613789](https://doi.org/10.5281/zenodo.23613789). Pre-alpha: the
+0.3.0, released <!-- RELEASE_DATE -->. The latest archived release is 0.2.0 at DOI
+[10.5281/zenodo.23620653](https://doi.org/10.5281/zenodo.23620653); 0.3.0's deposit
+is pending. 0.1.0 is a separate Zenodo record at
+[10.5281/zenodo.23613789](https://doi.org/10.5281/zenodo.23613789). Alpha: the
 API may change between 0.x minor versions, as described in
 [ADR-009](docs/adr/ADR-009-versioning.md).
 

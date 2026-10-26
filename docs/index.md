@@ -79,6 +79,7 @@ ROADMAP
 verification-rule
 release_notes_0.1.0
 release_notes_0.2.0
+release_notes_0.3.0
 ```
 
 ## License
