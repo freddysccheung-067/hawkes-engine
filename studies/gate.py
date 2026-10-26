@@ -60,6 +60,8 @@ GATES: tuple[Gate, ...] = (
             "-m",
             "not slow",
             "--ignore=tests/test_sdist.py",
+            "--cov",
+            "--cov-report=",
         ),
     ),
     Gate(

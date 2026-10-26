@@ -38,6 +38,12 @@ fixed by a new patch version, never by replacing the file.
   validation. These three are the only hand-written values in the release.
 - The paper is still a draft. If it has been submitted anywhere, stop: the release
   notes say it has not, and that sentence would become false.
+  *This precondition no longer holds as written.* The paper was deposited on HAL
+  as `hal-05838093` on 2026-10-25 and is in moderation, which is a submission.
+  Before the next release, either the release notes are edited to say it is
+  deposited rather than unsubmitted, or this bullet is removed and this paragraph
+  is, in the same commit. Do not release against a precondition the repository is
+  known to fail.
 
 ## 1. Create the PyPI project and register the trusted publisher
 

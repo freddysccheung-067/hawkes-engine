@@ -903,3 +903,37 @@ def test_the_coordinate_the_theory_calls_flat_is_the_one_measured_worst():
         "the worst decay ratio is not the same source-target pair as the worst "
         "excitation ratio, which the theory section's ridge argument relies on"
     )
+
+
+def test_the_sandwich_figures_in_the_paper_are_the_studys_own():
+    """The paper's J0/I0 range quotes the sw-v1 estimands, not a paraphrase.
+
+    The theory section used to say the sandwich experiment could not be run. It now
+    reports one, so the three figures that carry the claim have to come from the
+    committed output: the low and high ends of the ratio across the primary cells,
+    and the factor by which a sandwich can move the interval.
+    """
+    path = ROOT / "studies" / "results" / "sandwich" / "estimands.json"
+    main_tex = ROOT / "paper" / "main.tex"
+    if not path.exists() or not main_tex.exists():
+        pytest.skip("sw-v1 estimands are not present in this checkout")
+    est = json.loads(path.read_text(encoding="utf-8"))
+    primary = [
+        key
+        for key in est
+        if key.startswith("M2_") and "_r0.0_" in key and not key.endswith("c0.001")
+    ]
+    g = [est[key]["beta"]["g"] for key in primary]
+    text = main_tex.read_text(encoding="utf-8")
+
+    def _macro(name: str) -> str:
+        found = re.search(rf"\\newcommand\{{\\{name}\}}\{{(.*?)\}}", text)
+        assert found, f"{name} is not defined in main.tex"
+        return found.group(1)
+
+    assert float(_macro("SwGRatioLow")) == pytest.approx(min(g), abs=5e-4)
+    assert float(_macro("SwGRatioHigh")) == pytest.approx(max(g), abs=5e-4)
+    assert float(_macro("SwMaxFactor")) == pytest.approx(
+        max(max(g) ** 0.5, min(g) ** -0.5), abs=5e-4
+    )
+    assert int(_macro("SwCells")) == len(est)

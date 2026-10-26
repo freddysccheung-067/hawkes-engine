@@ -39,3 +39,11 @@ identifiers:
   - type: doi
     value: "10.5281/zenodo.23620652"
     description: "Version 0.2.0, all versions of that record"
+# The paper is not citable yet, so no author's paper entry is added here. It is
+# deposited on HAL as `hal-05838093` and is in moderation: the record is not
+# public, its public URL returns nothing to anyone else, and an unpublished
+# identifier in a citation file would invite a reader to cite a record that does
+# not resolve. When HAL accepts it, add it here as a `preferred-citation` with
+# type `article`, the author, the title, the HAL URL and the acceptance year, and
+# add the same line to `docs/STATE.md`. arXiv has not endorsed the `stat.ME`
+# submission, so there is no preprint identifier to use in its place.

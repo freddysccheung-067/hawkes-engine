@@ -125,6 +125,22 @@ def ljung_box(gaps: list[FloatArray], lags: int = 10) -> TestResult:
     degrees of freedom, where ``r_k`` is the lag-k sample autocorrelation. No
     parameters are fitted to the gaps, so no degrees of freedom are removed. The
     lag count is capped at ``n // 4`` for short series.
+
+    Parameters
+    ----------
+    gaps
+        One array of inter-event gaps per type, as returned by
+        :func:`hawkes_engine.time_rescale`.
+    lags
+        Lag count ``h``. Reduced to ``n // 4`` per type, and a type with fewer
+        than four gaps contributes ``nan`` rather than a statistic.
+
+    Returns
+    -------
+    TestResult
+        ``stat`` and ``pvalue`` per type. The null is independence: a small
+        p-value is evidence of dependence left in the gaps, which a correct model
+        and a correct time rescaling should not leave behind.
     """
     # Imported here, not at module level: scipy.stats is about 1.5 s of the
     # package's import time and only these tests need it. fit.py does the same

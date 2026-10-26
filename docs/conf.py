@@ -59,6 +59,7 @@ exclude_patterns = [
     "STATE.md",
     "preregistration.md",
     "preregistration_auto.md",
+    "preregistration_sandwich.md",
     # The maintainer's release checklist: repository-only, like STATE.md.
     "RELEASING.md",
     "_generated",

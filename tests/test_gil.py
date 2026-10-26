@@ -117,6 +117,37 @@ def _solo_count(duration: float) -> int:
     return counts[0]
 
 
+def _held_count(duration: float) -> int:
+    """What the counter advances while this thread holds the GIL in Python.
+
+    This is the denominator that makes the short-call test machine-independent.
+    The ratio a held call produces is not a universal constant: it depends on the
+    interpreter's switch interval, on how fast the counter loop runs, and on how
+    the OS schedules two runnable threads on the cores it has. A released-GIL
+    call returns a ratio near the solo rate on every machine; a held call returns
+    a ratio set by that scheduler, and the two distributions can overlap on a
+    contended runner even though the release is working.
+
+    So the held figure is measured here, by running the same counter while this
+    thread holds the GIL in a pure-Python loop for the same duration. The test
+    then asks whether the call's ratio sits above the machine's own measured held
+    figure by a stated margin, instead of above a constant chosen on one machine.
+    """
+    counts = [0]
+    stop = threading.Event()
+
+    def count() -> None:
+        while not stop.is_set():
+            counts[0] += 1
+
+    counter = threading.Thread(target=count, daemon=True)
+    counter.start()
+    _counter_for(duration)
+    stop.set()
+    counter.join()
+    return counts[0]
+
+
 @pytest.mark.slow
 def test_the_counter_runs_during_simulate():
     """A Python thread advances while simulate() is inside C++.
@@ -268,16 +299,26 @@ def test_the_release_does_not_leak_into_the_caller():
 
 
 def test_smoke_a_short_call_releases_the_gil():
-    """A fast version of the overlap test, small enough for every push.
+    """A short version of the overlap test, sized so a busy runner cannot fool it.
 
-    The call is sized on the machine rather than fixed, because a call short
-    enough to spend most of its window in argument marshalling and the release
-    scope gives a ratio near the held-GIL figure for a reason that has nothing to
-    do with the GIL. A macOS arm64 runner measured 0.34 at a fixed 20 ms and the
-    over-one-second tests measure about 1.0, so the window is grown until the
-    call lasts at least 40 ms before the ratio is taken.
+    Both quantities are measured on the runner rather than assumed, and the
+    window is the part that took measurement to get right. A call of about 90 ms
+    is too short: under 24 competing threads the counter's rate during the call
+    fell to 0.64 of solo against a held control of 0.81, so the comparison
+    inverted and a working release read as a held one. At 350 ms and longer the
+    same measurement separates cleanly, because a released call gains from real
+    parallelism across the whole window while the control gets progressively less
+    of the interpreter. Measured on one machine: 90 ms gives a 1.75x margin,
+    350 ms 1.93x, 1.4 s 2.16x, and under load 350 ms holds 1.88x where 90 ms
+    inverted.
 
-    Three calls, median, floor 0.4. The slow tests carry the claim; this one
+    So the window is grown until the call lasts at least 350 ms, and the
+    assertion is that the call's median ratio clears the median of three held-GIL
+    controls measured beside it by MARGIN. A call that held the GIL produces the
+    control by construction and fails.
+
+    Three calls each, median, because one timing on a shared runner can be
+    disturbed by a descheduled OS thread. The slow tests carry the claim; this one
     catches a release that was removed.
     """
     mu, alpha, beta = _params()
@@ -286,18 +327,40 @@ def test_smoke_a_short_call_releases_the_gil():
         start = time.perf_counter()
         hawkes_engine.simulate(mu, alpha, beta, work, seed=1)
         taken = time.perf_counter() - start
-        if taken >= 0.04 or work > 50_000_000.0:
+        if taken >= 0.35 or work > 200_000_000.0:
             break
         work *= 4.0
 
     ratios = []
+    elapsed_seen = 0.0
     for _ in range(3):
         n_during, elapsed = _count_in_thread(
             lambda: hawkes_engine.simulate(mu, alpha, beta, work, seed=1)
         )
         n_solo = _solo_count(elapsed)
         ratios.append(n_during / n_solo)
+        elapsed_seen += elapsed
         print(f"smoke: simulate {elapsed:.3f}s -> ratio {n_during / n_solo:.2f}")
     ratio = statistics.median(ratios)
-    print(f"smoke: median ratio {ratio:.2f} over {work:.0f} units of window")
-    assert ratio >= 0.4, f"counter ratio {ratio:.2f} suggests the GIL was held"
+
+    window = elapsed_seen / 3
+    held_ratios = []
+    for _ in range(3):
+        held_ratios.append(_held_count(window) / _solo_count(window))
+        print(f"smoke: held control -> ratio {held_ratios[-1]:.2f}")
+    held = statistics.median(held_ratios)
+
+    print(
+        f"smoke: median ratio {ratio:.2f} against a measured held-GIL control of "
+        f"{held:.2f} over {work:.0f} units of window"
+    )
+    # 1.35 rather than 1.5: the smallest margin measured at this window length
+    # was 1.88 under heavy load, so this leaves room for a runner slower to
+    # deschedule the counter than any measured here while still failing a call
+    # that holds the GIL, which sits at the control by construction.
+    margin = 1.35
+    assert ratio >= held * margin, (
+        f"the counter advanced at {ratio:.2f} of its solo rate while simulate ran, "
+        f"against {held:.2f} while this thread held the GIL: no release, or none "
+        f"large enough to measure above this runner's own noise"
+    )

@@ -22,13 +22,21 @@ dependencies = [
     "scipy>=1.10.0",
 ]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    # The trove classifier describes release maturity, and this package has been
+    # in a release state since 0.1.0: two PyPI releases, a measured calibration
+    # study, and a pinned public surface. "2 - Pre-Alpha" means "not yet in a
+    # release state", which is false here. It is 3 - Alpha and not higher because
+    # ADR-009 is unchanged: 0.x minors may break the surface, and 1.0.0 is held
+    # for a map that covers more than two types and one decay form.
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: C++",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering",
     "Typing :: Typed",
 ]
@@ -95,6 +103,26 @@ addopts = "-ra --tb=short"
 markers = [
     "slow: the recovery studies; run nightly rather than on every push (-m 'not slow')",
 ]
+
+[tool.coverage.run]
+# The library, not the test tree and not the reference implementation: the oracle
+# is verified against the compiled core, it is not measured for its own coverage.
+source = ["hawkes_engine"]
+omit = ["*/_selftest.py"]
+# `_selftest.py` is omitted on purpose and it is the one real measurement
+# decision here. It exists to run inside CIBW_TEST_COMMAND against an installed
+# wheel, so pytest never imports it: it accounted for 53 of the 153 uncovered
+# statements, and counting a file that nothing in this process can execute would
+# make the floor a number about nothing.
+
+[tool.coverage.report]
+# The floor is the number the suite actually reaches, not a target. Measured on
+# 2026-10-25: 1016 of 1116 statements, 91.04 percent. Set one point below so a
+# platform whose stdlib takes a different branch does not fail the run for it;
+# the ratchet is still upward, and it is never lowered to make a change pass.
+fail_under = 91
+show_missing = true
+skip_covered = true
 
 [tool.mypy]
 python_version = "3.10"

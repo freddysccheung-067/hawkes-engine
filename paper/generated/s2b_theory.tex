@@ -227,11 +227,21 @@ the mean and the median diverge, not because the decay block is badly calibrated
 every measure.
 
 None of this makes the sandwich inconsistent. Equation~\eqref{eq:sandwich} remains
-the right target in the limit, and a sandwich estimator computed from a correctly
-evaluated $J$ is the natural candidate for closing the gap measured here. The reason
-this paper does not report that experiment is that it requires per-replication
-score variances, which the study did not store and which cannot be reconstructed
-from the committed analysis outputs.
+the right target in the limit. The study described in Section~\ref{sec:repro} was
+run after this paper's first draft, on seven cells from the same frozen grid, and
+it answers the question this paragraph used to leave open: the sandwich does not
+close the gap. What it shows instead is why nothing built from
+\eqref{eq:sandwich} can close it here.
+
+Evaluated at the true parameters, where the score has a non-degenerate covariance,
+the information equality \eqref{eq:equality} holds to within the finite-window
+effect: $J_0/I_0$ is between \SwGRatioLow{} and \SwGRatioHigh{} coordinate by
+coordinate across the five primary cells. A sandwich built from
+$I_0^{-1} J_0 I_0^{-1}$ therefore differs from the inverse Hessian by a factor of
+$\sqrt{J_0/I_0}$, which is at most \SwMaxFactor{} and cannot account for a
+shortfall of the size measured above. The deficit is not an information-equality
+failure, so the remedy this paragraph previously named was aimed at the wrong
+term, and the estimator is not the explanation for it.
 
 The pooled figure is consistent with the block account and adds nothing to it. The
 pooled statistic is the coordinate-weighted mean of the three block ratios, so it

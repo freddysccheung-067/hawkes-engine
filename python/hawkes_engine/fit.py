@@ -22,6 +22,7 @@ Two things this module deliberately does *not* claim:
 from __future__ import annotations
 
 import warnings
+from collections.abc import Callable
 
 import numpy as np
 import numpy.typing as npt
@@ -316,6 +317,7 @@ def fit(
     n_bootstrap: int = 200,
     auto_max_seconds: float | None = 120.0,
     bootstrap_workers: int | None = None,
+    bootstrap_progress: Callable[[int, int], None] | None = None,
 ) -> FitResult:
     """Fit the model by maximum likelihood; return the estimates and what is known about them.
 
@@ -384,6 +386,14 @@ def fit(
         which is right for a single fit and wrong when many fits run at once: a
         study that parallelises over fits and leaves this at ``None`` starts one
         pool per fit and spends its time in process start-up. Set it to 1 there.
+    bootstrap_progress
+        Called as ``bootstrap_progress(done, total)`` after each bootstrap
+        replication finishes, when ``se_method`` is ``"bootstrap"`` or ``"auto"``
+        chose the bootstrap. It exists because a 200-replication bootstrap is
+        minutes of silence, which the paper names as a complaint against this
+        library. It is an observation hook and nothing more: it cannot change the
+        draws, the seeds or the standard errors, and it is not called inside a
+        worker process. Raising from it aborts the fit.
 
     Returns
     -------
@@ -561,6 +571,7 @@ def fit(
             seed=seed,
             workers=bootstrap_workers,
             zero_diagonal=zero_diagonal,
+            progress=bootstrap_progress,
         )
         se = boot.se
         cov_log = boot.cov_log
