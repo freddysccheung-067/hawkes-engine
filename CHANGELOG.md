@@ -3,6 +3,37 @@
 All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The project is alpha.
 
+## [0.3.0] - <!-- RELEASE_DATE -->
+
+The release in which the experiment the paper named gets run, and comes back null.
+Full notes, with the study result and the paper status:
+[`docs/release_notes_0.3.0.md`](docs/release_notes_0.3.0.md).
+
+### Added
+
+- Wheels for CPython 3.13 and 3.14 on Linux x86-64, macOS (x86-64 and arm64) and
+  Windows AMD64. Free-threaded `cp314t` builds are excluded.
+- `bootstrap_progress`, a callable taking `(done, total)`, so a long bootstrap is not
+  silent. It observes and cannot change a draw.
+- `ljung_box` and `ReliabilityReport` exported from the package.
+
+### Changed
+
+- A bootstrap whose worker pool dies is computed in the caller's process instead of
+  raising. The draws are identical; the fit is slower and its notes say so. A pool
+  that produced nothing keeps the existing error, so a missing `__main__` guard still
+  fails.
+- CI fails when coverage drops below 91 percent, which is what the suite reaches.
+- Development Status moved from Pre-Alpha to Alpha.
+
+### The study
+
+- `sw-v1`, the sandwich estimator study, pre-registered and frozen at tag
+  `SW-preregistration`. H-S2 confirmed; H-S1, H-S3 and H-S4 not confirmed. The
+  information equality holds (`J0/I0` between 0.951 and 1.053), so a sandwich cannot
+  close the measured gap and the remedy the paper named was aimed at the wrong term.
+- The paper reports the null in section 2b and says what it means for the headline.
+
 ## [0.2.0] - 2026-10-24
 
 The release in which the calibration study drives the estimator. Full notes, with

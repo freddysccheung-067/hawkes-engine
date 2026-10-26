@@ -7,7 +7,7 @@ abstract: >-
   independent exact simulators, time-rescaling diagnostics, and a lookup of what a
   pre-registered simulation study measured about the fit's standard errors.
 type: software
-version: 0.2.0
+version: 0.3.0
 authors:
   - family-names: Cheung
     given-names: Freddy Shi Chun
@@ -28,17 +28,16 @@ keywords:
 #   10.5281/zenodo.23620653  v0.2.0, deposited by the GitHub integration
 #
 # Each began its own series, so each has its own concept DOI, and neither concept
-# DOI points at this version from the other. 0.2.0's own concept is 23620652. The
-# entries below name this version and the record that contains it; 0.1.0's DOI is
-# in 0.1.0's release notes, where it is the right answer.
-doi: "10.5281/zenodo.23620653"
-identifiers:
-  - type: doi
-    value: "10.5281/zenodo.23620653"
-    description: "Version 0.2.0"
-  - type: doi
-    value: "10.5281/zenodo.23620652"
-    description: "Version 0.2.0, all versions of that record"
+# DOI points at this version from the other. 0.2.0's own concept is 23620652.
+#
+# No `doi` or `identifiers` entry is set here, because 0.3.0 has not been archived
+# and a DOI in this file is a citation to a record that exists. This is the same
+# state 0.2.0 was in before its deposit: at that point the field was removed rather
+# than pointed at 0.1.0's record, which would have told a reader to cite the wrong
+# version. When 0.3.0 is deposited -- into the 23620652 series, so one concept DOI
+# covers everything from 0.2.0 onward -- set `doi` and the two `identifiers` here,
+# and update docs/release_notes_0.3.0.md, in one commit. See docs/RELEASING.md
+# step 9. tests/test_release_metadata.py fails if only one of the two moves.
 # The paper is not citable yet, so no author's paper entry is added here. It is
 # deposited on HAL as `hal-05838093` and is in moderation: the record is not
 # public, its public URL returns nothing to anyone else, and an unpublished
