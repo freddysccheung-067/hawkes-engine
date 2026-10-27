@@ -19,30 +19,28 @@ This paper measures that discrepancy instead of assuming it away, explains where
 comes from, and then acts on the measurement. It makes four contributions.
 
 \begin{enumerate}
-\item \textbf{A public implementation.} A compiled likelihood and gradient for the
+\item A public implementation: a compiled likelihood and gradient for the
 multivariate exponential-kernel Hawkes process, a maximum-likelihood fit with
-observed-information standard errors, two independent exact simulators, and
-time-rescaling diagnostics, released as an installable package with a pinned public
-surface and a test suite that pins every figure in its documentation to a committed
-output.
-\item \textbf{A pre-registered calibration study with two failures.} A design frozen
-before any measurement, with six dated amendments that each state what was known
-when it was written; a grid of \HsixCells{} cells at \HsixReplications{}
-replications; and a result in which the headline is a measured shortfall and two of
-the six hypotheses are not confirmed. The two are reported for the same reason as
-the four that held, on the same page, with the numbers that decided them.
-\item \textbf{An explanation of the shortfall that stops where it stops.} The
-asymptotic covariance of the estimator predicts that the reported interval is
-correct in the limit, and Section~\ref{sec:theory} says what has to fail for it not
-to be. A Jensen correction on the reported variance derives the sign and the
-ordering across parameter blocks, and it does not reproduce the measured
-magnitude in the decay block, by a factor the paper states. The disagreement is
-reported as a measured property of the decay block rather than smoothed over, and
-the part of the derivation that could not be closed is named.
-\item \textbf{A shipped lookup that refuses to extrapolate.} A map of the measured
-quantities, installed with the package, which answers for a regime only inside the
-box it measured, says so when it has no measurement, and says the estimator is
-undefined when the cell it found is one where it does not exist.
+observed-information standard errors, two independent exact simulators and
+time-rescaling diagnostics, released as an installable package whose documented
+figures are each checked against a committed output.
+\item A pre-registered calibration study with two failures. The design was frozen
+before any measurement and amended six times, each amendment stating what was known
+when it was written. The grid has \HsixCells{} cells at \HsixReplications{}
+replications. The headline is a measured shortfall, and two of the six hypotheses
+are not confirmed. Those two are reported on the same page as the four that held,
+with the numbers that decided them.
+\item An explanation of the shortfall that stops where it stops. The asymptotic
+covariance of the estimator predicts that the reported interval is correct in the
+limit, and Section~\ref{sec:theory} says what has to fail for it not to be. A Jensen
+correction on the reported variance gives the sign and the ordering across parameter
+blocks, and it misses the magnitude in the decay block by a factor the paper
+states. A second pre-registered study then rules out the remedy the derivation
+suggests. The part of the derivation that could not be closed is named.
+\item A shipped lookup that refuses to extrapolate. The map of measured quantities
+is installed with the package. It answers for a regime only inside the box it
+measured, says so when it has no measurement, and reports the estimator as
+undefined where the cell it found is one in which it does not exist.
 \end{enumerate}
 
 The rest of the paper follows that order. Section~\ref{sec:model} writes the model

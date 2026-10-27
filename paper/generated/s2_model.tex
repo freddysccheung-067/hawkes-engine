@@ -8,9 +8,9 @@ e^{-\beta_{ij}(t - t_k^j)},
 \end{equation}
 where $t_k^j$ runs over the events of type $j$ strictly before $t$. Rows index
 targets and columns index sources, so $\alpha_{ij}$ is the effect of a type-$j$
-event on the intensity of type $i$; this is the convention fixed in ADR-002, which
-also places the optimizer in log space, $\mu = e^{a}$, $\alpha = e^{b}$,
-$\beta = e^{c}$, so that positivity is structural rather than enforced by bounds.
+event on the intensity of type $i$. The optimizer works in log space,
+$\mu = e^{a}$, $\alpha = e^{b}$, $\beta = e^{c}$, so that positivity holds by
+construction and needs no bounds.
 
 The likelihood is the standard point-process expression,
 \begin{equation}

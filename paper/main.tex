@@ -4,12 +4,21 @@
 
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage{lmodern}
+% Palatino for text and for math. Computer Modern at 11pt is thin and tightly set
+% beside the table rules and figure labels; Palatino has a larger x-height and
+% more open spacing, which reads better on screen, and mathpazo matches the math
+% italics to it. Latin Modern supplies the typewriter face, which Palatino lacks,
+% and microtype adds protrusion and font expansion, which is what removes most of
+% the loose lines in justified text.
+\usepackage{mathpazo}
+\renewcommand{\ttdefault}{lmtt}
+\linespread{1.04}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \graphicspath{{figures/}}
 \usepackage[margin=1in]{geometry}
+\usepackage{microtype}
 \usepackage{natbib}
 \usepackage{hyperref}
 \usepackage{caption}
@@ -140,7 +149,7 @@
 \newcommand{\SwGRatioLow}{0.951}
 \newcommand{\SwGRatioHigh}{1.053}
 \newcommand{\SwMaxFactor}{1.026}
-\newcommand{\AbstractWords}{192}
+\newcommand{\AbstractWords}{191}
 
 \title{Measured calibration of a Hawkes maximum-likelihood estimator,\\
 and what a library can do about it}

@@ -58,6 +58,42 @@ def _balanced(text: str) -> tuple[bool, str]:
     return True, ""
 
 
+def _column_spec(text: str) -> str | None:
+    """The argument of the first tabular environment, with its braces balanced.
+
+    A column such as ``p{5.4cm}`` carries braces of its own, so matching up to the
+    first closing brace reads ``p{5.4cm}rr`` as ``p{5.4cm`` and miscounts the table.
+    """
+    opening = "\\begin{tabular}{"
+    start = text.find(opening)
+    if start < 0:
+        return None
+    begin = start + len(opening)
+    depth = 1
+    i = begin
+    while i < len(text) and depth:
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+        i += 1
+    return text[begin : i - 1] if depth == 0 else None
+
+
+def _count_columns(spec: str) -> int:
+    """Columns in a tabular spec: the letters l, c, r and p outside any braces."""
+    depth = 0
+    count = 0
+    for ch in spec:
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+        elif depth == 0 and ch in "lcrp":
+            count += 1
+    return count
+
+
 def check() -> list[str]:
     problems: list[str] = []
     if not MAIN.exists():
@@ -113,11 +149,11 @@ def check() -> list[str]:
     # 4. Tabular column counts. booktabs rules are not rows.
     for path in sorted((PAPER / "generated").glob("table_*.tex")):
         text = _strip_comments(path.read_text(encoding="utf-8"))
-        spec = re.search(r"\\begin\{tabular\}\{([^}]*)\}", text)
-        if not spec:
+        spec = _column_spec(text)
+        if spec is None:
             problems.append(f"{path.name}: no tabular environment")
             continue
-        columns = len(re.sub(r"[^lcrp]", "", spec.group(1)).replace("p", "p"))
+        columns = _count_columns(spec)
         body = text.split(r"\midrule", 1)[-1].split(r"\bottomrule", 1)[0]
         for line in body.splitlines():
             line = line.strip()
