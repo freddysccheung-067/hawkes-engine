@@ -1,8 +1,11 @@
 \begin{table}[t]
 \centering
-\caption{The six pre-registered hypotheses after Holm correction. Where admissible
-readings of a standard error disagreed, the label is the least favourable one any
-of them produces.}
+\caption{The six pre-registered hypotheses, after Holm correction. $T$ is the
+estimated statistic, $\tau$ the threshold fixed before the data existed, SE the
+standard error of $T$ and $z$ the standardised distance from the threshold. H1 and
+H2 are exploratory because an earlier study had already seen their direction. Where
+admissible readings of a standard error disagreed, the outcome is the least
+favourable one any of them produces.}
 \label{tab:hypotheses}
 \input{generated/table_hypotheses}
 \end{table}
@@ -23,13 +26,12 @@ property of the estimator at all sample sizes. Figure~\ref{fig:coverage} shows
 coverage cell by cell and Figure~\ref{fig:sevsd} shows where each cell's reported
 standard error sits against the spread it describes.
 
-table~\ref{tab:hypotheses} reports all six hypotheses with the statistics that
-decided them. Two of them were not confirmed, and both failures are informative.
-\HsixThreeLabel{}: coverage was predicted to fall monotonically toward
-criticality, but it rises from \HsixThreeLowRho{} at $\rho = 0.3028$ to
-\HsixThreeHighRho{} at $\rho = 0.60$. \HsixFourLabel{}: timestamp quantisation
-was predicted to bias the decay estimate upward, and at $N \ge 10\,000$ it moves it
-downward.
+Table~\ref{tab:hypotheses} reports all six hypotheses with the statistics that
+decided them. Two were not confirmed, and both failures are informative. H3 was
+\HsixThreeLabel{}: coverage was predicted to fall monotonically toward criticality,
+but it rises from \HsixThreeLowRho{} at $\rho = 0.3028$ to \HsixThreeHighRho{} at
+$\rho = 0.60$. H4 was \HsixFourLabel{}: timestamp quantisation was predicted to bias
+the decay estimate upward, and at $N \ge 10\,000$ it moves it downward.
 
 The conditioning verdict separates coverage, but mostly mechanically:
 \HsixMechanicalShare{}~percent of \texttt{unreliable} replications carry no
@@ -93,12 +95,11 @@ $c = 1$ cell \ThWorstUnreliableShare{}~percent of replications are labelled
 \texttt{unreliable}. What it does not catch is the intermediate case, a fit that has
 moved far enough along the ridge to wreck the mean but not far enough to make the
 curvature at its endpoint extreme. The condition number is a property of the
-information matrix at one point, and the problem is that the likelihood surface has
-a better point a long way away that the optimizer did not find and the local
-curvature cannot see. A verdict built from the local Hessian is a statement about
-the neighbourhood of the answer, and the tail is a statement about the shape of the
-surface. The two coincide often enough to separate coverage in aggregate and diverge
-often enough that \ThTailReliable{} wrong-but-confident fits passed through.
+information matrix at one point. A verdict built from the local Hessian describes
+the neighbourhood of the answer, and the tail is a property of the surface farther
+along the ridge. The two coincide often enough to separate coverage in aggregate,
+and diverge often enough that \ThTailReliable{} confident fits with an implausible
+decay estimate passed through.
 
 No fix is proposed here, because none has been tested. A profile likelihood, a
 penalty on the flat direction, or a multi-start rule would each change the estimator

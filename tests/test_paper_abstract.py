@@ -26,7 +26,11 @@ MAIN = ROOT / "paper" / "main.tex"
 SUBMISSION = ROOT / "paper" / "SUBMISSION.md"
 
 MACRO = re.compile(r"\\newcommand\{\\([A-Za-z]+)\}\{((?:[^{}]|\{[^{}]*\})*)\}")
-BLOCK = re.compile(r"```\n(This paper measures.*?)\n```", re.S)
+# The first fenced block after the abstract's heading, not a block that starts with
+# particular words: the abstract is rewritten when the results change, and anchoring
+# on its opening sentence made every rewrite break the test for a reason unrelated
+# to whether the two texts agree.
+BLOCK = re.compile(r"## Abstract for the metadata form.*?```\n(.*?)\n```", re.S)
 
 
 def _rendered() -> list[str]:

@@ -71,22 +71,22 @@ loses the math. `tests/test_paper_abstract.py` expands the rendered abstract and
 compares it to the block below, so the two cannot drift apart.
 
 ```
-This paper measures whether a maximum-likelihood fit of a multivariate
-exponential-kernel Hawkes process reports intervals that behave as a user is
-entitled to assume, and it ships the answer as code. Over a pre-registered grid of
-128 cells and 2000 simulated replications per cell, the inverse-Hessian standard
-errors understate sampling spread: the ratio of mean reported standard error to
-empirical standard deviation, pooled over the twelve two-type cells with at least
-2000 events, is 0.779 +/- 0.011, and the four-type satellite agrees in direction
-(0.336 +/- 0.023). Two hypotheses were not confirmed: H6.3 expected coverage to
-fall monotonically toward criticality and it rose instead, and H6.4 expected
-timestamp quantisation to bias the decay estimate upward and it biased it down.
-The estimator is undefined in 67 of 128 cells, where the observation window holds
-too few decay times to identify the decay rate. The library therefore refuses to
-report an interval there, and where the map measures a shortfall it switches to a
-parametric bootstrap rather than reporting the interval it knows to be too narrow;
-the switch is tested in a second pre-registered study and its result is reported
-either way.
+A fit that converges and reports a standard error makes a claim about its own
+reliability that one dataset cannot check. This paper tests that claim for
+maximum-likelihood fits of multivariate exponential-kernel Hawkes processes, over a
+pre-registered grid of 128 cells with 2000 simulated replications each. The
+inverse-Hessian standard errors understate sampling spread: the ratio of mean
+reported standard error to empirical standard deviation, pooled over twelve two-type
+cells with at least 2000 events, is 0.779 +/- 0.011, and a four-type satellite
+agrees in direction (0.336 +/- 0.023). The shortfall is concentrated in the tail of
+the decay estimate, and a sandwich covariance, the natural remedy, cannot close it
+because the information equality holds. Two of six hypotheses were not confirmed:
+coverage rose before it fell toward criticality, and timestamp quantisation biased
+the decay estimate down rather than up. The estimator is undefined in 67 of 128
+cells, where the window holds too few decay times to identify the decay rate. The
+accompanying library reports no interval there and, where its calibration map
+measures a shortfall, switches to a parametric bootstrap, which a second
+pre-registered study finds closer to nominal coverage.
 ```
 
 The arXiv form takes 1920 characters, not words. This block is well inside it.

@@ -15,7 +15,7 @@ one, and the seed contract is what makes a rerun reproduce instead of resemble. 
 cell seed is derived from a hash of the cell's own coordinates,
 \begin{equation}
 s_{\text{cell}} = \operatorname{SplitMix64}\!\left(
-  \operatorname{int}\big(\operatorname{SHA256}(\texttt{h6-v1}|M|N|\rho|r|c)[:16],\,16\big)
+  \operatorname{int}\big(\operatorname{SHA256}(\text{study}\,|\,M\,|\,N\,|\,\rho\,|\,r\,|\,c)[:16],\,16\big)
 \right),
 \end{equation}
 and replication $k$ draws from \texttt{seed\_stream}$(s_{\text{cell}}, k)$. A
@@ -47,7 +47,7 @@ Six hypotheses were frozen, four confirmatory, and the four form a Holm family a
 family-wise $\alpha = 0.05$: the smallest $p$-value is compared to $0.05/4$, the
 next to $0.05/3$, and so on, so no step can be bought by another. Holm rather than
 Bonferroni because the four are ordered by importance and Holm is uniformly more
-powerful without giving up family-wise control. Two hypotheses (H6.1 and H6.2) are
+powerful without giving up family-wise control. Two hypotheses (H1 and H2) are
 labelled exploratory: an earlier study had already seen their direction, so they
 replicate rather than test and are reported outside the family. Where admissible
 readings of a standard error disagreed, the least favourable label governs, and
