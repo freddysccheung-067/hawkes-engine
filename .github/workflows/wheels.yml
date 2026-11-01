@@ -68,7 +68,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v4.3.1
+        uses: pypa/cibuildwheel@v4.3.5
         env:
           # ADR-006: cp310-cp314 on generic x86-64, no -march=native and no
           # -ffast-math. musllinux is skipped on purpose: the core has no
